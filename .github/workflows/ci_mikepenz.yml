@@ -1,0 +1,89 @@
+name: Continuous Integration (main)
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+  workflow_dispatch:
+    inputs:
+      run_with_stacktrace:
+        description: 'Run Gradle with --stacktrace'
+        type: boolean
+        required: false
+        default: false
+      run_with_info:
+        description: 'Run Gradle with --info'
+        type: boolean
+        required: false
+        default: false
+      run_with_debug:
+        description: 'Run Gradle with --debug'
+        type: boolean
+        required: false
+        default: false
+
+jobs:
+  build-and-test:
+    runs-on: macos-latest
+
+    # Permissions required for Mike Penz action to publish reports
+    permissions:
+      checks: write
+      pull-requests: write
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      # 1. Compile
+      - name: Assemble (Compile)
+        run: |
+          ./gradlew assemble \
+          ${{ inputs.run_with_stacktrace && '--stacktrace' || '' }} \
+          ${{ inputs.run_with_info && '--info' || '' }} \
+          ${{ inputs.run_with_debug && '--debug' || '' }}
+
+      # 2. Run Checks and Tests
+      - name: Check (Test & Lint)
+        continue-on-error: false
+        run: |
+          ./gradlew check \
+          ${{ inputs.run_with_stacktrace && '--stacktrace' || '' }} \
+          ${{ inputs.run_with_info && '--info' || '' }} \
+          ${{ inputs.run_with_debug && '--debug' || '' }}
+
+      # 3. Publish JUnit Test Report (GitHub Summary + PR Annotations)
+      - name: Publish Test Report
+        uses: mikepenz/action-junit-report@v4
+        if: always() # Run even if tests fail
+        with:
+          report_paths: '**/build/test-results/**/*.xml' # Supports multi-module paths
+          check_name: 'JUnit Test Report'
+          detailed_summary: true # Show detailed table
+          include_passed: true   # Include passed tests (similar visual effect to Dorny)
+
+      # 4. Upload HTML Report (For manual download and inspection)
+      - name: Upload Test Report HTML
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-reports-html
+          path: |
+            **/build/reports/tests/
+            **/build/reports/lint-results-*.html
+          retention-days: 5
