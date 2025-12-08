@@ -32,10 +32,24 @@ choice=${choice:-1}
 echo ""
 echo "------------------------------------------"
 
+# Set a local temporary path to simulate the artifact server
+ARTIFACT_PATH="/tmp/act-artifacts"
+mkdir -p "$ARTIFACT_PATH"
+
+# Ensure user has gh cli installed, otherwise prompt
+if ! command -v gh &> /dev/null; then
+    echo "⚠️  GitHub CLI (gh) not detected. act may fail due to missing Token."
+    echo "Recommendation: brew install gh"
+    TOKEN_ARG=""
+else
+    # Automatically fetch the currently logged-in Token
+    TOKEN_ARG="-s GITHUB_TOKEN=$(gh auth token)"
+fi
+
 if [ "$choice" == "1" ]; then
     echo "🔵 Running: Main Workflow (Mike Penz)..."
     # -W specifies the specific workflow file
-    act push -W .github/workflows/ci_mikepenz.yml -P macos-latest=-self-hosted
+    act push -W .github/workflows/ci_mikepenz.yml -P macos-latest=-self-hosted --artifact-server-path "$ARTIFACT_PATH" $TOKEN_ARG
     ACT_EXIT_CODE=$?
 
 elif [ "$choice" == "2" ]; then
@@ -43,7 +57,15 @@ elif [ "$choice" == "2" ]; then
     # Dorny is manually triggered, so we use workflow_dispatch
     # Note: Dorny's second Job requires Linux docker. Handling multi-platform in act's local Host mode is tricky.
     # Here we primarily verify if the XML is successfully generated.
-    act workflow_dispatch -W .github/workflows/ci_dorny.yml -P macos-latest=-self-hosted
+    # Added -P ubuntu-latest=catthehacker/ubuntu:act-latest
+    # This tells act: When YAML specifies runs-on: ubuntu-latest, use this full-featured image instead of the default slim image
+    act workflow_dispatch \
+        -W .github/workflows/ci_dorny.yml \
+        -P macos-latest=-self-hosted \
+        -P ubuntu-latest=catthehacker/ubuntu:act-latest \
+        --artifact-server-path "$ARTIFACT_PATH" \
+        $TOKEN_ARG
+
     ACT_EXIT_CODE=$?
 else
     echo "❌ Invalid option, script terminated."
