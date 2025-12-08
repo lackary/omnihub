@@ -66,6 +66,29 @@ in your IDE's toolbar or run it directly from the terminal:
 To build and run the development version of the iOS app, use the run configuration from the run widget
 in your IDE’s toolbar or open the [/iosApp](./iosApp) directory in Xcode and run it from there.
 
+### Local CI Testing
+
+This project uses GitHub Actions for CI/CD. To test the workflows locally without pushing to GitHub, we use [act](https://github.com/nektos/act) along with a helper script.
+
+**Prerequisites:**
+1. Install [Docker](https://www.docker.com/).
+2. Install `act` (e.g., `brew install act`).
+3. Install GitHub CLI `gh` (e.g., `brew install gh`) for authentication.
+
+**How to run:**
+We provide a safe wrapper script to handle artifact paths and permissions automatically.
+
+```shell
+shell ./run_act_safe.sh
+```
+
+This script provides an interactive menu to choose between:
+*   **Main Workflow (Mike Penz):** Simulates a `push` event. Fast, single-job routine for daily feedback.
+*   **Dorny Workflow (Manual):** Simulates a `workflow_dispatch` event. Multi-job routine for generating detailed standalone reports.
+
+> **Note:** The script will ask for your permission to clean up Gradle build artifacts after execution to save disk space.
+
+
 ---
 
 Learn more about [Kotlin Multiplatform](https://www.jetbrains.com/help/kotlin-multiplatform-dev/get-started.html),
