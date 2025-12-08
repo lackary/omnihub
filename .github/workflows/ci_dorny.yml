@@ -81,14 +81,22 @@ jobs:
   # Job 2: Generate Dorny report on Linux
   report-test-results:
     name: Report Test Results
-    if: always()
-    needs: build-and-test
     runs-on: ubuntu-latest # Dorny must run in a Linux (Docker) environment
+    needs: build-and-test
     permissions:
       checks: write      # Required permission
       pull-requests: write
       contents: read
+    if: always()
     steps:
+      - name: Install Git (for act environment)
+        if: ${{ env.ACT }} # 只在 act 本機執行時才跑，節省雲端時間
+        run: |
+          apt-get update && apt-get install -y git
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+
       - name: Download Test Results
         uses: actions/download-artifact@v4
         with:
