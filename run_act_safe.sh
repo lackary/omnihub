@@ -10,21 +10,29 @@ if [ ! -f "gradlew" ] || [ ! -d ".github" ]; then
     exit 1
 fi
 
-echo "🚀 Preparing to run act (macOS local mode)..."
+echo "🚀 Preparing to run tests..."
 echo "⚠️  Note: This will use your local Gradle and JDK environment"
 echo ""
 
 # 2. Menu: Let user choose which Workflow to run
 echo "Please select the Workflow to test:"
 echo "  1) Continuous Integration (main) [Uses ci_mikepenz.yml]"
-echo "     - Simulates 'push' event"
+echo "     - Simulates 'push' event using act"
 echo "     - Fast, single Job"
 echo ""
 echo "  2) Continuous Integration (Dorny) [Uses ci_dorny.yml]"
-echo "     - Simulates 'workflow_dispatch' event"
-echo "     - Dual Jobs (Local will run the first XML generation part; the second Linux Job might fail or be skipped)"
+echo "     - Simulates 'workflow_dispatch' event using act"
+echo "     - Dual Jobs"
 echo ""
-read -p "Enter option [1 or 2] (Default 1): " choice
+echo "  3) Release Workflow (Container Mode) [Uses release.yml via act]"
+echo "     - Simulates 'push' event inside Docker"
+echo "     - May fail due to Docker npm network issues"
+echo ""
+echo "  4) Release Logic Check (Host Mode) [Direct npx]"
+echo "     - Runs semantic-release directly on your Mac"
+echo "     - Bypasses Docker issues. Best for checking logic."
+echo ""
+read -p "Enter option [1, 2, 3 or 4] (Default 1): " choice
 
 # Default to 1
 choice=${choice:-1}
@@ -38,35 +46,62 @@ mkdir -p "$ARTIFACT_PATH"
 
 # Ensure user has gh cli installed, otherwise prompt
 if ! command -v gh &> /dev/null; then
-    echo "⚠️  GitHub CLI (gh) not detected. act may fail due to missing Token."
+    echo "⚠️  GitHub CLI (gh) not detected. act/npx may fail due to missing Token."
     echo "Recommendation: brew install gh"
     TOKEN_ARG=""
+    EXPORT_TOKEN=""
 else
     # Automatically fetch the currently logged-in Token
-    TOKEN_ARG="-s GITHUB_TOKEN=$(gh auth token)"
+    RAW_TOKEN=$(gh auth token)
+    TOKEN_ARG="-s GITHUB_TOKEN=$RAW_TOKEN"
+    EXPORT_TOKEN=$RAW_TOKEN
 fi
 
 if [ "$choice" == "1" ]; then
     echo "🔵 Running: Main Workflow (Mike Penz)..."
-    # -W specifies the specific workflow file
-    act push -W .github/workflows/ci_mikepenz.yml -P macos-latest=-self-hosted --artifact-server-path "$ARTIFACT_PATH" $TOKEN_ARG
+    CMD="act push -W .github/workflows/ci_mikepenz.yml -P macos-latest=-self-hosted --artifact-server-path \"$ARTIFACT_PATH\" $TOKEN_ARG"
+    echo "👉 Executing: $CMD"
+    eval $CMD
     ACT_EXIT_CODE=$?
 
 elif [ "$choice" == "2" ]; then
     echo "🟠 Running: Dorny Workflow (Manual)..."
-    # Dorny is manually triggered, so we use workflow_dispatch
-    # Note: Dorny's second Job requires Linux docker. Handling multi-platform in act's local Host mode is tricky.
-    # Here we primarily verify if the XML is successfully generated.
-    # Added -P ubuntu-latest=catthehacker/ubuntu:act-latest
-    # This tells act: When YAML specifies runs-on: ubuntu-latest, use this full-featured image instead of the default slim image
-    act workflow_dispatch \
-        -W .github/workflows/ci_dorny.yml \
-        -P macos-latest=-self-hosted \
-        -P ubuntu-latest=catthehacker/ubuntu:act-latest \
-        --artifact-server-path "$ARTIFACT_PATH" \
-        $TOKEN_ARG
+    CMD="act workflow_dispatch -W .github/workflows/ci_dorny.yml -P macos-latest=-self-hosted -P ubuntu-latest=catthehacker/ubuntu:act-latest --artifact-server-path \"$ARTIFACT_PATH\" $TOKEN_ARG"
+    echo "👉 Executing: $CMD"
+    eval $CMD
+    ACT_EXIT_CODE=$?
+
+elif [ "$choice" == "3" ]; then
+    echo "🟣 Running: Release Workflow (Container Mode)..."
+    echo "⚠️  Note: Running inside Docker container."
+    CMD="act push -W .github/workflows/release.yml -P ubuntu-latest=catthehacker/ubuntu:act-latest $TOKEN_ARG"
+    echo "👉 Executing: $CMD"
+    eval $CMD
+    ACT_EXIT_CODE=$?
+
+elif [ "$choice" == "4" ]; then
+    echo "🟢 Running: Release Logic Check (Host Mode)..."
+    echo "⚡ This runs directly on your machine using npx."
+
+    # Check if npm/npx is installed
+    if ! command -v npx &> /dev/null; then
+        echo "❌ Error: npx is not installed. Please install Node.js."
+        exit 1
+    fi
+
+    # Export token for this session only
+    export GITHUB_TOKEN=$EXPORT_TOKEN
+
+    # Execute npx and install extra plugins explicitly because .releaserc.yml requires them
+    CMD="npx -p semantic-release -p @semantic-release/git -p @semantic-release/changelog semantic-release --dry-run --branches main --no-ci"
+    echo "👉 Executing: $CMD"
+
+    # Run semantic-release dry-run
+    eval $CMD
 
     ACT_EXIT_CODE=$?
+
+
 else
     echo "❌ Invalid option, script terminated."
     exit 1
@@ -76,31 +111,29 @@ echo ""
 echo "=========================================="
 
 if [ $ACT_EXIT_CODE -eq 0 ]; then
-    echo "✅ CI process completed successfully!"
+    echo "✅ Process completed successfully!"
 
-    # If running Dorny, remind to check XML
     if [ "$choice" == "2" ]; then
-        echo "ℹ️  (Dorny Mode Tip) Please check 'build/test-results' to see if XML files were generated."
-        echo "    Note: Local act might not perfectly execute the second stage Docker report generation; if XML exists, it counts as success."
+        echo "ℹ️  (Dorny Mode Tip) Please check 'build/test-results'."
+    fi
+    if [ "$choice" == "4" ]; then
+        echo "ℹ️  (Logic Check Tip) Scroll up to see the Dry Run logs."
+        echo "    Look for 'The next release version is...' or 'No relevant changes'."
     fi
 else
-    echo "❌ CI process failed (Exit Code: $ACT_EXIT_CODE)"
+    echo "❌ Process failed (Exit Code: $ACT_EXIT_CODE)"
 fi
 echo "=========================================="
 
 # 3. Safety Cleanup Mechanism
 echo ""
-read -p "🧹 Do you want to clean Gradle build artifacts (run ./gradlew clean) to free up space? [y/N] " response
-
-# Convert input to lowercase
+read -p "🧹 Do you want to clean Gradle build artifacts? [y/N] " response
 response=${response,,}
-
 if [[ "$response" =~ ^(yes|y)$ ]]; then
-    echo "🧹 Cleaning up..."
     ./gradlew clean
     echo "✨ Cleanup complete!"
 else
-    echo "👌 Build files retained (next build will be faster)."
+    echo "👌 Build files retained."
 fi
 
 exit $ACT_EXIT_CODE

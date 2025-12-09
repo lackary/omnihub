@@ -1,0 +1,35 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - main # or master, please confirm your main branch name
+
+permissions:
+  contents: write # Write permission is required to create Releases and Tags
+  issues: write   # If semantic-release needs to comment on Issues (optional)
+  pull-requests: write # If semantic-release needs to comment on PRs (optional)
+
+jobs:
+  release:
+    name: Semantic Release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Must fetch full git history so semantic-release can analyze commits
+          persist-credentials: false # Avoid using checkout's token; use semantic-release's token instead
+
+      - name: Semantic Release
+        uses: cycjimmy/semantic-release-action@v6
+        with:
+          semantic_version: 24 # Specify the core version of semantic-release (recommended to lock)
+          extra_plugins: |
+            @semantic-release/commit-analyzer
+            @semantic-release/release-notes-generator
+            @semantic-release/github
+            @semantic-release/git
+            @semantic-release/changelog
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
