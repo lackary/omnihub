@@ -3,8 +3,12 @@ name: Continuous Integration (main)
 on:
   push:
     branches: [ "main" ]
+    paths-ignore:
+      - '**.md' # ignore all of .md files
   pull_request:
     branches: [ "main" ]
+    paths-ignore:
+      - '**.md' # ignore all of .md files
 
   workflow_dispatch:
     inputs:
@@ -50,7 +54,73 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
-      # 1. Compile
+      # Setup Environment and Run Initialization Scripts
+      - name: Setup iOS Environment (Dummy Framework & Pods)
+        run: |
+          if [ -n "$ACT" ]; then
+            echo "Running in 'act' environment."
+            if ! command -v pod &> /dev/null; then
+              echo "CocoaPods not found. Installing via Homebrew..."
+              brew install cocoapods
+            else
+              echo "CocoaPods is already installed."
+            fi
+          else
+            echo "Running in CI environment. Installing CocoaPods..."
+            gem install cocoapods
+          fi
+
+          echo "Running Setup Script..."
+          chmod +x setup_ios.sh
+          ./setup_ios.sh
+
+
+      # List simulators
+      - name: List available simulators
+        run: |
+          echo "=== RUNTIMES ==="
+          xcrun simctl list runtimes
+          echo "=== DEVICES ==="
+          xcrun simctl list devices
+
+      # Automatically find an available simulator (prioritize iPhone / Booted / Available)
+      - name: Select an available simulator
+        id: find-sim
+        run: |
+          set -e
+
+          SIM=$(xcrun simctl list devices | \
+            grep -E "iPhone" | \
+            grep -v unavailable | \
+            grep -v "(Booted)" | \
+            sed -nE 's/.*\(([0-9A-F-]{36})\).*/\1/p' | \
+            head -n 1)
+
+          if [ -z "$SIM" ]; then
+            echo "❌ No available iPhone simulators found"
+            exit 1
+          fi
+
+          echo "✅ Selected Simulator: $SIM"
+          NAME=$(xcrun simctl list devices | grep "$SIM" | head -n 1)
+          echo "✅ Selected Simulator: $NAME ($SIM)"
+          echo "SIM_UUID=$SIM" >> $GITHUB_ENV
+
+      # Execute Xcode Build
+      - name: Xcode Build (clean build .xcworkspace)
+        working-directory: './iosApp'
+        run: |
+          echo "Building iOS target via .xcworkspace..."
+          xcodebuild clean build \
+              -workspace "iosApp.xcworkspace" \
+              -scheme "iosApp" \
+              -configuration "Debug" \
+              -sdk iphonesimulator \
+              -destination "id=${{ env.SIM_UUID }}" \
+              ENABLE_PREVIEWS=NO \
+              CODE_SIGNING_ALLOWED=NO 
+
+      # Compile
       - name: Assemble (Compile)
         run: |
           ./gradlew assemble \
@@ -58,7 +128,7 @@ jobs:
           ${{ inputs.run_with_info && '--info' || '' }} \
           ${{ inputs.run_with_debug && '--debug' || '' }}
 
-      # 2. Run Checks and Tests
+      # Run Checks and Tests
       - name: Check (Test & Lint)
         continue-on-error: false
         run: |
@@ -67,7 +137,7 @@ jobs:
           ${{ inputs.run_with_info && '--info' || '' }} \
           ${{ inputs.run_with_debug && '--debug' || '' }}
 
-      # 3. Publish JUnit Test Report (GitHub Summary + PR Annotations)
+      # Publish JUnit Test Report (GitHub Summary + PR Annotations)
       - name: Publish Test Report
         uses: mikepenz/action-junit-report@v4
         if: always() # Run even if tests fail
@@ -76,8 +146,9 @@ jobs:
           check_name: 'JUnit Test Report'
           detailed_summary: true # Show detailed table
           include_passed: true   # Include passed tests (similar visual effect to Dorny)
+          annotate_only: ${{ env.ACT == 'true' }} # Enable "annotate only" mode when running locally via Act to skip Checks API calls
 
-      # 4. Upload HTML Report (For manual download and inspection)
+      # Upload HTML Report (For manual download and inspection)
       - name: Upload Test Report HTML
         uses: actions/upload-artifact@v4
         if: always()
