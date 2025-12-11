@@ -61,6 +61,110 @@ in your IDE's toolbar or run it directly from the terminal:
     .\gradlew.bat :composeApp:jsBrowserDevelopmentRun
     ```
 
+### Configure CocoaPods Integration
+
+This project uses the Kotlin Multiplatform CocoaPods plugin to handle iOS dependencies.
+
+**Prerequisites:**
+1. Install [CocoaPods](https://cocoapods.org/) if you haven't already:
+
+   ```shell
+   sudo gem install cocoapods
+   ```
+
+   or use `Homebrew` if you have it installed:
+
+   ```shell
+   brew install cocoapods
+   ```
+   
+2. In the `gradle/libs.versions.toml` file, add the Kotlin CocoaPods Gradle plugin to the `[plugins]` block:
+
+   ```toml
+   kotlinNativeCocoapods = { id = "org.jetbrains.kotlin.native.cocoapods", version.ref = "kotlin" }
+   ```
+   
+3. Navigate to the root `build.gradle.kts` file of your project and add the following alias to the `plugins {}` block:
+
+   ```kotlin
+   alias(libs.plugins.kotlinNativeCocoapods) apply false
+   ```
+4. Open the module where you want to integrate CocoaPods (e.g., the `composeApp` module), and add the following alias to the `plugins {}` block of the `build.gradle.kts` file:
+
+   ```kotlin
+   alias(libs.plugins.kotlinNativeCocoapods)
+   ```
+
+**Setup:**
+Follow these steps for initial setup or after modifying dependencies:
+
+1. Navigate to the `iosApp` directory:
+
+   ```shell
+   cd iosApp
+   ```
+2. Initialize the pods:
+
+   ```shell
+   pod init
+   ```
+   This generates the `Podfile`.
+
+3. In `composeApp/build.gradle.kts`, configure the version, summary, homepage, and baseName of the Podspec file in the `cocoapods` block within the `kotlin` block:
+   
+   ```kotlin
+   iosArm64()
+   iosSimulatorArm64()
+   
+   cocoapods {
+        // Required properties
+        // Specify the required Pod version here
+        // Otherwise, the Gradle project version is used
+        version = "1.0.0"
+        summary = "Some description for a Kotlin/Native module"
+        homepage = "Link to a Kotlin/Native module homepage"
+
+        // Optional properties
+        // Configure the Pod name here instead of changing the Gradle project name
+        name = "ComposeApp"
+
+        framework {
+            // Required properties
+            // Framework name configuration. Use this property instead of deprecated 'frameworkName'
+            baseName = "ComposeApp"
+
+            // Optional properties
+            // Specify the framework linking type. It's dynamic by default.
+            isStatic = true
+            // Dependency export
+            // Uncomment and specify another project module if you have one:
+            // export(project(":<your other KMP module>"))
+            //transitiveExport = false // This is default.
+        }
+
+        // Maps custom Xcode configuration to NativeBuildType
+        //xcodeConfigurationToNativeBuildType["CUSTOM_DEBUG"] = NativeBuildType.DEBUG
+        //xcodeConfigurationToNativeBuildType["CUSTOM_RELEASE"] = NativeBuildType.RELEASE
+   }
+   ```
+   
+   Then run **File | Sync Project with Gradle Files** in Android Studio to reimport the project. This process will generate the Podspec file for the project.
+
+4. Update the `Podfile` by adding the following line below `# Pods for iosApp`:
+
+   ```ruby
+   pod 'ComposeApp', :path => '../composeApp'
+   ```
+
+5. Run the helper script setup_ios.sh. This script automates the following tasks:
+
+   - `./gradlew clean`
+   - Create the directory `composeApp/build/compose/cocoapods/compose-resources`
+   - `./gradlew :composeApp:generateDummyFramework` (generates a dummy framework in `build/cocoapods/framework/ComposeApp.framework`).
+   - Move to `iosApp` and run `pod install --repo-update --clean-install`. This generates the `iosApp.xcworkspace` file, which includes the `ComposeApp` module.
+
+6. You will see a notification to **reload project as workspace**. This is **important**; the iOS application build will fail if you do not reload.
+
 ### Build and Run iOS Application
 
 To build and run the development version of the iOS app, use the run configuration from the run widget
