@@ -3,8 +3,12 @@ name: Continuous Integration (main)
 on:
   push:
     branches: [ "main" ]
+    paths-ignore:
+      - '**.md' # ignore all of .md files
   pull_request:
     branches: [ "main" ]
+    paths-ignore:
+      - '**.md' # ignore all of .md files
 
   workflow_dispatch:
     inputs:
