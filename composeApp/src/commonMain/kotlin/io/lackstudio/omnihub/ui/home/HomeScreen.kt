@@ -20,7 +20,7 @@ fun HomeScreen(
     Scaffold(
         topBar = {
             @OptIn(ExperimentalMaterial3Api::class)
-            TopAppBar(title = { Text("OmniHub") })
+            TopAppBar(title = { Text("Home") })
         }
     ) { paddingValues ->
         LazyColumn(
