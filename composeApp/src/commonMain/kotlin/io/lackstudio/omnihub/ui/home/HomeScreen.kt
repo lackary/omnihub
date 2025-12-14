@@ -12,6 +12,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import io.lackstudio.omnihub.ui.navigation.Feature
+import org.jetbrains.compose.ui.tooling.preview.Preview
 
 @Composable
 fun HomeScreen(
@@ -89,4 +90,13 @@ fun ServiceCard(
             )
         }
     }
+}
+
+// Add this function specifically for preview
+@Preview
+@Composable
+fun HomeScreenPreview() {
+    HomeScreen(
+        onNavigateToFeature = {} // Provide an empty lambda to satisfy parameter requirements
+    )
 }
