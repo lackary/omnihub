@@ -19,6 +19,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.NavDestination.Companion.hasRoute
+import io.lackstudio.omnihub.ui.account.AccountScreen
 import io.lackstudio.omnihub.ui.home.HomeScreen
 import io.lackstudio.omnihub.ui.navigation.Feature
 import io.lackstudio.omnihub.ui.navigation.Screen
@@ -80,9 +81,11 @@ fun App() {
 
             // 2. Account Screen (Simple Example)
             composable<Screen.Account> {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("Account Settings Page")
-                }
+                AccountScreen(
+                    onNavigateToFeature = { feature ->
+                        navController.navigate(feature)
+                    }
+                )
             }
 
             // 3. Definitions for each Feature page
