@@ -93,7 +93,7 @@ elif [ "$choice" == "4" ]; then
     export GITHUB_TOKEN=$EXPORT_TOKEN
 
     # Execute npx and install extra plugins explicitly because .releaserc.yml requires them
-    CMD="npx -p semantic-release -p @semantic-release/git -p @semantic-release/changelog semantic-release --dry-run --branches main --no-ci"
+    CMD="npx -p semantic-release -p @semantic-release/git -p @semantic-release/changelog -p @semantic-release/exec semantic-release --dry-run --branches main --no-ci"
     echo "👉 Executing: $CMD"
 
     # Run semantic-release dry-run

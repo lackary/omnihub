@@ -5,5 +5,16 @@ plugins:
   - "@semantic-release/commit-analyzer"
   - "@semantic-release/release-notes-generator"
   - "@semantic-release/changelog"
-  - "@semantic-release/git"
+  
+  # Execute Gradle Task to update gradle.properties
+  - - "@semantic-release/exec"
+    - prepareCmd: "./gradlew setBuildVersion -PnewVersion=${nextRelease.version}"
+
+  # Let Git commit the changes in gradle.properties
+  - - "@semantic-release/git"
+    - assets:
+        - "CHANGELOG.md"
+        - "gradle.properties"
+      message: "chore(release): ${nextRelease.version} [skip ci]\n\n${nextRelease.notes}"
+
   - "@semantic-release/github"

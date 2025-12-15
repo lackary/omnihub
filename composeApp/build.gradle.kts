@@ -2,6 +2,8 @@ import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
+val appPackageName = "io.lackstudio.omnihub"
+
 plugins {
     alias(libs.plugins.kotlin.multiplatform)
     alias(libs.plugins.androidApplication)
@@ -10,6 +12,18 @@ plugins {
     alias(libs.plugins.compose.hot.reload)
     alias(libs.plugins.kotlin.cocoapods)
     alias(libs.plugins.kotlin.serialization)
+    alias(libs.plugins.buildkonfig)
+}
+
+buildkonfig {
+    packageName = appPackageName
+    defaultConfigs {
+        buildConfigField(
+            com.codingfeline.buildkonfig.compiler.FieldSpec.Type.STRING,
+            "APP_VERSION",
+            project.version.toString() // Automatically reads from gradle.properties
+        )
+    }
 }
 
 kotlin {
@@ -35,7 +49,7 @@ kotlin {
         // Required properties
         // Specify the required Pod version here
         // Otherwise, the Gradle project version is used
-        version = "1.0.0"
+        version = project.version.toString()
         summary = "Some description for a Kotlin/Native module"
         homepage = "Link to a Kotlin/Native module homepage"
 
@@ -104,15 +118,15 @@ kotlin {
 }
 
 android {
-    namespace = "io.lackstudio.omnihub"
+    namespace = appPackageName
     compileSdk = libs.versions.android.compileSdk.get().toInt()
 
     defaultConfig {
-        applicationId = "io.lackstudio.omnihub"
+        applicationId = appPackageName
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
         versionCode = 1
-        versionName = "1.0"
+        versionName = project.version.toString()
     }
     packaging {
         resources {
@@ -136,12 +150,19 @@ dependencies {
 
 compose.desktop {
     application {
-        mainClass = "io.lackstudio.omnihub.MainKt"
+        mainClass = "$appPackageName.MainKt"
 
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
-            packageName = "io.lackstudio.omnihub"
-            packageVersion = "1.0.0"
+            packageName = appPackageName
+            packageVersion = project.version.toString()
+
+            macOS {
+                // If the project version starts with 0. (e.g. 0.2.0), DMG is forced to set to 1.0.0 to avoid errors
+                // If the project version is already 1.0.0 or higher, use the project version directly
+                val verStr = project.version.toString()
+                dmgPackageVersion = if (verStr.startsWith("0.")) "1.0.0" else verStr
+            }
         }
     }
 }
