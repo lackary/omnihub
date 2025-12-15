@@ -13,7 +13,7 @@ plugins {
 tasks.register("setBuildVersion") {
     // Categorizes this task under 'versioning' in Gradle task list
     group = "versioning"
-    description = "Updates the version in gradle.properties"
+    description = "Updates the version in gradle.properties and iosApp Config.xcconfig"
 
     val pNewVersion = project.providers.gradleProperty("newVersion").orElse("")
 
@@ -24,6 +24,9 @@ tasks.register("setBuildVersion") {
             return@doLast
         }
 
+        // ---------------------------------------------------------
+        // Update gradle.properties 
+        // ---------------------------------------------------------
         val propertiesFile = layout.projectDirectory.file("gradle.properties").asFile
         if (propertiesFile.exists()) {
             val lines = propertiesFile.readLines()
@@ -36,6 +39,25 @@ tasks.register("setBuildVersion") {
             }
             propertiesFile.writeText(newLines.joinToString("\n"))
             logger.lifecycle("Updated gradle.properties to version: $newVersion")
+        }
+
+        // ---------------------------------------------------------
+        // Update iosApp/Configuration/Config.xcconfig
+        // ---------------------------------------------------------
+        val xcconfigFile = layout.projectDirectory.file("iosApp/Configuration/Config.xcconfig").asFile
+        if (xcconfigFile.exists()) {
+            val lines = xcconfigFile.readLines()
+            val newLines = lines.map { line ->
+                if (line.trim().startsWith("MARKETING_VERSION=")) {
+                    "MARKETING_VERSION=$newVersion"
+                } else {
+                    line
+                }
+            }
+            xcconfigFile.writeText(newLines.joinToString("\n"))
+            logger.lifecycle("Updated Config.xcconfig MARKETING_VERSION to: $newVersion")
+        } else {
+            logger.warn("Warning: iosApp/Configuration/Config.xcconfig not found!")
         }
     }
 }
