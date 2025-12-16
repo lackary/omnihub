@@ -4,6 +4,10 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 val appPackageName = "io.lackstudio.omnihub"
 
+// 讀取 buildNumber，如果沒傳 (例如開發時) 則預設為 1
+val buildNumberProp = project.findProperty("buildNumber") as? String
+val appBuildNumber = buildNumberProp?.toIntOrNull() ?: 1
+
 plugins {
     alias(libs.plugins.kotlin.multiplatform)
     alias(libs.plugins.androidApplication)
@@ -22,6 +26,11 @@ buildkonfig {
             com.codingfeline.buildkonfig.compiler.FieldSpec.Type.STRING,
             "APP_VERSION",
             project.version.toString() // Automatically reads from gradle.properties
+        )
+        buildConfigField(
+            com.codingfeline.buildkonfig.compiler.FieldSpec.Type.STRING,
+            "APP_BUILD_NUMBER",
+            appBuildNumber.toString()
         )
     }
 }
@@ -125,7 +134,7 @@ android {
         applicationId = appPackageName
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
-        versionCode = 1
+        versionCode = appBuildNumber
         versionName = project.version.toString()
     }
     packaging {

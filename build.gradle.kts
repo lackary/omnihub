@@ -11,34 +11,51 @@ plugins {
 }
 
 tasks.register("setBuildVersion") {
-    // Categorizes this task under 'versioning' in Gradle task list
     group = "versioning"
-    description = "Updates the version in gradle.properties and iosApp Config.xcconfig"
+    description = "Updates the version and build number in gradle.properties and iosApp Config.xcconfig"
 
+    // Receive -PnewVersion (e.g. 1.2.0)
     val pNewVersion = project.providers.gradleProperty("newVersion").orElse("")
+    // Receive -PbuildNumber (e.g. 123)
+    val pBuildNumber = project.providers.gradleProperty("buildNumber").orElse("")
 
     doLast {
         val newVersion = pNewVersion.get()
+        val newBuildNumber = pBuildNumber.get()
+
         if (newVersion.isBlank()) {
             logger.warn("Warning: -PnewVersion not provided.")
+        }
+        if (newBuildNumber.isBlank()) {
+            logger.warn("Warning: -PbuildNumber not provided.")
+        }
+
+        if (newVersion.isBlank() && newBuildNumber.isBlank()) {
             return@doLast
         }
 
         // ---------------------------------------------------------
-        // Update gradle.properties 
+        // Update gradle.properties
         // ---------------------------------------------------------
         val propertiesFile = layout.projectDirectory.file("gradle.properties").asFile
         if (propertiesFile.exists()) {
             val lines = propertiesFile.readLines()
             val newLines = lines.map { line ->
-                if (line.trim().startsWith("version=")) {
-                    "version=$newVersion"
-                } else {
-                    line
+                val trimmedLine = line.trim()
+                when {
+                    // Update Version Name
+                    newVersion.isNotBlank() && trimmedLine.startsWith("version=") -> {
+                        "version=$newVersion"
+                    }
+                    // Update Build Number (Version Code)
+                    newBuildNumber.isNotBlank() && trimmedLine.startsWith("buildNumber=") -> {
+                        "buildNumber=$newBuildNumber"
+                    }
+                    else -> line
                 }
             }
             propertiesFile.writeText(newLines.joinToString("\n"))
-            logger.lifecycle("Updated gradle.properties to version: $newVersion")
+            logger.lifecycle("Updated gradle.properties -> version: $newVersion, code: $newBuildNumber")
         }
 
         // ---------------------------------------------------------
@@ -48,14 +65,21 @@ tasks.register("setBuildVersion") {
         if (xcconfigFile.exists()) {
             val lines = xcconfigFile.readLines()
             val newLines = lines.map { line ->
-                if (line.trim().startsWith("MARKETING_VERSION=")) {
-                    "MARKETING_VERSION=$newVersion"
-                } else {
-                    line
+                val trimmedLine = line.trim()
+                when {
+                    // iOS Version Number (MARKETING_VERSION)
+                    newVersion.isNotBlank() && trimmedLine.startsWith("MARKETING_VERSION=") -> {
+                        "MARKETING_VERSION=$newVersion"
+                    }
+                    // iOS Build Number (CURRENT_PROJECT_VERSION)
+                    newBuildNumber.isNotBlank() && trimmedLine.startsWith("CURRENT_PROJECT_VERSION=") -> {
+                        "CURRENT_PROJECT_VERSION=$newBuildNumber"
+                    }
+                    else -> line
                 }
             }
             xcconfigFile.writeText(newLines.joinToString("\n"))
-            logger.lifecycle("Updated Config.xcconfig MARKETING_VERSION to: $newVersion")
+            logger.lifecycle("Updated Config.xcconfig -> MARKETING_VERSION: $newVersion, CURRENT_PROJECT_VERSION: $newBuildNumber")
         } else {
             logger.warn("Warning: iosApp/Configuration/Config.xcconfig not found!")
         }
