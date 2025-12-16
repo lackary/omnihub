@@ -1,3 +1,11 @@
+# [0.3.0](https://github.com/lackary/omnihub/compare/v0.2.0...v0.3.0) (2025-12-16)
+
+
+### Features
+
+* **ui:** update VersionFooter to include build number ([d51022f](https://github.com/lackary/omnihub/commit/d51022f5068c4239f93579f77a2a23241f3d7769))
+* **ui:** use generated APP_VERSION in AccountScreen ([a3d7f6e](https://github.com/lackary/omnihub/commit/a3d7f6e4303a3af3fded5d453f90b31eabe0cc9a))
+
 # [0.2.0](https://github.com/lackary/omnihub/compare/v0.1.0...v0.2.0) (2025-12-14)
 
 
