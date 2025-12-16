@@ -14,20 +14,28 @@ tasks.register("setBuildVersion") {
     group = "versioning"
     description = "Updates the version and build number in gradle.properties and iosApp Config.xcconfig"
 
-    // Receive -PnewVersion (e.g. 1.2.0)
+    // Receive -PnewVersion
     val pNewVersion = project.providers.gradleProperty("newVersion").orElse("")
-    // Receive -PbuildNumber (e.g. 123)
+    // Receive -PbuildNumber
     val pBuildNumber = project.providers.gradleProperty("buildNumber").orElse("")
 
+    // Get file path (defined during configuration phase)
+    val gradlePropertiesFile = layout.projectDirectory.file("gradle.properties")
+    val xcconfigFile = layout.projectDirectory.file("iosApp/Configuration/Config.xcconfig")
+
     doLast {
+        // Get value during execution phase
         val newVersion = pNewVersion.get()
         val newBuildNumber = pBuildNumber.get()
 
+        // Use the logger inside the Task (this.logger), not the script's logger
+        val taskLogger = this.logger
+
         if (newVersion.isBlank()) {
-            logger.warn("Warning: -PnewVersion not provided.")
+            taskLogger.warn("Warning: -PnewVersion not provided.")
         }
         if (newBuildNumber.isBlank()) {
-            logger.warn("Warning: -PbuildNumber not provided.")
+            taskLogger.warn("Warning: -PbuildNumber not provided.")
         }
 
         if (newVersion.isBlank() && newBuildNumber.isBlank()) {
@@ -37,17 +45,15 @@ tasks.register("setBuildVersion") {
         // ---------------------------------------------------------
         // Update gradle.properties
         // ---------------------------------------------------------
-        val propertiesFile = layout.projectDirectory.file("gradle.properties").asFile
+        val propertiesFile = gradlePropertiesFile.asFile
         if (propertiesFile.exists()) {
             val lines = propertiesFile.readLines()
             val newLines = lines.map { line ->
                 val trimmedLine = line.trim()
                 when {
-                    // Update Version Name
                     newVersion.isNotBlank() && trimmedLine.startsWith("version=") -> {
                         "version=$newVersion"
                     }
-                    // Update Build Number (Version Code)
                     newBuildNumber.isNotBlank() && trimmedLine.startsWith("buildNumber=") -> {
                         "buildNumber=$newBuildNumber"
                     }
@@ -55,33 +61,31 @@ tasks.register("setBuildVersion") {
                 }
             }
             propertiesFile.writeText(newLines.joinToString("\n"))
-            logger.lifecycle("Updated gradle.properties -> version: $newVersion, code: $newBuildNumber")
+            taskLogger.lifecycle("Updated gradle.properties -> version: $newVersion, code: $newBuildNumber")
         }
 
         // ---------------------------------------------------------
         // Update iosApp/Configuration/Config.xcconfig
         // ---------------------------------------------------------
-        val xcconfigFile = layout.projectDirectory.file("iosApp/Configuration/Config.xcconfig").asFile
-        if (xcconfigFile.exists()) {
-            val lines = xcconfigFile.readLines()
+        val xcFile = xcconfigFile.asFile
+        if (xcFile.exists()) {
+            val lines = xcFile.readLines()
             val newLines = lines.map { line ->
                 val trimmedLine = line.trim()
                 when {
-                    // iOS Version Number (MARKETING_VERSION)
                     newVersion.isNotBlank() && trimmedLine.startsWith("MARKETING_VERSION=") -> {
                         "MARKETING_VERSION=$newVersion"
                     }
-                    // iOS Build Number (CURRENT_PROJECT_VERSION)
                     newBuildNumber.isNotBlank() && trimmedLine.startsWith("CURRENT_PROJECT_VERSION=") -> {
                         "CURRENT_PROJECT_VERSION=$newBuildNumber"
                     }
                     else -> line
                 }
             }
-            xcconfigFile.writeText(newLines.joinToString("\n"))
-            logger.lifecycle("Updated Config.xcconfig -> MARKETING_VERSION: $newVersion, CURRENT_PROJECT_VERSION: $newBuildNumber")
+            xcFile.writeText(newLines.joinToString("\n"))
+            taskLogger.lifecycle("Updated Config.xcconfig -> MARKETING_VERSION: $newVersion, CURRENT_PROJECT_VERSION: $newBuildNumber")
         } else {
-            logger.warn("Warning: iosApp/Configuration/Config.xcconfig not found!")
+            taskLogger.warn("Warning: iosApp/Configuration/Config.xcconfig not found!")
         }
     }
 }
