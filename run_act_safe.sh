@@ -92,15 +92,20 @@ elif [ "$choice" == "4" ]; then
     # Export token for this session only
     export GITHUB_TOKEN=$EXPORT_TOKEN
 
+    # Simulate GITHUB_RUN_NUMBER to allow local tests to run smoothly
+    if [ -z "$GITHUB_RUN_NUMBER" ]; then
+        echo "⚠️  GITHUB_RUN_NUMBER is not set. Using '9999' for local test."
+        export GITHUB_RUN_NUMBER=9999
+    fi
+
     # Execute npx and install extra plugins explicitly because .releaserc.yml requires them
-    CMD="npx -p semantic-release -p @semantic-release/git -p @semantic-release/changelog semantic-release --dry-run --branches main --no-ci"
+    CMD="npx -p semantic-release -p @semantic-release/git -p @semantic-release/changelog -p @semantic-release/exec semantic-release --dry-run --branches main --no-ci"
     echo "👉 Executing: $CMD"
 
     # Run semantic-release dry-run
     eval $CMD
 
     ACT_EXIT_CODE=$?
-
 
 else
     echo "❌ Invalid option, script terminated."

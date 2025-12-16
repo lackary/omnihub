@@ -22,6 +22,9 @@ kotlinxCoroutines = "1.10.2"
 kotlinxSerialization = "1.9.0"
 navigationCompose = "2.9.1"
 
+# 3rd party
+buildkonfig = "0.17.1"
+
 
 [libraries]
 # Android
@@ -54,3 +57,5 @@ kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", versi
 kotlin-multiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
 kotlin-cocoapods = { id = "org.jetbrains.kotlin.native.cocoapods", version.ref = "kotlin" }
 
+# 3rd party
+buildkonfig = { id = "com.codingfeline.buildkonfig", version.ref = "buildkonfig" }

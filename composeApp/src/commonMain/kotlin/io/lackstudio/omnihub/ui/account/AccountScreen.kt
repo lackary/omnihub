@@ -19,10 +19,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import io.lackstudio.omnihub.BuildKonfig.APP_BUILD_NUMBER
+import io.lackstudio.omnihub.BuildKonfig.APP_VERSION
 import io.lackstudio.omnihub.ui.navigation.Feature
 import org.jetbrains.compose.ui.tooling.preview.Preview
-
-private const val APP_VERSION= "0.1.0"
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -49,7 +49,10 @@ fun AccountScreen(
             Spacer(modifier = Modifier.weight(1f)) // Push content to the bottom
 
             // --- Industry standard simple approach (Footer) ---
-            VersionFooter(versionName = APP_VERSION)
+            VersionFooter(
+                versionName = APP_VERSION,
+                buildNumber = APP_BUILD_NUMBER
+            )
 
             Spacer(modifier = Modifier.height(24.dp)) // Bottom spacing
         }
@@ -60,8 +63,7 @@ fun AccountScreen(
 @Composable
 fun VersionFooter(
     versionName: String = "1.0.0",
-    buildNumber: String = "101",
-    env: String = "Dev"
+    buildNumber: String = "1",
 ) {
     var showDetails by remember { mutableStateOf(false) }
     var clickCount by remember { mutableStateOf(0) }
@@ -72,7 +74,7 @@ fun VersionFooter(
     ) {
         Text(
             text = if (showDetails) {
-                "v$versionName ($buildNumber) [$env]"
+                "v$versionName+$buildNumber"
             } else {
                 "v$versionName"
             },

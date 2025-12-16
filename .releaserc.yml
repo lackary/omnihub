@@ -5,5 +5,17 @@ plugins:
   - "@semantic-release/commit-analyzer"
   - "@semantic-release/release-notes-generator"
   - "@semantic-release/changelog"
-  - "@semantic-release/git"
+  
+  # Run Gradle task to update gradle.properties and Config.xcconfig
+  - - "@semantic-release/exec"
+    - prepareCmd: "./gradlew setBuildVersion -PnewVersion=${nextRelease.version} -PbuildNumber=${process.env.GITHUB_RUN_NUMBER}"
+
+  # Include gradle.properties and Config.xcconfig in the Git commit
+  - - "@semantic-release/git"
+    - assets:
+        - "CHANGELOG.md"
+        - "gradle.properties"
+        - "iosApp/Configuration/Config.xcconfig"
+      message: "chore(release): ${nextRelease.version} [skip ci]\n\n${nextRelease.notes}"
+
   - "@semantic-release/github"
