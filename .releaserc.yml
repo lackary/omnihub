@@ -8,7 +8,11 @@ plugins:
   
   # Run Gradle task to update gradle.properties and Config.xcconfig
   - - "@semantic-release/exec"
-    - prepareCmd: "./gradlew setBuildVersion -PnewVersion=${nextRelease.version} -PbuildNumber=${process.env.GITHUB_RUN_NUMBER}"
+    - prepareCmd: >-
+        ./gradlew setBuildVersion 
+        -PnewVersion=${nextRelease.version} 
+        -PbuildNumber=${process.env.GITHUB_RUN_NUMBER} 
+        && ./gradlew :composeApp:podspec
 
   # Include gradle.properties and Config.xcconfig in the Git commit
   - - "@semantic-release/git"
@@ -16,6 +20,7 @@ plugins:
         - "CHANGELOG.md"
         - "gradle.properties"
         - "iosApp/Configuration/Config.xcconfig"
+        - "composeApp/ComposeApp.podspec"
       message: "chore(release): ${nextRelease.version} [skip ci]\n\n${nextRelease.notes}"
 
   - "@semantic-release/github"
