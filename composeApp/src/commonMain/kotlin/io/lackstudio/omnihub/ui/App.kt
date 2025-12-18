@@ -68,7 +68,8 @@ fun App() {
         NavHost(
             navController = navController,
             startDestination = Screen.Home,
-            modifier = Modifier.padding(innerPadding)
+            // The top section is handled by each Screen's internal TopAppBar
+            modifier = Modifier.padding(bottom = innerPadding.calculateBottomPadding())
         ) {
             // 1. Home Screen
             composable<Screen.Home> {
@@ -90,9 +91,8 @@ fun App() {
 
             // 3. Definitions for each Feature page
             composable<Feature.Photos> {
-                // Place your finished Photos page here
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("Photos API Page")
+                    Text("Gallery API Page")
                 }
             }
 
