@@ -74,7 +74,7 @@ elif [ "$choice" == "2" ]; then
 elif [ "$choice" == "3" ]; then
     echo "🟣 Running: Release Workflow (Container Mode)..."
     echo "⚠️  Note: Running inside Docker container."
-    CMD="act push -W .github/workflows/release.yml -P ubuntu-latest=catthehacker/ubuntu:act-latest $TOKEN_ARG"
+    CMD="act push -W .github/workflows/release.yml -P macos-latest=-self-hosted $TOKEN_ARG"
     echo "👉 Executing: $CMD"
     eval $CMD
     ACT_EXIT_CODE=$?

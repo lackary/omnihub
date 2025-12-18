@@ -13,6 +13,7 @@ plugins:
         -PnewVersion=${nextRelease.version} 
         -PbuildNumber=${process.env.GITHUB_RUN_NUMBER} 
         && ./gradlew :composeApp:podspec
+        && ./setup_ios.sh
 
   # Include gradle.properties and Config.xcconfig in the Git commit
   - - "@semantic-release/git"
@@ -21,6 +22,7 @@ plugins:
         - "gradle.properties"
         - "iosApp/Configuration/Config.xcconfig"
         - "composeApp/ComposeApp.podspec"
+        - "iosApp/Podfile.lock"
       message: "chore(release): ${nextRelease.version} [skip ci]\n\n${nextRelease.notes}"
 
   - "@semantic-release/github"
