@@ -1,4 +1,4 @@
-package io.lackstudio.omnihub.ui.photos
+package io.lackstudio.omnihub.ui.gallery
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column

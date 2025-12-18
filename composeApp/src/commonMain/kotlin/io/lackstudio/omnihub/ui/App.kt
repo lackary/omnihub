@@ -23,7 +23,7 @@ import io.lackstudio.omnihub.ui.account.AccountScreen
 import io.lackstudio.omnihub.ui.home.HomeScreen
 import io.lackstudio.omnihub.ui.navigation.Feature
 import io.lackstudio.omnihub.ui.navigation.Screen
-import io.lackstudio.omnihub.ui.photos.GalleryScreen
+import io.lackstudio.omnihub.ui.gallery.GalleryScreen
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
 @Composable
