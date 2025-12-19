@@ -4,7 +4,7 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 val appPackageName = "io.lackstudio.omnihub"
 
-// 讀取 buildNumber，如果沒傳 (例如開發時) 則預設為 1
+// Read buildNumber, default to 1 if not provided (e.g. during development)
 val buildNumberProp = project.findProperty("buildNumber") as? String
 val appBuildNumber = buildNumberProp?.toIntOrNull() ?: 1
 
@@ -36,6 +36,7 @@ buildkonfig {
 }
 
 kotlin {
+
     androidTarget {
         compilerOptions {
             jvmTarget.set(JvmTarget.JVM_17)
@@ -102,6 +103,7 @@ kotlin {
         androidMain.dependencies {
             implementation(compose.preview)
             implementation(libs.androidx.activity.compose)
+            implementation(libs.ktor.client.android)
         }
         commonMain.dependencies {
             implementation(compose.runtime)
@@ -115,13 +117,26 @@ kotlin {
             implementation(libs.androidx.lifecycle.runtime.compose)
             implementation(libs.androidx.navigation.compose)
             implementation(libs.kotlinx.serialization.json)
+            implementation(project.dependencies.platform(libs.koin.bom))
+            implementation(libs.koin.core)
+            implementation(libs.koin.compose)
+            implementation(libs.koin.compose.viewmodel)
+            implementation(libs.coil.compose)
+            implementation(libs.coil.network.ktor)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
         }
+        iosMain.dependencies {
+            implementation(libs.ktor.client.darwin)
+        }
         jvmMain.dependencies {
             implementation(compose.desktop.currentOs)
             implementation(libs.kotlinx.coroutines.swing)
+            implementation(libs.ktor.client.cio)
+        }
+        webMain.dependencies {
+            implementation(libs.ktor.client.js)
         }
     }
 }
