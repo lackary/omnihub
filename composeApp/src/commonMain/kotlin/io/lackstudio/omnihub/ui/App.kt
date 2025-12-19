@@ -23,6 +23,7 @@ import io.lackstudio.omnihub.ui.account.AccountScreen
 import io.lackstudio.omnihub.ui.home.HomeScreen
 import io.lackstudio.omnihub.ui.navigation.Feature
 import io.lackstudio.omnihub.ui.navigation.Screen
+import io.lackstudio.omnihub.ui.gallery.GalleryScreen
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
 @Composable
@@ -68,7 +69,8 @@ fun App() {
         NavHost(
             navController = navController,
             startDestination = Screen.Home,
-            modifier = Modifier.padding(innerPadding)
+            // The top section is handled by each Screen's internal TopAppBar
+            modifier = Modifier.padding(bottom = innerPadding.calculateBottomPadding())
         ) {
             // 1. Home Screen
             composable<Screen.Home> {
@@ -90,10 +92,14 @@ fun App() {
 
             // 3. Definitions for each Feature page
             composable<Feature.Photos> {
-                // Place your finished Photos page here
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("Photos API Page")
-                }
+                GalleryScreen(
+                    onNavigateToFeature = { feature ->
+                        navController.navigate(feature)
+                    },
+                    onBack = {
+                        navController.popBackStack()
+                    }
+                )
             }
 
             composable<Feature.News> {
