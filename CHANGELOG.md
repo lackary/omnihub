@@ -1,3 +1,16 @@
+# [0.4.0](https://github.com/lackary/omnihub/compare/v0.3.0...v0.4.0) (2025-12-19)
+
+
+### Bug Fixes
+
+* **ui:** adjust NavHost padding strategy and rename Photos to Gallery ([6596f2a](https://github.com/lackary/omnihub/commit/6596f2aa690a12737bf397dc6960176966b3ce5e))
+
+
+### Features
+
+* **gallery:** add initial Gallery screen with tabbed layout ([8bcdab7](https://github.com/lackary/omnihub/commit/8bcdab787a7f9331959dc2f61817e6c84b7a9d38))
+* **gallery:** implement MVI architecture and integrate Koin and Coil ([c6bd70a](https://github.com/lackary/omnihub/commit/c6bd70a9ba6efe1143c47b0082eee682feb038fa))
+
 # [0.3.0](https://github.com/lackary/omnihub/compare/v0.2.0...v0.3.0) (2025-12-16)
 
 
