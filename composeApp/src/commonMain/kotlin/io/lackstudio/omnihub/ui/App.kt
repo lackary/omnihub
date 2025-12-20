@@ -2,61 +2,88 @@ package io.lackstudio.omnihub.ui
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.padding // Manual padding is not needed, NavigationSuiteScaffold will handle it
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.Icon
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
+import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffold
+import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffoldDefaults
+import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteType
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import androidx.navigation.compose.rememberNavController
 import androidx.navigation.compose.currentBackStackEntryAsState
-import androidx.navigation.NavDestination.Companion.hasRoute
+import androidx.navigation.compose.rememberNavController
 import io.lackstudio.omnihub.ui.account.AccountScreen
+import io.lackstudio.omnihub.ui.gallery.GalleryScreen
 import io.lackstudio.omnihub.ui.home.HomeScreen
 import io.lackstudio.omnihub.ui.navigation.Feature
 import io.lackstudio.omnihub.ui.navigation.Screen
-import io.lackstudio.omnihub.ui.gallery.GalleryScreen
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
+// Helper data class (place at bottom of file or in a separate file)
+data class NavItem(
+    val label: String,
+    val icon: androidx.compose.ui.graphics.vector.ImageVector,
+    val route: Any, // Or use your custom Screen type
+    val isSelected: Boolean
+)
+
+@Preview(name = "Mobile", widthDp = 360, heightDp = 640)
+@Preview(name = "Desktop", widthDp = 1024, heightDp = 768)
 @Composable
-@Preview
 fun App() {
     val navController = rememberNavController()
-    // Get current route state, used to determine BottomBar selection state
     val navBackStackEntry = navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry.value?.destination
 
-    Scaffold(
-        bottomBar = {
-            NavigationBar {
-                NavigationBarItem(
-                    icon = { Icon(Icons.Default.Home, contentDescription = "Home") },
-                    label = { Text("Home") },
-                    // Check if the current route is Screen.Home
-                    selected = currentDestination?.hasRoute<Screen.Home>() == true,
+    // Get current layout info (Is it Rail or BottomBar?)
+    val adaptiveInfo = currentWindowAdaptiveInfo()
+    val layoutType =
+        NavigationSuiteScaffoldDefaults.calculateFromAdaptiveInfo(adaptiveInfo)
+
+    // Define your navigation items
+    val navItems = listOf(
+        NavItem(
+            label = "Home",
+            icon = Icons.Default.Home,
+            route = Screen.Home,
+            isSelected = currentDestination?.hasRoute<Screen.Home>() == true
+        ),
+        NavItem(
+            label = "Account",
+            icon = Icons.Default.Person,
+            route = Screen.Account,
+            isSelected = currentDestination?.hasRoute<Screen.Account>() == true
+        )
+    )
+
+    // Use NavigationSuiteScaffold instead of the original Scaffold
+    NavigationSuiteScaffold(
+        navigationSuiteItems = {
+            navItems.forEachIndexed { index, item ->
+
+                // Logic: If in Rail mode and it is the first item (Home), add 16dp top padding
+                val itemModifier = if (layoutType == NavigationSuiteType.NavigationRail && index == 0) {
+                    Modifier.padding(top = 16.dp)
+                } else {
+                    Modifier
+                }
+
+                item(
+                    modifier = itemModifier,
+                    icon = { Icon(item.icon, contentDescription = item.label) },
+                    label = { Text(item.label) },
+                    selected = item.isSelected,
                     onClick = {
-                        navController.navigate(Screen.Home) {
-                            // Avoid excessive stacking, pop up to the start destination when Home is clicked
-                            popUpTo(navController.graph.startDestinationId) { saveState = true }
-                            launchSingleTop = true
-                            restoreState = true
-                        }
-                    }
-                )
-                NavigationBarItem(
-                    icon = { Icon(Icons.Default.Person, contentDescription = "Account") },
-                    label = { Text("Account") },
-                    selected = currentDestination?.hasRoute<Screen.Account>() == true,
-                    onClick = {
-                        navController.navigate(Screen.Account) {
+                        navController.navigate(item.route) {
                             popUpTo(navController.graph.startDestinationId) { saveState = true }
                             launchSingleTop = true
                             restoreState = true
@@ -65,40 +92,35 @@ fun App() {
                 )
             }
         }
-    ) { innerPadding ->
+    ) {
+        // Main content goes here (NavHost)
+        // Note: No need to handle innerPadding like in standard Scaffold,
+        // NavigationSuiteScaffold automatically handles the layout
         NavHost(
             navController = navController,
             startDestination = Screen.Home,
-            // The top section is handled by each Screen's internal TopAppBar
-            modifier = Modifier.padding(bottom = innerPadding.calculateBottomPadding())
+            modifier = Modifier
+                .fillMaxSize()
         ) {
-            // 1. Home Screen
+            // Home Screen
             composable<Screen.Home> {
                 HomeScreen(
-                    onNavigateToFeature = { feature ->
-                        navController.navigate(feature)
-                    }
+                    onNavigateToFeature = { feature -> navController.navigate(feature) }
                 )
             }
 
-            // 2. Account Screen (Simple Example)
+            // Account Screen
             composable<Screen.Account> {
                 AccountScreen(
-                    onNavigateToFeature = { feature ->
-                        navController.navigate(feature)
-                    }
+                    onNavigateToFeature = { feature -> navController.navigate(feature) }
                 )
             }
 
-            // 3. Definitions for each Feature page
+            // Features
             composable<Feature.Photos> {
                 GalleryScreen(
-                    onNavigateToFeature = { feature ->
-                        navController.navigate(feature)
-                    },
-                    onBack = {
-                        navController.popBackStack()
-                    }
+                    onNavigateToFeature = { feature -> navController.navigate(feature) },
+                    onBack = { navController.popBackStack() }
                 )
             }
 
