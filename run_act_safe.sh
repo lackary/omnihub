@@ -37,12 +37,23 @@ read -p "Enter option [1, 2, 3 or 4] (Default 1): " choice
 # Default to 1
 choice=${choice:-1}
 
+read -p "Enable verbose logging (debug mode)? [y/N] " debug_resp
+debug_resp=${debug_resp,,} # Convert to lowercase
+VERBOSE_FLAG=""
+if [[ "$debug_resp" =~ ^(yes|y)$ ]]; then
+    VERBOSE_FLAG="-v"
+    echo "🐞 Debug mode enabled."
+fi
+
 echo ""
 echo "------------------------------------------"
 
 # Set a local temporary path to simulate the artifact server
 ARTIFACT_PATH="/tmp/act-artifacts"
 mkdir -p "$ARTIFACT_PATH"
+
+# 👇 Added this line to define the Log file location
+LOG_FILE="act_execution.log"
 
 # Ensure user has gh cli installed, otherwise prompt
 if ! command -v gh &> /dev/null; then
@@ -59,25 +70,25 @@ fi
 
 if [ "$choice" == "1" ]; then
     echo "🔵 Running: Main Workflow (Mike Penz)..."
-    CMD="act push -W .github/workflows/ci_mikepenz.yml -P macos-latest=-self-hosted --artifact-server-path \"$ARTIFACT_PATH\" $TOKEN_ARG"
+    CMD="act push -W .github/workflows/ci_mikepenz.yml -P macos-latest=-self-hosted --artifact-server-path \"$ARTIFACT_PATH\" $TOKEN_ARG $VERBOSE_FLAG"
     echo "👉 Executing: $CMD"
-    eval $CMD
-    ACT_EXIT_CODE=$?
+    eval "$CMD 2>&1 | tee $LOG_FILE"
+    ACT_EXIT_CODE=${PIPESTATUS[0]}
 
 elif [ "$choice" == "2" ]; then
     echo "🟠 Running: Dorny Workflow (Manual)..."
-    CMD="act workflow_dispatch -W .github/workflows/ci_dorny.yml -P macos-latest=-self-hosted -P ubuntu-latest=catthehacker/ubuntu:act-latest --artifact-server-path \"$ARTIFACT_PATH\" $TOKEN_ARG"
+    CMD="act workflow_dispatch -W .github/workflows/ci_dorny.yml -P macos-latest=-self-hosted -P ubuntu-latest=catthehacker/ubuntu:act-latest --artifact-server-path \"$ARTIFACT_PATH\" $TOKEN_ARG $VERBOSE_FLAG"
     echo "👉 Executing: $CMD"
-    eval $CMD
-    ACT_EXIT_CODE=$?
+    eval "$CMD 2>&1 | tee $LOG_FILE"
+    ACT_EXIT_CODE=${PIPESTATUS[0]}
 
 elif [ "$choice" == "3" ]; then
     echo "🟣 Running: Release Workflow (Container Mode)..."
     echo "⚠️  Note: Running inside Docker container."
-    CMD="act push -W .github/workflows/release.yml -P macos-latest=-self-hosted $TOKEN_ARG"
+    CMD="act push -W .github/workflows/release.yml -P macos-latest=-self-hosted $TOKEN_ARG $VERBOSE_FLAG"
     echo "👉 Executing: $CMD"
-    eval $CMD
-    ACT_EXIT_CODE=$?
+    eval "$CMD 2>&1 | tee $LOG_FILE"
+    ACT_EXIT_CODE=${PIPESTATUS[0]}
 
 elif [ "$choice" == "4" ]; then
     echo "🟢 Running: Release Logic Check (Host Mode)..."

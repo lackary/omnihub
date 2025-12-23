@@ -2,7 +2,7 @@
 # Gradle
 agp = "8.13.2"
 android-compileSdk = "36"
-android-minSdk = "24"
+android-minSdk = "30"
 android-targetSdk = "36"
 
 # Android
@@ -30,6 +30,8 @@ ktor = "3.3.3"
 koin = "4.1.1"
 buildkonfig = "0.17.1"
 coil3 = "3.3.0"
+
+omnifeed = "0.10.0"
 
 [libraries]
 # Android
@@ -63,6 +65,10 @@ koin-compose = { module = "io.insert-koin:koin-compose"}
 koin-compose-viewmodel = { module = "io.insert-koin:koin-compose-viewmodel"}
 coil-compose = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coil3" }
 coil-network-ktor = { module = "io.coil-kt.coil3:coil-network-ktor3", version.ref = "coil3" }
+
+omnifeed-core = { module = "io.lackstudio.omnifeed:omnifeed-core", version.ref = "omnifeed" }
+omnifeed-unsplash = { module = "io.lackstudio.omnifeed:omnifeed-unsplash", version.ref = "omnifeed" }
+omnifeed-ui = { module = "io.lackstudio.omnifeed:omnifeed-ui", version.ref = "omnifeed" }
 
 [plugins]
 # Android

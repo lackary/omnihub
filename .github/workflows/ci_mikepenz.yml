@@ -32,6 +32,14 @@ jobs:
   build-and-test:
     runs-on: macos-latest
 
+    env:
+      UNSPLASH_ACCESS_KEY: ${{ secrets.UNSPLASH_ACCESS_KEY }}
+      UNSPLASH_SECRET_KEY: ${{ secrets.UNSPLASH_SECRET_KEY }}
+      # Required by omnifeed-kmp due to the composite build configuration.
+      # Please remove this if we switch to using binary dependencies (e.g., GitHub Packages),
+      # unless OmniHub itself requires Google Services (Firebase).
+      GOOGLE_SERVICES_WEB_CLIENT_ID: ${{ secrets.GOOGLE_SERVICES_WEB_CLIENT_ID }}
+
     # Permissions required for Mike Penz action to publish reports
     permissions:
       checks: write
@@ -39,20 +47,31 @@ jobs:
       contents: read
 
     steps:
-      - name: Checkout code
+      # Checkout OmniHub (App) to subdirectory 'omnihub'
+      - name: Checkout OmniHub (App)
         uses: actions/checkout@v4
+        with:
+          path: omnihub
 
-      - name: Set up JDK 17
+      # Checkout OmniFeed (Lib) to subdirectory 'omnifeed-kmp'
+      - name: Checkout OmniFeed (Lib)
+        uses: actions/checkout@v4
+        with:
+          repository: lackary/omnifeed-kmp
+          path: omnifeed-kmp
+
+      - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
-          java-version: '17'
+          java-version: '21'
           distribution: 'temurin'
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
 
+      # Specify execution inside omnihub directory
       - name: Grant execute permission for gradlew
-        run: chmod +x gradlew
+        run: chmod +x omnihub/gradlew
 
       # Setup Environment and Run Initialization Scripts
       - name: Setup iOS Environment (Dummy Framework & Pods)
@@ -71,6 +90,7 @@ jobs:
           fi
 
           echo "Running Setup Script..."
+          cd omnihub
           chmod +x setup_ios.sh
           ./setup_ios.sh
 
@@ -108,7 +128,7 @@ jobs:
 
       # Execute Xcode Build
       - name: Xcode Build (clean build .xcworkspace)
-        working-directory: './iosApp'
+        working-directory: './omnihub/iosApp'
         run: |
           echo "Building iOS target via .xcworkspace..."
           xcodebuild clean build \
@@ -121,17 +141,27 @@ jobs:
               CODE_SIGNING_ALLOWED=NO 
 
       # Compile
-      - name: Assemble (Compile)
+      - name: Assemble with Gradle (Compile)
+        # Set environment variable FORCE_COMPOSITE_BUILD
+        env:
+          FORCE_COMPOSITE_BUILD: "true"
+        # Enter omnihub directory to execute Gradle
         run: |
+          echo env.
+          cd omnihub
           ./gradlew assemble \
           ${{ inputs.run_with_stacktrace && '--stacktrace' || '' }} \
           ${{ inputs.run_with_info && '--info' || '' }} \
           ${{ inputs.run_with_debug && '--debug' || '' }}
 
       # Run Checks and Tests
-      - name: Check (Test & Lint)
+      - name: Check with Gradle (Test & Lint)
         continue-on-error: false
+        env:
+          FORCE_COMPOSITE_BUILD: "true"
+        # Enter omnihub directory to execute Gradle
         run: |
+          cd omnihub
           ./gradlew check \
           ${{ inputs.run_with_stacktrace && '--stacktrace' || '' }} \
           ${{ inputs.run_with_info && '--info' || '' }} \
@@ -142,7 +172,7 @@ jobs:
         uses: mikepenz/action-junit-report@v4
         if: always() # Run even if tests fail
         with:
-          report_paths: '**/build/test-results/**/*.xml' # Supports multi-module paths
+          report_paths: 'omnihub/**/build/test-results/**/*.xml' # Supports multi-module paths
           check_name: 'JUnit Test Report'
           detailed_summary: true # Show detailed table
           include_passed: true   # Include passed tests (similar visual effect to Dorny)
@@ -155,6 +185,6 @@ jobs:
         with:
           name: test-reports-html
           path: |
-            **/build/reports/tests/
-            **/build/reports/lint-results-*.html
+            omnihub/**/build/reports/tests/
+            omnihub/**/build/reports/lint-results-*.html
           retention-days: 5
