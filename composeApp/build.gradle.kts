@@ -1,12 +1,29 @@
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import com.codingfeline.buildkonfig.compiler.FieldSpec.Type.STRING
+import java.util.Properties
 
 val appPackageName = "io.lackstudio.omnihub"
+val unsplashAccessKeyName = "UNSPLASH_ACCESS_KEY"
 
 // Read buildNumber, default to 1 if not provided (e.g. during development)
 val buildNumberProp = project.findProperty("buildNumber") as? String
 val appBuildNumber = buildNumberProp?.toIntOrNull() ?: 1
+
+fun getFromLocalProperties(key: String, project: Project): String? {
+    val file = project.rootProject.file("local.properties")
+    if (!file.exists()) return null
+
+    val properties = Properties()
+    file.inputStream().use { properties.load(it) }
+    return properties.getProperty(key)
+}
+
+fun resolveConfigValue(key: String, project: Project): String? {
+    // Read from file first, if not found then read from environment variables
+    return getFromLocalProperties(key, project) ?: System.getenv(key)
+}
 
 plugins {
     alias(libs.plugins.kotlin.multiplatform)
@@ -21,17 +38,13 @@ plugins {
 
 buildkonfig {
     packageName = appPackageName
+
+    val unsplashAccessKey = resolveConfigValue(unsplashAccessKeyName, project) ?: ""
+
     defaultConfigs {
-        buildConfigField(
-            com.codingfeline.buildkonfig.compiler.FieldSpec.Type.STRING,
-            "APP_VERSION",
-            project.version.toString() // Automatically reads from gradle.properties
-        )
-        buildConfigField(
-            com.codingfeline.buildkonfig.compiler.FieldSpec.Type.STRING,
-            "APP_BUILD_NUMBER",
-            appBuildNumber.toString()
-        )
+        buildConfigField(STRING, "APP_VERSION", project.version.toString()) // Automatically reads from gradle.properties)
+        buildConfigField(STRING, "APP_BUILD_NUMBER", appBuildNumber.toString())
+        buildConfigField(STRING, unsplashAccessKeyName, unsplashAccessKey)
     }
 }
 
