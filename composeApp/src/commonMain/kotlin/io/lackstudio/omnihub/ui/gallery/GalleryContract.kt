@@ -1,52 +1,59 @@
 package io.lackstudio.omnihub.ui.gallery
 
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.PhotoAlbum
+import androidx.compose.material.icons.filled.PhotoLibrary
+import androidx.compose.material.icons.filled.Topic
 import androidx.compose.runtime.Immutable
+import androidx.compose.ui.graphics.vector.ImageVector
+import io.lackstudio.omnifeed.ui.state.AppUiState
 
-// Define simple Data Models (to be replaced by real Models later)
+// Define simple Data Models
 data class GalleryPhoto(val id: String, val url: String, val title: String)
-data class GalleryCollection(val id: String, val coverUrl: String, val title: String, val totalPhotos: Int)
-data class GalleryTopic(val id: String, val coverUrl: String, val title: String, val description: String)
+data class GalleryCollection(val id: String, val coverUrl: String?, val title: String, val totalPhotos: Int)
+data class GalleryTopic(val id: String, val coverUrl: String?, val title: String, val description: String)
 
-// Define UI State (Nested structure)
+// 🆕 1. 定義帶有屬性的 Enum
+enum class GalleryTab(
+    val title: String,
+    val icon: ImageVector
+) {
+    Photos("Photos", Icons.Filled.PhotoLibrary),
+    Collections("Collections", Icons.Filled.PhotoAlbum),
+    Topics("Topics", Icons.Filled.Topic);
+
+    // Helper: 透過 index 找 Enum (給 Pager 用)
+    companion object {
+        fun getByIndex(index: Int): GalleryTab = entries.getOrElse(index) { Photos }
+    }
+}
+
+// Define State (UI state)
 @Immutable
 data class GalleryUiState(
     // Global state
-    val currentTabIndex: Int = 0,
+    val currentTab: GalleryTab = GalleryTab.Photos,
 
-    // Sub-state: Photo list
-    val photosState: PhotosState = PhotosState(),
+    val isRefreshing: Boolean = false,
 
-    // Sub-state: Collection list
-    val collectionsState: CollectionsState = CollectionsState(),
+    val photosState: AppUiState<List<GalleryPhoto>> = AppUiState.Idle,
+    val photosEndOfList: Boolean = false,
 
-    // Sub-state: Topic list
-    val topicsState: TopicsState = TopicsState()
-)
+    val collectionsState: AppUiState<List<GalleryCollection>> = AppUiState.Idle,
+    val collectionsEndOfList: Boolean = false,
 
-@Immutable
-data class PhotosState(
-    val isLoading: Boolean = false,
-    val items: List<GalleryPhoto> = emptyList(),
-    val error: String? = null
-)
-
-@Immutable
-data class CollectionsState(
-    val isLoading: Boolean = false,
-    val items: List<GalleryCollection> = emptyList(),
-    val error: String? = null
-)
-
-@Immutable
-data class TopicsState(
-    val isLoading: Boolean = false,
-    val items: List<GalleryTopic> = emptyList(),
-    val error: String? = null
+    val topicsState: AppUiState<List<GalleryTopic>> = AppUiState.Idle,
+    val topicsEndOfList: Boolean = false
 )
 
 // Define Intents (User intents)
 sealed interface GalleryIntent {
-    data class SelectTab(val index: Int) : GalleryIntent
+    data class SelectTab(val tab: GalleryTab) : GalleryIntent
     data object Refresh : GalleryIntent
-    // data object OnBackClick : GalleryIntent (if navigation logic is handled in VM)
+    data object LoadMore : GalleryIntent
+}
+
+// Define One-time Events (Side Effect)
+sealed interface GallerySideEffect {
+    data class ShowSnackbar(val message: String) : GallerySideEffect
 }
