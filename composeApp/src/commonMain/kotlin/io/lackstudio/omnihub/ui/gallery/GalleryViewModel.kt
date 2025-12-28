@@ -98,79 +98,82 @@ class GalleryViewModel(
     /**
      * Generic Helper function: Handle "Smart Loading" and "State Update" uniformly
      * @param targetPage Target page number
-     * @param currentSubState Current state of the field (used to check if old data exists)
+     * @param currentSubState Current state of the field (used for Loading check only)
+     * @param getOldList [Fixed] Lambda to retrieve the *latest* list data at the moment of update
      * @param useCase API call logic
      * @param mapper Data transformation logic (Domain -> UI)
      * @param stateReducer State update logic (specify which field of state to update)
      * @param onSuccessUpdatePage Update current page number
      */
-    private fun <D, U> fetchCategory(
+    private fun <T, R> fetchCategory(
         targetPage: Int,
-        currentSubState: AppUiState<List<U>>,
-        useCase: suspend () -> UseCaseResult<D>,
-        mapper: (D) -> List<U>,
-        stateReducer: (GalleryUiState, AppUiState<List<U>>, Boolean) -> GalleryUiState,
+        currentSubState: AppUiState<List<R>>,
+        getOldList: (GalleryUiState) -> List<R>?, // Function to retrieve the latest data dynamically
+        useCase: suspend () -> UseCaseResult<List<T>>,
+        mapper: (List<T>) -> List<R>,
+        stateReducer: (GalleryUiState, AppUiState<List<R>>, Boolean) -> GalleryUiState,
         onSuccessUpdatePage: () -> Unit
     ) {
-        val isLoadMore = targetPage > 1
+        // [Guard] If "loading more" is in progress (Page > 1) and the flag shows busy, block the request
+        if (targetPage > 1 && isLoadingMore) {
+            return
+        }
 
-        if (isLoadMore) isLoadingMore = true
-        val hasOldData = currentSubState is AppUiState.Success
+        // Set flag: If Page > 1, mark as loading more
+        if (targetPage > 1) {
+            isLoadingMore = true
+        }
 
         handleUseCaseCall(
+            useCase = useCase,
             onLoading = {
-                // Show full-screen Loading only when "Page 1" and "No old data"
-                // If LoadMore or Refresh, this will not execute (keep screen)
-                if (targetPage == 1 && !hasOldData) {
-                    _state.update { currentState ->
-                        stateReducer(currentState, AppUiState.Loading, false)
+                // [UI State Management]
+                // Show full page loading (AppUiState.Loading) only when "Page 1" and "no old data"
+                val hasOldData = targetPage > 1 || (currentSubState is AppUiState.Success && currentSubState.data.isNotEmpty())
+
+                if (!hasOldData) {
+                    _state.update {
+                        stateReducer(it, AppUiState.Loading, false)
                     }
                 }
             },
-            useCase = useCase,
-            onSuccess = { domainData ->
-                val newItems = mapper(domainData)
-
-                // 🔥 Logic: If the fetched items are empty, it means the end of the list
+            onSuccess = { resultData ->
+                val newItems = mapper(resultData)
                 val isEndOfList = newItems.isEmpty()
 
-                // Data merging logic
-                // If LoadMore and has old data -> Old + New
-                // Otherwise (Page 1) -> Use new directly
-                val finalItems = if (isLoadMore && hasOldData) {
-                    currentSubState.data + newItems
-                } else {
-                    newItems
-                }
+                onSuccessUpdatePage()
 
+                // [Data Merge]
+                // Enter update block to get the "latest" state, instead of relying on the passed currentSubState
                 _state.update { currentState ->
-                    // Update specific field + uniformly disable isRefreshing
-                    stateReducer(currentState, AppUiState.Success(finalItems), isEndOfList)
+                    // 1. Dynamically retrieve old data (prevent Page 1 from being overwritten by Page 2 before it's written)
+                    val oldList = if (targetPage > 1) {
+                        getOldList(currentState) ?: emptyList()
+                    } else {
+                        emptyList()
+                    }
+
+                    // 2. Merge data
+                    val finalData = oldList + newItems
+                    val finalSubState = AppUiState.Success(finalData)
+
+                    // 3. Update State and ensure Refresh loading indicator is closed
+                    stateReducer(currentState, finalSubState, isEndOfList)
                         .copy(isRefreshing = false)
                 }
 
-                // Update page number only when "new data exists" to avoid getting stuck at the last page
-                if (!isEndOfList) {
-                    onSuccessUpdatePage()
-                }
-                if (isLoadMore) isLoadingMore = false
+                // Unlock flag
+                if (targetPage > 1) isLoadingMore = false
             },
-            onError = { errorMessage ->
-                if (isLoadMore) isLoadingMore = false
-
-                if (hasOldData) {
-                    // Has old data: Silent failure, just disable refresh
-                    _state.update { it.copy(isRefreshing = false) }
-                    // Send Snackbar event (can call send directly since this is in a suspend function)
-                    _sideEffect.trySend(GallerySideEffect.ShowSnackbar(errorMessage))
-                } else {
-                    // No old data: Show full-screen error
-                    _state.update { currentState ->
-                        // On error, keep original endOfList state (simplified to false here to allow retry)
-                        stateReducer(currentState, AppUiState.Error(errorMessage), false)
-                            .copy(isRefreshing = false)
-                    }
+            onError = { exception ->
+                _state.update {
+                    // Remember to close Refresh loading indicator even if an error occurs
+                    stateReducer(it, AppUiState.Error(exception), false)
+                        .copy(isRefreshing = false)
                 }
+
+                // Unlock flag
+                if (targetPage > 1) isLoadingMore = false
             }
         )
     }
@@ -181,6 +184,8 @@ class GalleryViewModel(
         fetchCategory(
             targetPage = page,
             currentSubState = _state.value.photosState,
+            // Pass Lambda to retrieve the latest data during merge
+            getOldList = { state -> (state.photosState as? AppUiState.Success)?.data },
             useCase = { getPhotosUseCase(params) },
             mapper = { list -> list.map { GalleryPhoto(it.id, it.urls.small, it.description ?: "") } },
             stateReducer = { state, newState, isEnd ->
@@ -196,6 +201,8 @@ class GalleryViewModel(
         fetchCategory(
             targetPage = page,
             currentSubState = _state.value.collectionsState,
+            // Pass Lambda to retrieve the latest data during merge
+            getOldList = { state -> (state.collectionsState as? AppUiState.Success)?.data },
             useCase = { getCollectionsUseCase(params) },
             mapper = { list -> list.map { GalleryCollection(it.id, it.coverPhoto?.urls?.small, it.title, it.totalPhotos) } },
             stateReducer = { state, newState, isEnd ->
@@ -207,15 +214,17 @@ class GalleryViewModel(
 
     private fun fetchTopics(page: Int) {
         val params = GetTopicsParams(page = page, perPage = 10)
+
         fetchCategory(
             targetPage = page,
             currentSubState = _state.value.topicsState,
+            // Pass Lambda to retrieve the latest data during merge
+            getOldList = { state -> (state.topicsState as? AppUiState.Success)?.data },
             useCase = { getTopicsUseCase(params) },
-            mapper = { list -> list.map { GalleryTopic(it.id,
-                it.coverPhoto.urls.small, it.title, it.description) } },
+            mapper = { list -> list.map { GalleryTopic(it.id, it.coverPhoto.urls.small, it.title, it.description) } },
             stateReducer = { state, newState, isEnd ->
                 state.copy(topicsState = newState, topicsEndOfList = isEnd)
-                           },
+            },
             onSuccessUpdatePage = { topicsPage = page }
         )
     }
