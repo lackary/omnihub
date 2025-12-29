@@ -18,6 +18,9 @@ interface GalleryDisplayable {
     val displayUsername: String?  // Allow null
     val displayCount: Int
     val displayLikes: Int
+    val displayBlurHash: String?
+    val displayWidth: Int?
+    val displayHeight: Int?
 }
 
 data class GalleryPhoto(
@@ -26,7 +29,10 @@ data class GalleryPhoto(
     val title: String,
     val userProfileImage: String?,
     val username: String,
-    val likes: Int
+    val likes: Int,
+    val blurhash: String,
+    val width: Int,
+    val height: Int
 ) : GalleryDisplayable {
     // Implement interface field mapping
     override val displayId: String get() = id
@@ -36,6 +42,9 @@ data class GalleryPhoto(
     override val displayUserAvatar: String? get() = userProfileImage
     override val displayUsername: String get() = username
     override val displayLikes: Int get() = likes
+    override val displayBlurHash: String get() = blurhash
+    override val displayWidth: Int get() = width
+    override val displayHeight: Int get() = height
 }
 
 data class GalleryCollection(
@@ -44,7 +53,10 @@ data class GalleryCollection(
     val title: String,
     val totalPhotos: Int,
     val userProfileImage: String? = null,
-    val username: String? = null
+    val username: String? = null,
+    val blurhash: String? = null,
+    val width: Int? = 0,
+    val height: Int? = 0
 ) : GalleryDisplayable {
     override val displayId: String get() = id
     override val displayImageUrl: String? get() = coverUrl
@@ -53,6 +65,9 @@ data class GalleryCollection(
     override val displayUserAvatar: String? get() = userProfileImage
     override val displayUsername: String? get() = username
     override val displayLikes: Int get() = 0
+    override val displayBlurHash: String? get() = blurhash
+    override val displayWidth: Int? get() = width
+    override val displayHeight: Int? get() = height
 }
 
 data class GalleryTopic(
@@ -61,6 +76,9 @@ data class GalleryTopic(
     val title: String,
     val description: String,
     val totalPhotos: Int,
+    val blurhash: String? = null,
+    val width: Int? = 0,
+    val height: Int? = 0
 ) : GalleryDisplayable {
     override val displayId: String get() = id
     override val displayImageUrl: String? get() = coverUrl
@@ -69,6 +87,9 @@ data class GalleryTopic(
     override val displayUserAvatar: String? get() = null
     override val displayUsername: String? get() = null
     override val displayLikes: Int get() = 0
+    override val displayBlurHash: String? get() = blurhash
+    override val displayWidth: Int? get() = width
+    override val displayHeight: Int? get() = height
 }
 
 // Define Enum with properties

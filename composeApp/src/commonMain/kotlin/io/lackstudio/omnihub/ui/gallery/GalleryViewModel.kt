@@ -191,11 +191,14 @@ class GalleryViewModel(
                 list.map {
                     GalleryPhoto(
                         it.id,
-                        it.urls.small,
-                        it.description ?: "",
+                        url = it.urls.small,
+                        title = it.description ?: "",
                         userProfileImage = it.user.profileImage.small,
                         username = it.user.username,
-                        likes = it.likes
+                        likes = it.likes,
+                        blurhash = it.blurHash,
+                        width = it.width,
+                        height = it.height
                     )
                 } },
             stateReducer = { state, newState, isEnd ->
@@ -217,12 +220,15 @@ class GalleryViewModel(
             mapper = { list ->
                 list.map {
                     GalleryCollection(
-                        it.id,
-                        it.coverPhoto?.urls?.small,
-                        it.title,
-                        it.totalPhotos,
+                        id = it.id,
+                        coverUrl = it.coverPhoto?.urls?.small,
+                        title = it.title,
+                        totalPhotos = it.totalPhotos,
                         userProfileImage = it.user.profileImage.small,
                         username = it.user.username,
+                        blurhash = it.coverPhoto?.blurHash,
+                        width = it.coverPhoto?.width,
+                        height = it.coverPhoto?.height
                     )
                 } },
             stateReducer = { state, newState, isEnd ->
@@ -244,11 +250,14 @@ class GalleryViewModel(
             mapper = { list ->
                 list.map {
                     GalleryTopic(
-                        it.id,
-                        it.coverPhoto.urls.small,
-                        it.title,
-                        it.description,
-                        it.totalPhotos
+                        id = it.id,
+                        coverUrl = it.coverPhoto.urls.small,
+                        title = it.title,
+                        description = it.description,
+                        totalPhotos = it.totalPhotos,
+                        blurhash = it.coverPhoto.blurHash,
+                        width = it.coverPhoto.width,
+                        height = it.coverPhoto.height
                     )
                 } },
             stateReducer = { state, newState, isEnd ->

@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -47,6 +48,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.flowWithLifecycle
 import coil3.compose.AsyncImage
+import com.brys.compose.blurhash.BlurHashImage
 import io.lackstudio.omnifeed.ui.state.AppUiState
 import io.lackstudio.omnihub.ui.extensions.pagingGridItems
 import io.lackstudio.omnihub.ui.extensions.pagingItems
@@ -374,8 +376,20 @@ fun TopicList(
 
 @Composable
 fun GalleryCard(item: GalleryDisplayable) {
+    val aspectRatio = remember(item.displayWidth, item.displayHeight) {
+        val w = item.displayWidth ?: 0
+        val h = item.displayHeight ?: 0
+        if (h > 0 && w > 0) {
+            w.toFloat() / h.toFloat()
+        } else {
+            1f // Default aspect ratio to avoid crash due to division by zero
+        }
+    }
+
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .aspectRatio(aspectRatio),
         shape = RoundedCornerShape(12.dp),
         elevation = CardDefaults.cardElevation(4.dp)
     ) {
@@ -395,11 +409,22 @@ fun GalleryCard(item: GalleryDisplayable) {
                     Text("Image Preview", color = Color.DarkGray)
                 }
             } else {
+
+                // Place BlurHash at the bottom
+                item.displayBlurHash?.let { hash ->
+                    BlurHashImage(
+                        hash = hash,
+                        contentDescription = "blur hash",
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                }
+
+                // Place AsyncImage on top (it will cover the bottom layer after loading)
                 AsyncImage(
                     model = item.displayImageUrl,
                     contentDescription = item.displayTitle,
                     modifier = Modifier.fillMaxWidth().wrapContentHeight(),
-                    contentScale = ContentScale.FillWidth
+                    contentScale = ContentScale.Crop
                 )
             }
 
@@ -414,7 +439,6 @@ fun GalleryCard(item: GalleryDisplayable) {
                         )
                     )
             )
-
 
             // User information at bottom left (Avatar + Username)
             Row(
@@ -531,6 +555,15 @@ fun TopicCard(topic: GalleryTopic) {
             modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.Center // Title displayed in the center
         ) {
+
+            topic.blurhash?.let { hash ->
+                BlurHashImage(
+                    hash = hash,
+                    contentDescription = "",
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
+
             // Background image
             AsyncImage(
                 // Please confirm your GalleryTopic data structure field name (e.g. topic.coverUrl or topic.urls.small)
@@ -566,8 +599,27 @@ fun GalleryScreenPreview() {
     val dummyState = GalleryUiState(
         photosState = AppUiState.Success(
             data = listOf(
-                GalleryPhoto("1", "https://picsum.photos/seed/photo0/300/400", "Preview Photo 1", "", "username1", 1),
-                GalleryPhoto("2", "https://picsum.photos/seed/photo1/300/400", "Preview Photo 2", "", "username2", 1)
+                GalleryPhoto(
+                    "1",
+                    "https://picsum.photos/seed/photo0/300/400",
+                    "Preview Photo 1",
+                    "",
+                    "username1",
+                    1,
+                    "",
+                    0,
+                    0),
+                GalleryPhoto(
+                    "2",
+                    "https://picsum.photos/seed/photo1/300/400",
+                    "Preview Photo 2",
+                    "",
+                    "username2",
+                    1,
+                    "",
+                    0,
+                    0
+                )
             )
         )
     )

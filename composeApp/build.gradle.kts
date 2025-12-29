@@ -140,6 +140,7 @@ kotlin {
             implementation(libs.koin.compose.viewmodel)
             implementation(libs.coil.compose)
             implementation(libs.coil.network.ktor)
+            implementation(libs.brys0.blurhash)
             implementation(libs.omnifeed.core)
             implementation(libs.omnifeed.ui)
             implementation(libs.omnifeed.unsplash)
