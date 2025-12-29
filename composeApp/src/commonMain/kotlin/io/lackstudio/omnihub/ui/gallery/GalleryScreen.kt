@@ -6,19 +6,26 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.FilterNone
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
@@ -27,6 +34,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalInspectionMode
@@ -312,7 +321,7 @@ fun PhotoList(
             onLoadMore = onLoadMore,
             key = { it.id } // Recommended to add id to improve LazyColumn performance
         ) { photo ->
-            GalleryCard(imageUrl = photo.url, title = photo.title)
+            GalleryCard(photo)
         }
     }
 }
@@ -334,7 +343,7 @@ fun CollectionList(
             onLoadMore = onLoadMore,
             key = { it.id }
         ) { collection ->
-            GalleryCard(imageUrl = collection.coverUrl, title = collection.title)
+            GalleryCard(collection)
         }
     }
 }
@@ -364,13 +373,17 @@ fun TopicList(
 }
 
 @Composable
-fun GalleryCard(imageUrl: String?, title: String) {
+fun GalleryCard(item: GalleryDisplayable) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
         elevation = CardDefaults.cardElevation(4.dp)
     ) {
-        Column {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .wrapContentHeight()
+        ) {
             if (LocalInspectionMode.current) {
                 Box(
                     modifier = Modifier
@@ -383,17 +396,125 @@ fun GalleryCard(imageUrl: String?, title: String) {
                 }
             } else {
                 AsyncImage(
-                    model = imageUrl,
-                    contentDescription = title,
+                    model = item.displayImageUrl,
+                    contentDescription = item.displayTitle,
                     modifier = Modifier.fillMaxWidth().wrapContentHeight(),
                     contentScale = ContentScale.FillWidth
                 )
             }
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.padding(16.dp)
+
+            // Gradient shadow (makes text visible on light images)
+            Box(
+                modifier = Modifier
+                    .matchParentSize() // Match parent size
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.7f)),
+                            startY = 400f // Adjust the starting position of the gradient
+                        )
+                    )
             )
+
+
+            // User information at bottom left (Avatar + Username)
+            Row(
+                modifier = Modifier
+                    .align(Alignment.BottomStart) // Align bottom start
+                    .padding(12.dp), // Leave some padding
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // User Avatar
+                if (LocalInspectionMode.current) {
+                    Box(
+                        modifier = Modifier
+                            .size(32.dp)
+                            .clip(CircleShape)
+                            .background(Color.Gray)
+                    )
+                } else {
+                    AsyncImage(
+                        model = item.displayUserAvatar,
+                        contentDescription = "Avatar",
+                        modifier = Modifier
+                            .size(32.dp)            // Set size
+                            .clip(CircleShape)            // Clip to circle
+                            .background(Color.LightGray), // Background color before loading
+                        contentScale = ContentScale.Crop
+                    )
+                }
+
+                Spacer(modifier = Modifier.width(8.dp)) // Spacing
+
+                // Username
+                Text(
+                    text = item.displayUsername?: "",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color.White, // Use white text because of the black gradient background
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+
+            // the count at top right for collections (icon + number)
+            if (item.displayCount > 0) {
+                Surface(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd) // Align top end
+                        .padding(8.dp), // Padding
+                    shape = RoundedCornerShape(12.dp), // Rounded capsule shape
+                    color = Color.Black.copy(alpha = 0.6f),  // Semi-transparent black background
+                    contentColor = Color.White  // White text
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        // Add a small icon, e.g., stack icon
+                        Icon(
+                            imageVector = Icons.Filled.FilterNone, // Or PhotoLibrary
+                            contentDescription = null,
+                            modifier = Modifier.size(12.dp),
+                            tint = Color.White
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+
+                        // Count
+                        Text(
+                            text = item.displayCount.toString(),
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+            }
+
+            // the likes at bottom right for photos (number + icon)
+            if (item.displayLikes > 0) {
+                Row(
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd) // Align bottom left
+                        .padding(12.dp),       // Keep same padding as User Info on the left
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+
+                    // Number
+                    Text(
+                        text = item.displayLikes.toString(),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color.White,
+                        fontWeight = FontWeight.Medium
+                    )
+
+                    Spacer(modifier = Modifier.width(4.dp))
+
+                    // Heart Icon
+                    Icon(
+                        imageVector = Icons.Filled.Favorite, // Or use Icons.Default.Favorite (Filled)
+                        contentDescription = "Likes",
+                        modifier = Modifier.size(16.dp), // Moderate size
+                        tint = Color.White // White, because of the black gradient background
+                    )
+                }
+            }
         }
     }
 }
@@ -445,8 +566,8 @@ fun GalleryScreenPreview() {
     val dummyState = GalleryUiState(
         photosState = AppUiState.Success(
             data = listOf(
-                GalleryPhoto("1", "https://picsum.photos/seed/photo0/300/400", "Preview Photo 1"),
-                GalleryPhoto("2", "https://picsum.photos/seed/photo1/300/400", "Preview Photo 2")
+                GalleryPhoto("1", "https://picsum.photos/seed/photo0/300/400", "Preview Photo 1", "", "username1", 1),
+                GalleryPhoto("2", "https://picsum.photos/seed/photo1/300/400", "Preview Photo 2", "", "username2", 1)
             )
         )
     )

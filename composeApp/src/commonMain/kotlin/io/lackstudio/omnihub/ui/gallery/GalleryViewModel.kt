@@ -187,7 +187,17 @@ class GalleryViewModel(
             // Pass Lambda to retrieve the latest data during merge
             getOldList = { state -> (state.photosState as? AppUiState.Success)?.data },
             useCase = { getPhotosUseCase(params) },
-            mapper = { list -> list.map { GalleryPhoto(it.id, it.urls.small, it.description ?: "") } },
+            mapper = { list ->
+                list.map {
+                    GalleryPhoto(
+                        it.id,
+                        it.urls.small,
+                        it.description ?: "",
+                        userProfileImage = it.user.profileImage.small,
+                        username = it.user.username,
+                        likes = it.likes
+                    )
+                } },
             stateReducer = { state, newState, isEnd ->
                 state.copy(photosState = newState, photosEndOfList = isEnd)
             },
@@ -204,7 +214,17 @@ class GalleryViewModel(
             // Pass Lambda to retrieve the latest data during merge
             getOldList = { state -> (state.collectionsState as? AppUiState.Success)?.data },
             useCase = { getCollectionsUseCase(params) },
-            mapper = { list -> list.map { GalleryCollection(it.id, it.coverPhoto?.urls?.small, it.title, it.totalPhotos) } },
+            mapper = { list ->
+                list.map {
+                    GalleryCollection(
+                        it.id,
+                        it.coverPhoto?.urls?.small,
+                        it.title,
+                        it.totalPhotos,
+                        userProfileImage = it.user.profileImage.small,
+                        username = it.user.username,
+                    )
+                } },
             stateReducer = { state, newState, isEnd ->
                 state.copy(collectionsState = newState, collectionsEndOfList = isEnd)
             },
@@ -221,7 +241,16 @@ class GalleryViewModel(
             // Pass Lambda to retrieve the latest data during merge
             getOldList = { state -> (state.topicsState as? AppUiState.Success)?.data },
             useCase = { getTopicsUseCase(params) },
-            mapper = { list -> list.map { GalleryTopic(it.id, it.coverPhoto.urls.small, it.title, it.description) } },
+            mapper = { list ->
+                list.map {
+                    GalleryTopic(
+                        it.id,
+                        it.coverPhoto.urls.small,
+                        it.title,
+                        it.description,
+                        it.totalPhotos
+                    )
+                } },
             stateReducer = { state, newState, isEnd ->
                 state.copy(topicsState = newState, topicsEndOfList = isEnd)
             },

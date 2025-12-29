@@ -8,12 +8,70 @@ import androidx.compose.runtime.Immutable
 import androidx.compose.ui.graphics.vector.ImageVector
 import io.lackstudio.omnifeed.ui.state.AppUiState
 
-// Define simple Data Models
-data class GalleryPhoto(val id: String, val url: String, val title: String)
-data class GalleryCollection(val id: String, val coverUrl: String?, val title: String, val totalPhotos: Int)
-data class GalleryTopic(val id: String, val coverUrl: String?, val title: String, val description: String)
+// Define display interface
+// All objects that want to be displayed with GalleryCard must implement this interface
+interface GalleryDisplayable {
+    val displayId: String
+    val displayImageUrl: String?
+    val displayTitle: String
+    val displayUserAvatar: String? // Allow null (because Collections or Topic might not have a User)
+    val displayUsername: String?  // Allow null
+    val displayCount: Int
+    val displayLikes: Int
+}
 
-// 🆕 1. 定義帶有屬性的 Enum
+data class GalleryPhoto(
+    val id: String,
+    val url: String,
+    val title: String,
+    val userProfileImage: String?,
+    val username: String,
+    val likes: Int
+) : GalleryDisplayable {
+    // Implement interface field mapping
+    override val displayId: String get() = id
+    override val displayImageUrl: String get() = url
+    override val displayTitle: String get() = title
+    override val displayCount: Int get() = 0
+    override val displayUserAvatar: String? get() = userProfileImage
+    override val displayUsername: String get() = username
+    override val displayLikes: Int get() = likes
+}
+
+data class GalleryCollection(
+    val id: String,
+    val coverUrl: String?,
+    val title: String,
+    val totalPhotos: Int,
+    val userProfileImage: String? = null,
+    val username: String? = null
+) : GalleryDisplayable {
+    override val displayId: String get() = id
+    override val displayImageUrl: String? get() = coverUrl
+    override val displayTitle: String get() = title
+    override val displayCount: Int get() = totalPhotos
+    override val displayUserAvatar: String? get() = userProfileImage
+    override val displayUsername: String? get() = username
+    override val displayLikes: Int get() = 0
+}
+
+data class GalleryTopic(
+    val id: String,
+    val coverUrl: String?,
+    val title: String,
+    val description: String,
+    val totalPhotos: Int,
+) : GalleryDisplayable {
+    override val displayId: String get() = id
+    override val displayImageUrl: String? get() = coverUrl
+    override val displayTitle: String get() = title
+    override val displayCount: Int get() = totalPhotos
+    override val displayUserAvatar: String? get() = null
+    override val displayUsername: String? get() = null
+    override val displayLikes: Int get() = 0
+}
+
+// Define Enum with properties
 enum class GalleryTab(
     val title: String,
     val icon: ImageVector
@@ -22,7 +80,7 @@ enum class GalleryTab(
     Collections("Collections", Icons.Filled.PhotoAlbum),
     Topics("Topics", Icons.Filled.Topic);
 
-    // Helper: 透過 index 找 Enum (給 Pager 用)
+    // Helper: Find Enum by index (for Pager)
     companion object {
         fun getByIndex(index: Int): GalleryTab = entries.getOrElse(index) { Photos }
     }
