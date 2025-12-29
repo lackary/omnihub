@@ -29,6 +29,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
@@ -370,12 +371,24 @@ fun GalleryCard(imageUrl: String?, title: String) {
         elevation = CardDefaults.cardElevation(4.dp)
     ) {
         Column {
-            AsyncImage(
-                model = imageUrl,
-                contentDescription = title,
-                modifier = Modifier.fillMaxWidth().wrapContentHeight(),
-                contentScale = ContentScale.FillWidth
-            )
+            if (LocalInspectionMode.current) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .height(200.dp)
+                        .background(Color.LightGray),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text("Image Preview", color = Color.DarkGray)
+                }
+            } else {
+                AsyncImage(
+                    model = imageUrl,
+                    contentDescription = title,
+                    modifier = Modifier.fillMaxWidth().wrapContentHeight(),
+                    contentScale = ContentScale.FillWidth
+                )
+            }
             Text(
                 text = title,
                 style = MaterialTheme.typography.titleMedium,
