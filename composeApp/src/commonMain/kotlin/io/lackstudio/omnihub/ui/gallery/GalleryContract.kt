@@ -113,7 +113,8 @@ data class GalleryUiState(
     // Global state
     val currentTab: GalleryTab = GalleryTab.Photos,
 
-    val isRefreshing: Boolean = false,
+    // Use Map to track the refreshing status of each Tab
+    val refreshingStatus: Map<GalleryTab, Boolean> = emptyMap(),
 
     val photosState: AppUiState<List<GalleryPhoto>> = AppUiState.Idle,
     val photosEndOfList: Boolean = false,

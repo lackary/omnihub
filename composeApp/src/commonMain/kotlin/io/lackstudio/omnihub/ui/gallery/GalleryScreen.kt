@@ -146,8 +146,12 @@ fun GalleryScreenContent(
         focusRequester.requestFocus()
     }
 
+    // Get whether the current Tab is refreshing
+    // Since state.refreshingStatus is a Map, if not found, default to false
+    val isCurrentTabRefreshing = state.refreshingStatus[state.currentTab] ?: false
     val onRefreshAction = {
-        if (!state.isRefreshing) {
+        // Only send the event if the current Tab is not refreshing
+        if (!isCurrentTabRefreshing) {
             onEvent(GalleryIntent.Refresh)
         }
     }
@@ -195,9 +199,9 @@ fun GalleryScreenContent(
                         IconButton(
                             onClick = { onRefreshAction() },
                             // Disable button while refreshing to prevent multiple clicks
-                            enabled = !state.isRefreshing
+                            enabled = !isCurrentTabRefreshing
                         ) {
-                            if (state.isRefreshing) {
+                            if (!isCurrentTabRefreshing) {
                                 // You can change the button to a spinner, or just gray it out
                                 CircularProgressIndicator(
                                     modifier = Modifier.size(24.dp),
@@ -255,37 +259,36 @@ fun GalleryScreenContent(
                 }
             }
 
-            // It handles gesture detection and shows the spinner when isRefreshing = true
-            SafePullToRefreshBox(
-                isRefreshing = state.isRefreshing, // From ViewModel
-                onRefresh = { onEvent(GalleryIntent.Refresh) }, // Trigger ViewModel action
-                modifier = Modifier.weight(1f)
-            ) {
-                // Pager Content
-                HorizontalPager(
-                    state = pagerState,
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.Top, // Ensure content starts from the top
-                    // Keep the state of 1 page on each side to avoid resetting scroll position when switching
-                    beyondViewportPageCount = 1
-                ) { pageIndex ->
-                    when (tabs[pageIndex]) {
-                        GalleryTab.Photos -> PhotosContent(
-                            state = state.photosState,
-                            isEndOfList = state.photosEndOfList,
-                            onLoadMore = { onEvent(GalleryIntent.LoadMore) }
-                        )
-                        GalleryTab.Collections -> CollectionsContent(
-                            state = state.collectionsState,
-                            isEndOfList = state.collectionsEndOfList,
-                            onLoadMore = { onEvent(GalleryIntent.LoadMore) }
-                        )
-                        GalleryTab.Topics -> TopicsContent(
-                            state = state.topicsState,
-                            isEndOfList = state.topicsEndOfList,
-                            onLoadMore = { onEvent(GalleryIntent.LoadMore) }
-                        )
-                    }
+            // Pager Content
+            HorizontalPager(
+                state = pagerState,
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.Top, // Ensure content starts from the top
+                // Keep the state of 1 page on each side to avoid resetting scroll position when switching
+                beyondViewportPageCount = 1
+            ) { pageIndex ->
+                when (tabs[pageIndex]) {
+                    GalleryTab.Photos -> PhotosContent(
+                        state = state.photosState,
+                        isRefreshing = state.refreshingStatus[GalleryTab.Photos] ?: false,
+                        onRefresh = { onEvent(GalleryIntent.Refresh) },
+                        isEndOfList = state.photosEndOfList,
+                        onLoadMore = { onEvent(GalleryIntent.LoadMore) }
+                    )
+                    GalleryTab.Collections -> CollectionsContent(
+                        state = state.collectionsState,
+                        isRefreshing = state.refreshingStatus[GalleryTab.Collections] ?: false,
+                        onRefresh = { onEvent(GalleryIntent.Refresh) },
+                        isEndOfList = state.collectionsEndOfList,
+                        onLoadMore = { onEvent(GalleryIntent.LoadMore) }
+                    )
+                    GalleryTab.Topics -> TopicsContent(
+                        state = state.topicsState,
+                        isRefreshing = state.refreshingStatus[GalleryTab.Topics] ?: false,
+                        onRefresh = { onEvent(GalleryIntent.Refresh) },
+                        isEndOfList = state.topicsEndOfList,
+                        onLoadMore = { onEvent(GalleryIntent.LoadMore) }
+                    )
                 }
             }
         }
@@ -296,20 +299,32 @@ fun GalleryScreenContent(
 @Composable
 fun PhotosContent(
     state: AppUiState<List<GalleryPhoto>>,
+    isRefreshing: Boolean,
+    onRefresh: () -> Unit,
     isEndOfList: Boolean,
     onLoadMore: () -> Unit
 ) {
-    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        when (state) {
-            is AppUiState.Idle, is AppUiState.Loading -> CircularProgressIndicator()
-            is AppUiState.Error -> Text("Error: ${state.message}", color = MaterialTheme.colorScheme.error)
-            is AppUiState.Success -> {
-                if (state.data.isEmpty()) Text("No photos found.")
-                else PhotoList(
-                    state.data,
-                    isEndOfList = isEndOfList,
-                    onLoadMore
+    SafePullToRefreshBox(
+        isRefreshing = isRefreshing,
+        onRefresh = onRefresh,
+        modifier = Modifier.fillMaxSize()
+    ) {
+        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            when (state) {
+                is AppUiState.Idle, is AppUiState.Loading -> CircularProgressIndicator()
+                is AppUiState.Error -> Text(
+                    "Error: ${state.message}",
+                    color = MaterialTheme.colorScheme.error
                 )
+
+                is AppUiState.Success -> {
+                    if (state.data.isEmpty()) Text("No photos found.")
+                    else PhotoList(
+                        state.data,
+                        isEndOfList = isEndOfList,
+                        onLoadMore
+                    )
+                }
             }
         }
     }
@@ -318,20 +333,28 @@ fun PhotosContent(
 @Composable
 fun CollectionsContent(
     state: AppUiState<List<GalleryCollection>>,
+    isRefreshing: Boolean,
+    onRefresh: () -> Unit,
     isEndOfList: Boolean,
     onLoadMore: () -> Unit
 ) {
-    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        when (state) {
-            is AppUiState.Idle, is AppUiState.Loading -> CircularProgressIndicator()
-            is AppUiState.Error -> Text("Error: ${state.message}", color = MaterialTheme.colorScheme.error)
-            is AppUiState.Success -> {
-                if (state.data.isEmpty()) Text("No collections found.")
-                else CollectionList(
-                    state.data,
-                    isEndOfList = isEndOfList,
-                    onLoadMore
-                )
+    SafePullToRefreshBox(
+        isRefreshing = isRefreshing,
+        onRefresh = onRefresh,
+        modifier = Modifier.fillMaxSize()
+    ) {
+        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            when (state) {
+                is AppUiState.Idle, is AppUiState.Loading -> CircularProgressIndicator()
+                is AppUiState.Error -> Text("Error: ${state.message}", color = MaterialTheme.colorScheme.error)
+                is AppUiState.Success -> {
+                    if (state.data.isEmpty()) Text("No collections found.")
+                    else CollectionList(
+                        state.data,
+                        isEndOfList = isEndOfList,
+                        onLoadMore
+                    )
+                }
             }
         }
     }
@@ -340,20 +363,32 @@ fun CollectionsContent(
 @Composable
 fun TopicsContent(
     state: AppUiState<List<GalleryTopic>>,
+    isRefreshing: Boolean,
+    onRefresh: () -> Unit,
     isEndOfList: Boolean,
     onLoadMore: () -> Unit
 ) {
-    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        when (state) {
-            is AppUiState.Idle, is AppUiState.Loading -> CircularProgressIndicator()
-            is AppUiState.Error -> Text("Error: ${state.message}", color = MaterialTheme.colorScheme.error)
-            is AppUiState.Success -> {
-                if (state.data.isEmpty()) Text("No topics found.")
-                else TopicList(
-                    state.data,
-                    isEndOfList = isEndOfList,
-                    onLoadMore
+    SafePullToRefreshBox(
+        isRefreshing = isRefreshing,
+        onRefresh = onRefresh,
+        modifier = Modifier.fillMaxSize()
+    ) {
+        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            when (state) {
+                is AppUiState.Idle, is AppUiState.Loading -> CircularProgressIndicator()
+                is AppUiState.Error -> Text(
+                    "Error: ${state.message}",
+                    color = MaterialTheme.colorScheme.error
                 )
+
+                is AppUiState.Success -> {
+                    if (state.data.isEmpty()) Text("No topics found.")
+                    else TopicList(
+                        state.data,
+                        isEndOfList = isEndOfList,
+                        onLoadMore
+                    )
+                }
             }
         }
     }
