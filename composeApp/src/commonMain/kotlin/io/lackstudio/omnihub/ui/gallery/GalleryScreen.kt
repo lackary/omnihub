@@ -1,50 +1,55 @@
 package io.lackstudio.omnihub.ui.gallery
 
-import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.focusable
+import androidx.compose.foundation.interaction.collectIsDraggedAsState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.wrapContentHeight
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.PhotoAlbum
-import androidx.compose.material.icons.filled.PhotoLibrary
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Topic
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.isCtrlPressed
+import androidx.compose.ui.input.key.isMetaPressed
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import coil3.compose.AsyncImage
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.flowWithLifecycle
+import io.lackstudio.omnifeed.ui.state.AppUiState
+import io.lackstudio.omnihub.platform.isPullToRefreshSupported
 import io.lackstudio.omnihub.ui.navigation.Feature
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.launch
+import omnihub.composeapp.generated.resources.Res
+import omnihub.composeapp.generated.resources.back
+import omnihub.composeapp.generated.resources.gallery_title
+import omnihub.composeapp.generated.resources.refresh
+import omnihub.composeapp.generated.resources.search
+import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import org.koin.compose.viewmodel.koinViewModel
-
-// Define Tab Enum (place at the top of the file or in a separate file)
-enum class PhotoTab(
-    val title: String,
-    val icon: ImageVector
-) {
-    List("Photos", Icons.Filled.PhotoLibrary),
-    Collections("Collections", Icons.Filled.PhotoAlbum),
-    Topics("Topics", Icons.Filled.Topic)
-}
 
 // Stateful Composable (Used for App navigation)
 // Responsible for communicating with Koin and ViewModel
@@ -54,12 +59,19 @@ fun GalleryScreen(
     onBack: () -> Unit,
     viewModel: GalleryViewModel = koinViewModel()
 ) {
+    // Triggered when the page becomes "Resume" (visible and interactive)
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
+        println("App returned to foreground, you can perform desired actions")
+    }
+
     // Collect ViewModel state
-    val state by viewModel.state.collectAsState()
+    val state by viewModel.state.collectAsStateWithLifecycle()
 
     // Forward state and events to pure UI Composable
     GalleryScreenContent(
         state = state,
+        // Pass SideEffect Flow (receive ViewModel one-time events)
+        sideEffectFlow = viewModel.sideEffect,
         onEvent = viewModel::handleIntent, // Pass events back to ViewModel
         onNavigateToFeature = onNavigateToFeature,
         onBack = onBack
@@ -73,41 +85,151 @@ fun GalleryScreen(
 @Composable
 fun GalleryScreenContent(
     state: GalleryUiState,          // Receive pure data state
+    sideEffectFlow: Flow<GallerySideEffect>, // Receive onetime event
     onEvent: (GalleryIntent) -> Unit, // Receive event callbacks
     onNavigateToFeature: (Feature) -> Unit,
     onBack: () -> Unit
 ) {
     // UI internal State (e.g., Pager, Scroll, Search) can be kept here
-    val tabs = PhotoTab.entries
-    val pagerState = rememberPagerState(pageCount = { tabs.size })
-    val coroutineScope = rememberCoroutineScope()
+    val tabs = GalleryTab.entries
+    val coroutineScope = rememberCoroutineScope() // Used to handle Tab click animation
+    val snackbarHostState = remember { SnackbarHostState() }
     var isSearching by remember { mutableStateOf(false) }
 
+    val lifecycleOwner = LocalLifecycleOwner.current
+    // Observe SideEffect and ensure Snackbar events are received only when in foreground
+    // Use flowWithLifecycle to bind lifecycle
+    // Safety: When the App goes to background (STOPPED), collection is automatically "paused" to avoid wasting resources on UI actions.
+    // Auto-resume: When the App returns to foreground (STARTED), it automatically "continues" collecting previously buffered events.
+    // State selection: Use STARTED to mean "receive as long as the user can see the App" (including split-screen, multi-window mode).
+    // (If RESUMED is used, the App without focus in split-screen won't receive messages, leading to poor UX)
+    LaunchedEffect(sideEffectFlow, lifecycleOwner) {
+        sideEffectFlow
+            .flowWithLifecycle(lifecycleOwner.lifecycle, Lifecycle.State.STARTED)
+            .collect { effect ->
+            when (effect) {
+                is GallerySideEffect.ShowSnackbar -> {
+                    snackbarHostState.showSnackbar(
+                        message = effect.message,
+                        duration = SnackbarDuration.Short
+                    )
+                }
+            }
+        }
+    }
+
+    // Init tab index
+    val initialPage = remember(state.currentTab) { state.currentTab.ordinal }
+    // create pager state
+    val pagerState = rememberPagerState(
+        initialPage = initialPage, // Initial position
+        pageCount = { GalleryTab.entries.size }
+    )
+    // Detect if the user is "dragging" the Pager with their finger
+    val isDragged by pagerState.interactionSource.collectIsDraggedAsState()
+    // Listen to Pager (swipe -> update VM)
+    LaunchedEffect(pagerState) {
+        // We listen to both currentPage and isScrollInProgress
+        snapshotFlow { pagerState.currentPage }
+            .collect { page ->
+                val targetTab = GalleryTab.getByIndex(page)
+                if (state.currentTab != targetTab) {
+                    onEvent(GalleryIntent.SelectTab(targetTab))
+                }
+            }
+    }
+
+    // Create FocusRequester
+    val focusRequester = remember { FocusRequester() }
+    // Automatically request focus when entering the screen
+    LaunchedEffect(Unit) {
+        focusRequester.requestFocus()
+    }
+
+    // Get whether the current Tab is refreshing
+    // Since state.refreshingStatus is a Map, if not found, default to false
+    val isCurrentTabRefreshing = state.refreshingStatus[state.currentTab] ?: false
+    val onRefreshAction = {
+        // Only send the event if the current Tab is not refreshing
+        if (!isCurrentTabRefreshing) {
+            onEvent(GalleryIntent.Refresh)
+        }
+    }
+
     Scaffold(
+        // Add keyboard listener
+        // This allows refreshing by pressing F5 or Ctrl+R when this Screen gains focus
+        modifier = Modifier
+            .focusRequester(focusRequester)
+            .focusable()
+            .onPreviewKeyEvent { keyEvent ->
+            if (keyEvent.type == KeyEventType.KeyDown) {
+                //  F5
+                if (keyEvent.key == Key.F5) {
+                    onRefreshAction()
+                    return@onPreviewKeyEvent true
+                }
+                // Support Ctrl+R (Windows/Linux) or Cmd+R (Mac)
+                if (keyEvent.key == Key.R && (keyEvent.isCtrlPressed || keyEvent.isMetaPressed)) {
+                    onRefreshAction()
+                    return@onPreviewKeyEvent true
+                }
+            }
+            false
+        },
         topBar = {
             TopAppBar(
-                title = { Text("Gallery") },
+                title = {
+                    Text(
+                        text = stringResource(Res.string.gallery_title),
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+                },
                 navigationIcon = {
                     IconButton(onClick = { onBack() }) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back"
+                            contentDescription = stringResource(Res.string.back)
                         )
                     }
                 },
                 actions = {
+                    if (!isPullToRefreshSupported) {
+                        IconButton(
+                            onClick = { onRefreshAction() },
+                            // Disable button while refreshing to prevent multiple clicks
+                            enabled = !isCurrentTabRefreshing
+                        ) {
+                            if (isCurrentTabRefreshing) {
+                                // You can change the button to a spinner, or just gray it out
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(24.dp),
+                                    strokeWidth = 2.dp,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                            } else {
+                                Icon(
+                                    imageVector = Icons.Default.Refresh,
+                                    contentDescription = stringResource(Res.string.refresh)
+                                )
+                            }
+                        }
+                    }
+
                     IconButton(onClick = {
                         // If search logic is needed here, it can also be passed out via onEvent
                         isSearching = !isSearching
                     }) {
                         Icon(
                             imageVector = Icons.Filled.Search,
-                            contentDescription = "Search"
+                            contentDescription = stringResource(Res.string.search)
                         )
                     }
                 },
             )
         },
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
     ) { paddingValues ->
 
         Column(
@@ -126,11 +248,10 @@ fun GalleryScreenContent(
                     Tab(
                         selected = pagerState.currentPage == index,
                         onClick = {
+
                             coroutineScope.launch {
                                 pagerState.animateScrollToPage(index)
                             }
-                            // If ViewModel needs to be notified of Tab changes:
-                            // onEvent(GalleryIntent.SelectTab(index))
                         },
                         text = { Text(tab.title) },
                         icon = { Icon(tab.icon, contentDescription = null) }
@@ -141,131 +262,131 @@ fun GalleryScreenContent(
             // Pager Content
             HorizontalPager(
                 state = pagerState,
-                modifier = Modifier.fillMaxWidth().weight(1f)
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.Top, // Ensure content starts from the top
+                // Keep the state of 1 page on each side to avoid resetting scroll position when switching
+                beyondViewportPageCount = 1
             ) { pageIndex ->
                 when (tabs[pageIndex]) {
-                    PhotoTab.List -> PhotosContent(state = state.photosState)
-                    PhotoTab.Collections -> CollectionsContent(state = state.collectionsState)
-                    PhotoTab.Topics -> TopicsContent(state = state.topicsState)
-                }
-            }
-        }
-    }
-}
-
-// --- Temporary sub-page Placeholders below (recommended to split into separate files later) ---
-
-// Display photo list
-@Composable
-fun PhotosContent(state: PhotosState) {
-    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        if (state.isLoading) {
-            CircularProgressIndicator()
-        } else {
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-                contentPadding = PaddingValues(8.dp)
-            ) {
-                items(state.items) { photo ->
-                    println("photo url: ${photo.url}")
-                    // Wrap with Card to make each item look like a card
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-                    ) {
-                        Column(
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            // Image placed at the top
-                            AsyncImage(
-                                model = photo.url,
-                                contentDescription = photo.title,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .wrapContentHeight() // Height automatically adjusts to image aspect ratio
-                                // Note: Card already has rounded corners, so no clip needed here unless targeting specific edges
-                                ,
-                                contentScale = ContentScale.FillWidth
-                            )
-
-                            // Title placed below the image
-                            Text(
-                                text = photo.title,
-                                style = MaterialTheme.typography.titleMedium,
-                                modifier = Modifier.padding(16.dp) // Give text some padding
-                            )
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-// Display collection list
-@Composable
-fun CollectionsContent(state: CollectionsState) {
-    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        if (state.isLoading) {
-            CircularProgressIndicator()
-        } else {
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(8.dp)
-            ) {
-                items(state.items) { collection ->
-                    println("collection url: ${collection.coverUrl}")
-                    ListItem(
-                        headlineContent = { Text(collection.title) },
-                        supportingContent = { Text("${collection.totalPhotos} photos") },
-                        leadingContent = {
-                            // 👇 Use Coil to display cover image
-                            AsyncImage(
-                                model = collection.coverUrl,
-                                contentDescription = collection.title,
-                                modifier = Modifier
-                                    .size(56.dp)
-                                    .clip(RoundedCornerShape(8.dp)),
-                                contentScale = ContentScale.Crop
-                            )
-                        }
+                    GalleryTab.Photos -> PhotosContent(
+                        state = state.photosState,
+                        isRefreshing = state.refreshingStatus[GalleryTab.Photos] ?: false,
+                        onRefresh = { onEvent(GalleryIntent.Refresh) },
+                        isEndOfList = state.photosEndOfList,
+                        onLoadMore = { onEvent(GalleryIntent.LoadMore) }
                     )
-                    HorizontalDivider() // Add a divider
+                    GalleryTab.Collections -> CollectionsContent(
+                        state = state.collectionsState,
+                        isRefreshing = state.refreshingStatus[GalleryTab.Collections] ?: false,
+                        onRefresh = { onEvent(GalleryIntent.Refresh) },
+                        isEndOfList = state.collectionsEndOfList,
+                        onLoadMore = { onEvent(GalleryIntent.LoadMore) }
+                    )
+                    GalleryTab.Topics -> TopicsContent(
+                        state = state.topicsState,
+                        isRefreshing = state.refreshingStatus[GalleryTab.Topics] ?: false,
+                        onRefresh = { onEvent(GalleryIntent.Refresh) },
+                        isEndOfList = state.topicsEndOfList,
+                        onLoadMore = { onEvent(GalleryIntent.LoadMore) }
+                    )
                 }
             }
         }
     }
 }
 
-// Display topic list
+// --- Content Sub-pages (Updated with onLoadMore) ---
 @Composable
-fun TopicsContent(state: TopicsState) {
-    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        if (state.isLoading) {
-            CircularProgressIndicator()
-        } else {
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(8.dp)
-            ) {
-                items(state.items) { topic ->
-                    println("topic url: ${topic.coverUrl}")
-                    ListItem(
-                        headlineContent = { Text(topic.title) },
-                        supportingContent = { Text(topic.description, maxLines = 1) },
-                        leadingContent = {
-                            // 👇 Use Coil to display wide image
-                            AsyncImage(
-                                model = topic.coverUrl,
-                                contentDescription = topic.title,
-                                modifier = Modifier
-                                    .size(80.dp, 56.dp) // Wider aspect ratio
-                                    .clip(RoundedCornerShape(8.dp)),
-                                contentScale = ContentScale.Crop
-                            )
-                        }
+fun PhotosContent(
+    state: AppUiState<List<GalleryPhoto>>,
+    isRefreshing: Boolean,
+    onRefresh: () -> Unit,
+    isEndOfList: Boolean,
+    onLoadMore: () -> Unit
+) {
+    SafePullToRefreshBox(
+        isRefreshing = isRefreshing,
+        onRefresh = onRefresh,
+        modifier = Modifier.fillMaxSize()
+    ) {
+        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            when (state) {
+                is AppUiState.Idle, is AppUiState.Loading -> CircularProgressIndicator()
+                is AppUiState.Error -> Text(
+                    "Error: ${state.message}",
+                    color = MaterialTheme.colorScheme.error
+                )
+
+                is AppUiState.Success -> {
+                    if (state.data.isEmpty()) Text("No photos found.")
+                    else PhotoList(
+                        state.data,
+                        isEndOfList = isEndOfList,
+                        onLoadMore
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun CollectionsContent(
+    state: AppUiState<List<GalleryCollection>>,
+    isRefreshing: Boolean,
+    onRefresh: () -> Unit,
+    isEndOfList: Boolean,
+    onLoadMore: () -> Unit
+) {
+    SafePullToRefreshBox(
+        isRefreshing = isRefreshing,
+        onRefresh = onRefresh,
+        modifier = Modifier.fillMaxSize()
+    ) {
+        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            when (state) {
+                is AppUiState.Idle, is AppUiState.Loading -> CircularProgressIndicator()
+                is AppUiState.Error -> Text("Error: ${state.message}", color = MaterialTheme.colorScheme.error)
+                is AppUiState.Success -> {
+                    if (state.data.isEmpty()) Text("No collections found.")
+                    else CollectionList(
+                        state.data,
+                        isEndOfList = isEndOfList,
+                        onLoadMore
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun TopicsContent(
+    state: AppUiState<List<GalleryTopic>>,
+    isRefreshing: Boolean,
+    onRefresh: () -> Unit,
+    isEndOfList: Boolean,
+    onLoadMore: () -> Unit
+) {
+    SafePullToRefreshBox(
+        isRefreshing = isRefreshing,
+        onRefresh = onRefresh,
+        modifier = Modifier.fillMaxSize()
+    ) {
+        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            when (state) {
+                is AppUiState.Idle, is AppUiState.Loading -> CircularProgressIndicator()
+                is AppUiState.Error -> Text(
+                    "Error: ${state.message}",
+                    color = MaterialTheme.colorScheme.error
+                )
+
+                is AppUiState.Success -> {
+                    if (state.data.isEmpty()) Text("No topics found.")
+                    else TopicList(
+                        state.data,
+                        isEndOfList = isEndOfList,
+                        onLoadMore
                     )
                 }
             }
@@ -279,17 +400,36 @@ fun TopicsContent(state: TopicsState) {
 fun GalleryScreenPreview() {
     // Create dummy data
     val dummyState = GalleryUiState(
-        photosState = PhotosState(
-            isLoading = false,
-            items = listOf(
-                GalleryPhoto("1", "https://picsum.photos/seed/photo0/300/400", "Preview Photo 1"),
-                GalleryPhoto("2", "https://picsum.photos/seed/photo1/300/400", "Preview Photo 2")
+        photosState = AppUiState.Success(
+            data = listOf(
+                GalleryPhoto(
+                    "1",
+                    "https://picsum.photos/seed/photo0/300/400",
+                    "Preview Photo 1",
+                    "",
+                    "username1",
+                    1,
+                    "",
+                    0,
+                    0),
+                GalleryPhoto(
+                    "2",
+                    "https://picsum.photos/seed/photo1/300/400",
+                    "Preview Photo 2",
+                    "",
+                    "username2",
+                    1,
+                    "",
+                    0,
+                    0
+                )
             )
         )
     )
 
     GalleryScreenContent(
         state = dummyState, // Pass in dummy data
+        sideEffectFlow = emptyFlow(),
         onEvent = {},       // Empty event handling
         onNavigateToFeature = {},
         onBack = {}

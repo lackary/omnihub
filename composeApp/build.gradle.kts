@@ -1,12 +1,29 @@
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import com.codingfeline.buildkonfig.compiler.FieldSpec.Type.STRING
+import java.util.Properties
 
 val appPackageName = "io.lackstudio.omnihub"
+val unsplashAccessKeyName = "UNSPLASH_ACCESS_KEY"
 
 // Read buildNumber, default to 1 if not provided (e.g. during development)
 val buildNumberProp = project.findProperty("buildNumber") as? String
 val appBuildNumber = buildNumberProp?.toIntOrNull() ?: 1
+
+fun getFromLocalProperties(key: String, project: Project): String? {
+    val file = project.rootProject.file("local.properties")
+    if (!file.exists()) return null
+
+    val properties = Properties()
+    file.inputStream().use { properties.load(it) }
+    return properties.getProperty(key)
+}
+
+fun resolveConfigValue(key: String, project: Project): String? {
+    // Read from file first, if not found then read from environment variables
+    return getFromLocalProperties(key, project) ?: System.getenv(key)
+}
 
 plugins {
     alias(libs.plugins.kotlin.multiplatform)
@@ -21,17 +38,13 @@ plugins {
 
 buildkonfig {
     packageName = appPackageName
+
+    val unsplashAccessKey = resolveConfigValue(unsplashAccessKeyName, project) ?: ""
+
     defaultConfigs {
-        buildConfigField(
-            com.codingfeline.buildkonfig.compiler.FieldSpec.Type.STRING,
-            "APP_VERSION",
-            project.version.toString() // Automatically reads from gradle.properties
-        )
-        buildConfigField(
-            com.codingfeline.buildkonfig.compiler.FieldSpec.Type.STRING,
-            "APP_BUILD_NUMBER",
-            appBuildNumber.toString()
-        )
+        buildConfigField(STRING, "APP_VERSION", project.version.toString()) // Automatically reads from gradle.properties)
+        buildConfigField(STRING, "APP_BUILD_NUMBER", appBuildNumber.toString())
+        buildConfigField(STRING, unsplashAccessKeyName, unsplashAccessKey)
     }
 }
 
@@ -39,7 +52,7 @@ kotlin {
 
     androidTarget {
         compilerOptions {
-            jvmTarget.set(JvmTarget.JVM_17)
+            jvmTarget.set(JvmTarget.JVM_21)
         }
     }
     
@@ -87,11 +100,13 @@ kotlin {
     }
     
     jvm()
-    
-    js {
-        browser()
-        binaries.executable()
-    }
+
+    // 'compose-webview-multiplatform' (kevinnzou) from omnifeed doesn't support JS.
+    // Uncomment the following block if this dependency is no longer used.
+//    js {
+//        browser()
+//        binaries.executable()
+//    }
     
     @OptIn(ExperimentalWasmDsl::class)
     wasmJs {
@@ -109,10 +124,12 @@ kotlin {
             implementation(compose.runtime)
             implementation(compose.foundation)
             implementation(compose.material3)
+            implementation(compose.material3AdaptiveNavigationSuite)
             implementation(compose.ui)
             implementation(compose.components.resources)
             implementation(compose.components.uiToolingPreview)
             implementation(compose.materialIconsExtended)
+            implementation(libs.compose.material3.adaptive)
             implementation(libs.androidx.lifecycle.viewmodel.compose)
             implementation(libs.androidx.lifecycle.runtime.compose)
             implementation(libs.androidx.navigation.compose)
@@ -123,6 +140,10 @@ kotlin {
             implementation(libs.koin.compose.viewmodel)
             implementation(libs.coil.compose)
             implementation(libs.coil.network.ktor)
+            implementation(libs.brys0.blurhash)
+            implementation(libs.omnifeed.core)
+            implementation(libs.omnifeed.ui)
+            implementation(libs.omnifeed.unsplash)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
@@ -135,7 +156,7 @@ kotlin {
             implementation(libs.kotlinx.coroutines.swing)
             implementation(libs.ktor.client.cio)
         }
-        webMain.dependencies {
+        wasmJsMain.dependencies {
             implementation(libs.ktor.client.js)
         }
     }
@@ -163,8 +184,8 @@ android {
         }
     }
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
+        sourceCompatibility = JavaVersion.VERSION_21
+        targetCompatibility = JavaVersion.VERSION_21
     }
 }
 

@@ -2,7 +2,7 @@
 # Gradle
 agp = "8.13.2"
 android-compileSdk = "36"
-android-minSdk = "24"
+android-minSdk = "30"
 android-targetSdk = "36"
 
 # Android
@@ -19,6 +19,7 @@ junit = "4.13.2"
 androidxLifecycle = "2.9.6"
 composeHotReload = "1.0.0"
 composeMultiplatform = "1.9.3"
+material3Adaptive = "1.2.0"
 kotlin = "2.3.0"
 kotlinxCoroutines = "1.10.2"
 kotlinxSerialization = "1.9.0"
@@ -29,6 +30,9 @@ ktor = "3.3.3"
 koin = "4.1.1"
 buildkonfig = "0.17.1"
 coil3 = "3.3.0"
+blurhash = "0.0-4-ALPHA"
+
+omnifeed = "0.10.0"
 
 [libraries]
 # Android
@@ -49,6 +53,7 @@ androidx-lifecycle-runtime-compose = { module = "org.jetbrains.androidx.lifecycl
 androidx-navigation-compose = { module = "org.jetbrains.androidx.navigation:navigation-compose", version.ref = "navigationCompose" }
 kotlinx-coroutines-swing = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-swing", version.ref = "kotlinxCoroutines" }
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinxSerialization" }
+compose-material3-adaptive = { module = "org.jetbrains.compose.material3.adaptive:adaptive", version.ref = "material3Adaptive" }
 ktor-client-cio = { module = "io.ktor:ktor-client-cio", version.ref = "ktor" }
 ktor-client-android = { module = "io.ktor:ktor-client-android", version.ref = "ktor" }
 ktor-client-darwin = { module = "io.ktor:ktor-client-darwin", version.ref = "ktor" }
@@ -61,6 +66,11 @@ koin-compose = { module = "io.insert-koin:koin-compose"}
 koin-compose-viewmodel = { module = "io.insert-koin:koin-compose-viewmodel"}
 coil-compose = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coil3" }
 coil-network-ktor = { module = "io.coil-kt.coil3:coil-network-ktor3", version.ref = "coil3" }
+brys0-blurhash = { module = "io.github.brys0:blurhash", version.ref = "blurhash" }
+
+omnifeed-core = { module = "io.lackstudio.omnifeed:omnifeed-core", version.ref = "omnifeed" }
+omnifeed-unsplash = { module = "io.lackstudio.omnifeed:omnifeed-unsplash", version.ref = "omnifeed" }
+omnifeed-ui = { module = "io.lackstudio.omnifeed:omnifeed-ui", version.ref = "omnifeed" }
 
 [plugins]
 # Android
