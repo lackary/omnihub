@@ -29,6 +29,7 @@ import androidx.compose.ui.input.key.isMetaPressed
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
@@ -41,6 +42,12 @@ import io.lackstudio.omnihub.ui.navigation.Feature
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.launch
+import omnihub.composeapp.generated.resources.Res
+import omnihub.composeapp.generated.resources.back
+import omnihub.composeapp.generated.resources.gallery_title
+import omnihub.composeapp.generated.resources.refresh
+import omnihub.composeapp.generated.resources.search
+import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -170,12 +177,18 @@ fun GalleryScreenContent(
         },
         topBar = {
             TopAppBar(
-                title = { Text("Gallery") },
+                title = {
+                    Text(
+                        text = stringResource(Res.string.gallery_title),
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+                },
                 navigationIcon = {
                     IconButton(onClick = { onBack() }) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back"
+                            contentDescription = stringResource(Res.string.back)
                         )
                     }
                 },
@@ -196,7 +209,7 @@ fun GalleryScreenContent(
                             } else {
                                 Icon(
                                     imageVector = Icons.Default.Refresh,
-                                    contentDescription = "Refresh"
+                                    contentDescription = stringResource(Res.string.refresh)
                                 )
                             }
                         }
@@ -208,7 +221,7 @@ fun GalleryScreenContent(
                     }) {
                         Icon(
                             imageVector = Icons.Filled.Search,
-                            contentDescription = "Search"
+                            contentDescription = stringResource(Res.string.search)
                         )
                     }
                 },

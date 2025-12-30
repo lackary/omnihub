@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">OmniHub</string>
+    <string name="gallery_title">Gallery</string>
+    <string name="refresh">Refresh</string>
+    <string name="search">Search</string>
+    <string name="back">Back</string>
+</resources>
