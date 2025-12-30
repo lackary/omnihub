@@ -201,7 +201,7 @@ fun GalleryScreenContent(
                             // Disable button while refreshing to prevent multiple clicks
                             enabled = !isCurrentTabRefreshing
                         ) {
-                            if (!isCurrentTabRefreshing) {
+                            if (isCurrentTabRefreshing) {
                                 // You can change the button to a spinner, or just gray it out
                                 CircularProgressIndicator(
                                     modifier = Modifier.size(24.dp),
