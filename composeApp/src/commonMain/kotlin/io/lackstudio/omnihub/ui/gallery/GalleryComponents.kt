@@ -14,9 +14,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
+import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
+import androidx.compose.foundation.lazy.staggeredgrid.rememberLazyStaggeredGridState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -45,7 +47,7 @@ import coil3.compose.AsyncImage
 import com.brys.compose.blurhash.BlurHashImage
 import io.lackstudio.omnihub.platform.isPullToRefreshSupported // Variable defined recently
 import io.lackstudio.omnihub.ui.extensions.pagingGridItems
-import io.lackstudio.omnihub.ui.extensions.pagingItems
+import io.lackstudio.omnihub.ui.extensions.pagingStaggeredGridItems
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -79,16 +81,29 @@ fun PhotoList(
     isEndOfList: Boolean,
     onLoadMore: () -> Unit
 ) {
-    LazyColumn(
+    // Use Staggered Grid State
+    val state = rememberLazyStaggeredGridState()
+
+    LazyVerticalStaggeredGrid(
+        // Key setting: Adaptive
+        // Set minimum width (e.g., 300.dp or 180.dp)
+        // - On mobile (width < 600dp), it automatically becomes 1 or 2 columns
+        // - On Desktop/Web (large width), it automatically becomes 3, 4, 5... columns
+        // Value can be adjusted based on design, smaller value means more columns
+        columns = StaggeredGridCells.Adaptive(minSize = 300.dp),
+
         modifier = Modifier.fillMaxSize(),
+        state = state,
         contentPadding = PaddingValues(8.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalItemSpacing = 8.dp
     ) {
-        pagingItems(
+        // Use the newly added extension
+        pagingStaggeredGridItems(
             items = photos,
             isEndOfList = isEndOfList,
             onLoadMore = onLoadMore,
-            key = { it.id } // Recommended to add id to improve LazyColumn performance
+            key = { it.id }
         ) { photo ->
             GalleryCard(photo)
         }
@@ -101,18 +116,24 @@ fun CollectionList(
     isEndOfList: Boolean,
     onLoadMore: () -> Unit
 ) {
-    LazyColumn(
+    // Use Staggered Grid State
+    val state = rememberLazyStaggeredGridState()
+
+    LazyVerticalStaggeredGrid(
+        columns = StaggeredGridCells.Adaptive(minSize = 300.dp),
         modifier = Modifier.fillMaxSize(),
+        state = state,
         contentPadding = PaddingValues(8.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalItemSpacing = 8.dp
     ) {
-        pagingItems(
+        pagingStaggeredGridItems(
             items = collections,
             isEndOfList = isEndOfList,
             onLoadMore = onLoadMore,
             key = { it.id }
-        ) { collection ->
-            GalleryCard(collection)
+        ) { photo ->
+            GalleryCard(photo)
         }
     }
 }
@@ -143,14 +164,16 @@ fun TopicList(
 
 @Composable
 fun GalleryCard(item: GalleryDisplayable) {
-    // Note: We use remember because the Brush object is recreated on every Recomposition.
-    // If the list is scrolled rapidly, this would create a large number of short-lived objects.
     val overlayBrush = remember {
         Brush.verticalGradient(
             colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.7f)),
             startY = 400f
         )
     }
+
+    // Note: We use remember because the Brush object is recreated on every Recomposition.
+    // If the list is scrolled rapidly, this would create a large number of short-lived objects.
+    // also it could be used in Staggered Grid style
     val aspectRatio = remember(item.displayWidth, item.displayHeight) {
         val w = item.displayWidth ?: 0
         val h = item.displayHeight ?: 0

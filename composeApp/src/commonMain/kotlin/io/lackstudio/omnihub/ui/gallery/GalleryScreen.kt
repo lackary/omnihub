@@ -162,13 +162,11 @@ fun GalleryScreenContent(
             if (keyEvent.type == KeyEventType.KeyDown) {
                 //  F5
                 if (keyEvent.key == Key.F5) {
-                    println("F5")
                     onRefreshAction()
                     return@onPreviewKeyEvent true
                 }
                 // Support Ctrl+R (Windows/Linux) or Cmd+R (Mac)
                 if (keyEvent.key == Key.R && (keyEvent.isCtrlPressed || keyEvent.isMetaPressed)) {
-                    println("Cmd+R / Ctrl+R")
                     onRefreshAction()
                     return@onPreviewKeyEvent true
                 }

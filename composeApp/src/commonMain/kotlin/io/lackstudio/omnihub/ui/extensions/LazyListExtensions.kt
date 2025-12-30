@@ -4,6 +4,9 @@ import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyGridScope
 import androidx.compose.foundation.lazy.grid.itemsIndexed
+import androidx.compose.foundation.lazy.staggeredgrid.LazyStaggeredGridScope
+import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridItemSpan
+import androidx.compose.foundation.lazy.staggeredgrid.itemsIndexed
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -100,6 +103,49 @@ inline fun <T> LazyGridScope.pagingGridItems(
             key = "footer",
             // Key: Make the Footer occupy all columns of the row
             span = { GridItemSpan(maxLineSpan) }
+        ) {
+            if (isEndOfList) {
+                EndOfListFooter()
+            } else {
+                LoadingFooter()
+            }
+        }
+    }
+}
+
+/**
+ * Staggered Grid list item builder supporting "Infinite Scrolling"
+ *
+ * Designed specifically for LazyVerticalStaggeredGrid (Waterfall Flow).
+ */
+inline fun <T> LazyStaggeredGridScope.pagingStaggeredGridItems(
+    items: List<T>,
+    isEndOfList: Boolean,
+    noinline onLoadMore: () -> Unit,
+    noinline key: ((item: T) -> Any)? = null,
+    crossinline itemContent: @Composable (item: T) -> Unit
+) {
+    itemsIndexed(
+        items = items,
+        key = key?.let { keySelector -> { _, item -> keySelector(item) } }
+    ) { index, item ->
+
+        itemContent(item)
+
+        // Detect bottom logic
+        if (index == items.lastIndex && !isEndOfList) {
+            LaunchedEffect(Unit) {
+                onLoadMore()
+            }
+        }
+    }
+
+    // Render bottom Footer
+    if (items.isNotEmpty()) {
+        item(
+            key = "footer",
+            // Make the Footer span all columns (FullLine)
+            span = StaggeredGridItemSpan.FullLine
         ) {
             if (isEndOfList) {
                 EndOfListFooter()
