@@ -149,7 +149,7 @@ jobs:
         run: |
           echo env.
           cd omnihub
-          ./gradlew assemble \
+          ./gradlew assembleDebug \
           ${{ inputs.run_with_stacktrace && '--stacktrace' || '' }} \
           ${{ inputs.run_with_info && '--info' || '' }} \
           ${{ inputs.run_with_debug && '--debug' || '' }}

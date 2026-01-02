@@ -38,7 +38,7 @@ read -p "Enter option [1, 2, 3 or 4] (Default 1): " choice
 choice=${choice:-1}
 
 read -p "Enable verbose logging (debug mode)? [y/N] " debug_resp
-debug_resp=${debug_resp,,} # Convert to lowercase
+debug_resp=$(echo "$debug_resp" | tr '[:upper:]' '[:lower:]') # Convert to lowercase
 VERBOSE_FLAG=""
 if [[ "$debug_resp" =~ ^(yes|y)$ ]]; then
     VERBOSE_FLAG="-v"
@@ -49,10 +49,26 @@ echo ""
 echo "------------------------------------------"
 
 # Set a local temporary path to simulate the artifact server
-ARTIFACT_PATH="/tmp/act-artifacts"
-mkdir -p "$ARTIFACT_PATH"
+# Move artifacts & cache to build directory
+ARTIFACT_PATH="./build/act-artifacts"
+CACHE_PATH="./build/act-cache"
 
-# 👇 Added this line to define the Log file location
+# Redirect act's internal download cache (for actions like checkout@v4) to build/
+# This ensures ~/.cache/act is NOT used/polluted.
+export XDG_CACHE_HOME="$(pwd)/build/act-xdg-cache"
+
+# Create directories if they don't exist
+mkdir -p "$ARTIFACT_PATH"
+mkdir -p "$CACHE_PATH"
+mkdir -p "$XDG_CACHE_HOME"
+
+# [ADDED] Safety check: Remove global legacy cache if it exists
+if [ -d "$HOME/.cache/act" ]; then
+    echo "🧹 Found legacy cache at ~/.cache/act. Removing it to prevent conflicts..."
+    rm -rf "$HOME/.cache/act"
+fi
+
+# Added this line to define the Log file location
 LOG_FILE="act_execution.log"
 
 # Ensure user has gh cli installed, otherwise prompt
@@ -70,14 +86,14 @@ fi
 
 if [ "$choice" == "1" ]; then
     echo "🔵 Running: Main Workflow (Mike Penz)..."
-    CMD="act push -W .github/workflows/ci_mikepenz.yml -P macos-latest=-self-hosted --artifact-server-path \"$ARTIFACT_PATH\" $TOKEN_ARG $VERBOSE_FLAG"
+    CMD="act push -W .github/workflows/ci_mikepenz.yml -P macos-latest=-self-hosted --artifact-server-path \"$ARTIFACT_PATH\" --cache-server-path \"$CACHE_PATH\" $TOKEN_ARG $VERBOSE_FLAG"
     echo "👉 Executing: $CMD"
     eval "$CMD 2>&1 | tee $LOG_FILE"
     ACT_EXIT_CODE=${PIPESTATUS[0]}
 
 elif [ "$choice" == "2" ]; then
     echo "🟠 Running: Dorny Workflow (Manual)..."
-    CMD="act workflow_dispatch -W .github/workflows/ci_dorny.yml -P macos-latest=-self-hosted -P ubuntu-latest=catthehacker/ubuntu:act-latest --artifact-server-path \"$ARTIFACT_PATH\" $TOKEN_ARG $VERBOSE_FLAG"
+    CMD="act workflow_dispatch -W .github/workflows/ci_dorny.yml -P macos-latest=-self-hosted -P ubuntu-latest=catthehacker/ubuntu:act-latest --artifact-server-path \"$ARTIFACT_PATH\" --cache-server-path \"$CACHE_PATH\" $TOKEN_ARG $VERBOSE_FLAG"
     echo "👉 Executing: $CMD"
     eval "$CMD 2>&1 | tee $LOG_FILE"
     ACT_EXIT_CODE=${PIPESTATUS[0]}
@@ -144,7 +160,7 @@ echo "=========================================="
 # 3. Safety Cleanup Mechanism
 echo ""
 read -p "🧹 Do you want to clean Gradle build artifacts? [y/N] " response
-response=${response,,}
+response=$(echo "$response" | tr '[:upper:]' '[:lower:]')
 if [[ "$response" =~ ^(yes|y)$ ]]; then
     ./gradlew clean
     echo "✨ Cleanup complete!"
