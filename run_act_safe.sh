@@ -86,14 +86,25 @@ fi
 
 if [ "$choice" == "1" ]; then
     echo "🔵 Running: Main Workflow (Mike Penz)..."
-    CMD="act push -W .github/workflows/ci_mikepenz.yml -P macos-latest=-self-hosted --artifact-server-path \"$ARTIFACT_PATH\" --cache-server-path \"$CACHE_PATH\" $TOKEN_ARG $VERBOSE_FLAG"
+    CMD="act push \
+      -W .github/workflows/ci_mikepenz.yml \
+      -P macos-latest=-self-hosted \
+      --artifact-server-path \"$ARTIFACT_PATH\" \
+      --cache-server-path \"$CACHE_PATH\" \
+      $TOKEN_ARG $VERBOSE_FLAG"
     echo "👉 Executing: $CMD"
     eval "$CMD 2>&1 | tee $LOG_FILE"
     ACT_EXIT_CODE=${PIPESTATUS[0]}
 
 elif [ "$choice" == "2" ]; then
     echo "🟠 Running: Dorny Workflow (Manual)..."
-    CMD="act workflow_dispatch -W .github/workflows/ci_dorny.yml -P macos-latest=-self-hosted -P ubuntu-latest=catthehacker/ubuntu:act-latest --artifact-server-path \"$ARTIFACT_PATH\" --cache-server-path \"$CACHE_PATH\" $TOKEN_ARG $VERBOSE_FLAG"
+    CMD="act workflow_dispatch \
+      -W .github/workflows/ci_dorny.yml \
+      -P macos-latest=-self-hosted \
+      -P ubuntu-latest=catthehacker/ubuntu:act-latest \
+      --artifact-server-path \"$ARTIFACT_PATH\" \
+      --cache-server-path \"$CACHE_PATH\" \
+      $TOKEN_ARG $VERBOSE_FLAG"
     echo "👉 Executing: $CMD"
     eval "$CMD 2>&1 | tee $LOG_FILE"
     ACT_EXIT_CODE=${PIPESTATUS[0]}
@@ -101,7 +112,10 @@ elif [ "$choice" == "2" ]; then
 elif [ "$choice" == "3" ]; then
     echo "🟣 Running: Release Workflow (Container Mode)..."
     echo "⚠️  Note: Running inside Docker container."
-    CMD="act push -W .github/workflows/release.yml -P macos-latest=-self-hosted $TOKEN_ARG $VERBOSE_FLAG"
+    CMD="act push \
+      -W .github/workflows/release.yml \
+      -P macos-latest=-self-hosted \
+      $TOKEN_ARG $VERBOSE_FLAG"
     echo "👉 Executing: $CMD"
     eval "$CMD 2>&1 | tee $LOG_FILE"
     ACT_EXIT_CODE=${PIPESTATUS[0]}
@@ -126,7 +140,12 @@ elif [ "$choice" == "4" ]; then
     fi
 
     # Execute npx and install extra plugins explicitly because .releaserc.yml requires them
-    CMD="npx -p semantic-release -p @semantic-release/git -p @semantic-release/changelog -p @semantic-release/exec semantic-release --dry-run --branches main --no-ci"
+    CMD="npx \
+    -p semantic-release \
+    -p @semantic-release/git \
+    -p @semantic-release/changelog \
+    -p @semantic-release/exec
+    semantic-release --dry-run --branches main --no-ci"
     echo "👉 Executing: $CMD"
 
     # Run semantic-release dry-run

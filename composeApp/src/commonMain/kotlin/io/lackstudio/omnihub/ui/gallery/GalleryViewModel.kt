@@ -239,7 +239,14 @@ class GalleryViewModel(
                         username = it.user.username,
                         blurhash = it.coverPhoto?.blurHash,
                         width = it.coverPhoto?.width,
-                        height = it.coverPhoto?.height
+                        height = it.coverPhoto?.height,
+                        previewPhotos =
+                            it.previewPhotos?.map { previewPhoto ->
+                                GalleryPreview(
+                                    url = previewPhoto.urls.small,
+                                    blurHash = previewPhoto.blurHash
+                                )
+                            }?: emptyList()
                     )
                 } },
             stateReducer = { state, newState, isEnd ->

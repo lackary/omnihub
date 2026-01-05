@@ -3,6 +3,7 @@ package io.lackstudio.omnihub.ui.gallery
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -13,27 +14,33 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
 import androidx.compose.foundation.lazy.staggeredgrid.rememberLazyStaggeredGridState
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FilterNone
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -48,6 +55,8 @@ import com.brys.compose.blurhash.BlurHashImage
 import io.lackstudio.omnihub.platform.isPullToRefreshSupported // Variable defined recently
 import io.lackstudio.omnihub.ui.extensions.pagingGridItems
 import io.lackstudio.omnihub.ui.extensions.pagingStaggeredGridItems
+import kotlinx.coroutines.launch
+import org.jetbrains.compose.ui.tooling.preview.Preview
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -163,176 +172,363 @@ fun TopicList(
 }
 
 @Composable
-fun GalleryCard(item: GalleryDisplayable) {
-    val overlayBrush = remember {
-        Brush.verticalGradient(
-            colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.7f)),
-            startY = 400f
+fun PlaceholderBlurHash(
+    blurHash: String?,
+    modifier: Modifier = Modifier,
+    contentDescription: String = "",
+    contentScale: ContentScale = ContentScale.Crop
+) {
+    blurHash?.let {
+        BlurHashImage(
+            hash = blurHash,
+            contentDescription = contentDescription,
+            modifier = modifier
         )
-    }
+    }?: Box(
+        modifier = modifier
+            .background(MaterialTheme.colorScheme.surfaceVariant)
+    )
+}
 
-    // Note: We use remember because the Brush object is recreated on every Recomposition.
-    // If the list is scrolled rapidly, this would create a large number of short-lived objects.
-    // also it could be used in Staggered Grid style
+@Composable
+fun GalleryCard(item: GalleryDisplayable) {
+    // 1. Prepare image list
+    val previews = item.displayPreviewPhotos
+    // 2. Create Pager State
+    val pagerState = rememberPagerState(pageCount = { previews.size })
+
+    // Calculate image aspect ratio
     val aspectRatio = remember(item.displayWidth, item.displayHeight) {
         val w = item.displayWidth ?: 0
         val h = item.displayHeight ?: 0
         if (h > 0 && w > 0) {
             w.toFloat() / h.toFloat()
         } else {
-            1f // Default aspect ratio to avoid crash due to division by zero
+            1f
         }
     }
-
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .aspectRatio(aspectRatio),
-        shape = RoundedCornerShape(12.dp),
-        elevation = CardDefaults.cardElevation(4.dp)
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(8.dp),
+        color = Color.Gray.copy(alpha = 0.2f),
+        contentColor = Color.White
     ) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .wrapContentHeight()
+        // Use Column: Image on top, text below
+        Column(
+            modifier = Modifier.fillMaxWidth()
         ) {
-            if (LocalInspectionMode.current) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .height(200.dp)
-                        .background(Color.LightGray),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text("Image Preview", color = Color.DarkGray)
-                }
-            } else {
-
-                // Place BlurHash at the bottom
-                item.displayBlurHash?.let { hash ->
-                    BlurHashImage(
-                        hash = hash,
-                        contentDescription = "blur hash",
-                        modifier = Modifier.fillMaxSize(),
-                    )
-                }
-
-                // Place AsyncImage on top (it will cover the bottom layer after loading)
-                AsyncImage(
-                    model = item.displayImageUrl,
-                    contentDescription = item.displayTitle,
-                    modifier = Modifier.fillMaxWidth().wrapContentHeight(),
-                    contentScale = ContentScale.Crop
-                )
-            }
-
-            // Gradient shadow (makes text visible on light images)
-            Box(
+            // --- Top section: Image area ---
+            Card(
                 modifier = Modifier
-                    .matchParentSize() // Match parent size
-                    .background(overlayBrush)
-            )
-
-            // User information at bottom left (Avatar + Username)
-            Row(
-                modifier = Modifier
-                    .align(Alignment.BottomStart) // Align bottom start
-                    .padding(12.dp), // Leave some padding
-                verticalAlignment = Alignment.CenterVertically
+                    .fillMaxWidth()
+                    .aspectRatio(aspectRatio),
+                shape = RoundedCornerShape(12.dp),
+                elevation = CardDefaults.cardElevation(2.dp)
             ) {
-                // User Avatar
-                if (LocalInspectionMode.current) {
-                    Box(
-                        modifier = Modifier
-                            .size(32.dp)
-                            .clip(CircleShape)
-                            .background(Color.Gray)
+                Box(modifier = Modifier.fillMaxSize()) {
+                    // Image content
+                    GalleryCardImageContent(
+                        previews = previews,
+                        singleItem = item,
+                        pagerState = pagerState
                     )
-                } else {
-                    AsyncImage(
-                        model = item.displayUserAvatar,
-                        contentDescription = "Avatar",
-                        modifier = Modifier
-                            .size(32.dp)            // Set size
-                            .clip(CircleShape)            // Clip to circle
-                            .background(Color.LightGray), // Background color before loading
-                        contentScale = ContentScale.Crop
-                    )
-                }
 
-                Spacer(modifier = Modifier.width(8.dp)) // Spacing
-
-                // Username
-                Text(
-                    text = item.displayUsername?: "",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = Color.White, // Use white text because of the black gradient background
-                    fontWeight = FontWeight.SemiBold
-                )
-            }
-
-            // the count at top right for collections (icon + number)
-            if (item.displayCount > 0) {
-                Surface(
-                    modifier = Modifier
-                        .align(Alignment.TopEnd) // Align top end
-                        .padding(8.dp), // Padding
-                    shape = RoundedCornerShape(12.dp), // Rounded capsule shape
-                    color = Color.Black.copy(alpha = 0.6f),  // Semi-transparent black background
-                    contentColor = Color.White  // White text
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        // Add a small icon, e.g., stack icon
-                        Icon(
-                            imageVector = Icons.Filled.FilterNone, // Or PhotoLibrary
-                            contentDescription = null,
-                            modifier = Modifier.size(12.dp),
-                            tint = Color.White
+                    // Image count
+                    if (item.displayCount > 0) {
+                        GalleryCountBadge(
+                            count = item.displayCount,
+                            modifier = Modifier.align(Alignment.TopEnd).padding(8.dp)
                         )
-                        Spacer(modifier = Modifier.width(4.dp))
+                    }
 
-                        // Count
-                        Text(
-                            text = item.displayCount.toString(),
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.Bold
+                    GalleryCardGradientOverlay()
+
+                    // Control layer (Pager left/right arrows)
+                    if (previews.size > 1) {
+                        GalleryPagerNavigation(
+                            pagerState = pagerState,
+                            itemCount = previews.size,
+                            modifier = Modifier.fillMaxSize()
                         )
                     }
                 }
             }
 
-            // the likes at bottom right for photos (number + icon)
-            if (item.displayLikes > 0) {
-                Row(
-                    modifier = Modifier
-                        .align(Alignment.BottomEnd) // Align bottom left
-                        .padding(12.dp),       // Keep same padding as User Info on the left
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
+            // --- Bottom section: Info row (Username and Likes) ---
+            Spacer(modifier = Modifier.height(8.dp))
 
-                    // Number
-                    Text(
-                        text = item.displayLikes.toString(),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = Color.White,
-                        fontWeight = FontWeight.Medium
-                    )
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 4.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                // Bottom Left: User info (Black text)
+                GalleryUserInfo(
+                    avatarUrl = item.displayUserAvatar,
+                    username = item.displayUsername,
+                    modifier = Modifier.weight(1f)
+                )
 
-                    Spacer(modifier = Modifier.width(4.dp))
-
-                    // Heart Icon
-                    Icon(
-                        imageVector = Icons.Filled.Favorite, // Or use Icons.Default.Favorite (Filled)
-                        contentDescription = "Likes",
-                        modifier = Modifier.size(16.dp), // Moderate size
-                        tint = Color.White // White, because of the black gradient background
+                // Bottom Right: Likes (Black text + Red heart)
+                if (item.displayLikes > 0) {
+                    GalleryLikeBadge(
+                        likes = item.displayLikes,
+                        modifier = Modifier.padding(start = 8.dp)
                     )
                 }
             }
+
+            // Extra bottom spacing (Optional)
+            Spacer(modifier = Modifier.height(4.dp))
         }
+    }
+}
+
+/**
+ * Handles image display logic: Automatically determines whether to use Pager for carousel or single image
+ */
+@Composable
+private fun GalleryCardImageContent(
+    previews: List<GalleryPreview>,
+    singleItem: GalleryDisplayable,
+    pagerState: androidx.compose.foundation.pager.PagerState
+) {
+    if (LocalInspectionMode.current) {
+        // Preview Mode
+        Box(
+            modifier = Modifier.fillMaxSize().background(Color.LightGray),
+            contentAlignment = Alignment.Center
+        ) {
+            Text("Image Preview", color = Color.DarkGray)
+        }
+        return
+    }
+
+    if (previews.size > 1) {
+        // [Multiple Images Mode]
+        HorizontalPager(
+            state = pagerState,
+            modifier = Modifier.fillMaxSize()
+        ) { page ->
+            val photo = previews[page]
+            Box(modifier = Modifier.fillMaxSize()) {
+                PlaceholderBlurHash(
+                    blurHash = photo.blurHash,
+                    modifier = Modifier.fillMaxSize()
+                )
+                AsyncImage(
+                    model = photo.url,
+                    contentDescription = null,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop
+                )
+            }
+        }
+    } else {
+        // [Single Image Mode]
+        PlaceholderBlurHash(
+            blurHash = singleItem.displayBlurHash,
+            contentDescription = "blur hash",
+            modifier = Modifier.fillMaxSize(),
+        )
+        AsyncImage(
+            model = singleItem.displayImageUrl,
+            contentDescription = singleItem.displayTitle,
+            modifier = Modifier.fillMaxSize(),
+            contentScale = ContentScale.Crop
+        )
+    }
+}
+
+/**
+ * Handles gradient overlay
+ */
+@Composable
+private fun GalleryCardGradientOverlay() {
+    val overlayBrush = remember {
+        Brush.verticalGradient(
+            colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.7f)),
+            startY = 400f // Could consider using relative ratio here, but fixed height is usually sufficient inside a Card
+        )
+    }
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(overlayBrush)
+    )
+}
+
+/**
+ * Handles carousel navigation (arrows + dots)
+ */
+@Composable
+private fun GalleryPagerNavigation(
+    pagerState: androidx.compose.foundation.pager.PagerState,
+    itemCount: Int,
+    modifier: Modifier = Modifier
+) {
+    val coroutineScope = rememberCoroutineScope()
+
+    Box(modifier = modifier) {
+        // Left Arrow
+        if (pagerState.currentPage > 0) {
+            IconButton(
+                onClick = {
+                    coroutineScope.launch {
+                        pagerState.animateScrollToPage(pagerState.currentPage - 1)
+                    }
+                },
+                modifier = Modifier
+                    .align(Alignment.CenterStart)
+                    .padding(start = 4.dp)
+                    .size(28.dp),
+                colors = IconButtonDefaults.iconButtonColors(
+                    containerColor = Color.Black.copy(alpha = 0.3f),
+                    contentColor = Color.White
+                )
+            ) {
+                Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, contentDescription = "Prev")
+            }
+        }
+
+        // Right Arrow
+        if (pagerState.currentPage < itemCount - 1) {
+            IconButton(
+                onClick = {
+                    coroutineScope.launch {
+                        pagerState.animateScrollToPage(pagerState.currentPage + 1)
+                    }
+                },
+                modifier = Modifier
+                    .align(Alignment.CenterEnd)
+                    .padding(end = 4.dp)
+                    .size(28.dp),
+                colors = IconButtonDefaults.iconButtonColors(
+                    containerColor = Color.Black.copy(alpha = 0.3f),
+                    contentColor = Color.White
+                )
+            ) {
+                Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = "Next")
+            }
+        }
+
+        // Bottom Dots
+        Row(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 12.dp),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            repeat(itemCount) { iteration ->
+                val isSelected = pagerState.currentPage == iteration
+                val color = if (isSelected) Color.White else Color.White.copy(alpha = 0.5f)
+                val size = if (isSelected) 6.dp else 4.dp
+                Box(
+                    modifier = Modifier
+                        .padding(3.dp)
+                        .clip(CircleShape)
+                        .background(color)
+                        .size(size)
+                )
+            }
+        }
+    }
+}
+
+/**
+ * User info row (Avatar + Name)
+ */
+@Composable
+private fun GalleryUserInfo(
+    avatarUrl: String?,
+    username: String?,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        if (LocalInspectionMode.current) {
+            Box(modifier = Modifier.size(32.dp).clip(CircleShape).background(Color.Gray))
+        } else {
+            AsyncImage(
+                model = avatarUrl,
+                contentDescription = "Avatar",
+                modifier = Modifier
+                    .size(32.dp)
+                    .clip(CircleShape)
+                    .background(Color.LightGray),
+                contentScale = ContentScale.Crop
+            )
+        }
+
+        Spacer(modifier = Modifier.width(8.dp))
+
+        Text(
+            text = username ?: "",
+            style = MaterialTheme.typography.bodyMedium,
+            color = Color.Black,
+            fontWeight = FontWeight.SemiBold
+        )
+    }
+}
+
+/**
+ * Top right count badge (Collections)
+ */
+@Composable
+private fun GalleryCountBadge(count: Int, modifier: Modifier = Modifier) {
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(12.dp),
+        color = Color.Black.copy(alpha = 0.6f),
+        contentColor = Color.White
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = Icons.Filled.FilterNone,
+                contentDescription = null,
+                modifier = Modifier.size(12.dp),
+                tint = Color.White
+            )
+            Spacer(modifier = Modifier.width(4.dp))
+            Text(
+                text = count.toString(),
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.Bold
+            )
+        }
+    }
+}
+
+/**
+ * Bottom right likes badge (Photos)
+ */
+@Composable
+private fun GalleryLikeBadge(likes: Int, modifier: Modifier = Modifier) {
+    Row(
+        modifier = modifier,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = likes.toString(),
+            style = MaterialTheme.typography.bodyMedium,
+            color = Color.Black,
+            fontWeight = FontWeight.Medium
+        )
+        Spacer(modifier = Modifier.width(4.dp))
+        Icon(
+            imageVector = Icons.Filled.Favorite,
+            contentDescription = "Likes",
+            modifier = Modifier.size(16.dp),
+            tint = Color.Red
+        )
     }
 }
 
@@ -349,17 +545,16 @@ fun TopicCard(topic: GalleryTopic) {
             contentAlignment = Alignment.Center // Title displayed in the center
         ) {
 
-            topic.blurhash?.let { hash ->
-                BlurHashImage(
-                    hash = hash,
-                    contentDescription = "",
-                    modifier = Modifier.fillMaxSize()
-                )
-            }
+            PlaceholderBlurHash(
+                topic.blurhash,
+                contentDescription = "topic blur hash",
+                modifier = Modifier.fillMaxSize()
+            )
 
             // Background image
             AsyncImage(
-                // Please confirm your GalleryTopic data structure field name (e.g. topic.coverUrl or topic.urls.small)
+                // Please confirm GalleryTopic data structure field name
+                // (e.g. topic.coverUrl or topic.urls.small)
                 model = topic.coverUrl,
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
@@ -383,3 +578,86 @@ fun TopicCard(topic: GalleryTopic) {
         }
     }
 }
+
+@Preview(showBackground = true, backgroundColor = 0xFFFFFFFF)
+@Composable
+fun PreviewGalleryUserInfo() {
+    MaterialTheme {
+        GalleryUserInfo(
+            avatarUrl = null,
+            username = "OmniHub Designer",
+            modifier = Modifier.padding(16.dp)
+        )
+    }
+}
+
+@Preview(showBackground = true, backgroundColor = 0xFFFFFFFF)
+@Composable
+fun PreviewGalleryLikeBadge() {
+    MaterialTheme {
+        GalleryLikeBadge(
+            likes = 1250,
+            modifier = Modifier.padding(16.dp)
+        )
+    }
+}
+
+@Preview(showBackground = true, widthDp = 300)
+@Composable
+fun PreviewGalleryCard_SinglePhoto() {
+    // Mock single photo
+    val mockItem = FakeGalleryItem(
+        displayUsername = "Alice Photographer",
+        displayLikes = 340,
+        displayCount = 0, // Single photo has no count badge
+        displayWidth = 400,
+        displayHeight = 300
+    )
+
+    MaterialTheme {
+        Box(modifier = Modifier.padding(16.dp)) {
+            GalleryCard(item = mockItem)
+        }
+    }
+}
+
+@Preview(showBackground = true, widthDp = 300)
+@Composable
+fun PreviewGalleryCard_Collection() {
+    // Mock Collection (Multiple images + Top right badge)
+    val mockItem = FakeGalleryItem(
+        displayUsername = "Bob Curator",
+        displayLikes = 88,
+        displayCount = 12, // Display 12 items
+        displayWidth = 300,
+        displayHeight = 400,
+        // Mock two preview photos to trigger Pager logic (Images won't show in Preview, but structure is visible)
+        displayPreviewPhotos = listOf(
+            GalleryPreview("url1", null),
+            GalleryPreview("url2", null)
+        )
+    )
+
+    MaterialTheme {
+        Box(modifier = Modifier.padding(16.dp)) {
+            GalleryCard(item = mockItem)
+        }
+    }
+}
+
+// --- Mock Data Helper for Previews ---
+// This is a fake data class to enable Preview
+// It implements the GalleryDisplayable interface (fields inferred from code)
+private data class FakeGalleryItem(
+    override val displayId: String = "mock_id",
+    override val displayPreviewPhotos: List<GalleryPreview> = emptyList(),
+    override val displayWidth: Int? = 1080,
+    override val displayHeight: Int? = 1080,
+    override val displayUserAvatar: String? = null,
+    override val displayUsername: String? = "Mock User",
+    override val displayLikes: Int = 0,
+    override val displayCount: Int = 0,
+    override val displayBlurHash: String? = null,
+    override val displayImageUrl: String? = null,
+    override val displayTitle: String = "Mock Title",
+) : GalleryDisplayable

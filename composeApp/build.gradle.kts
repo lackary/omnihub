@@ -211,3 +211,10 @@ compose.desktop {
         }
     }
 }
+
+// Force exclusion of unstable JogAmp dependencies from the test Runtime Classpath
+// This will not affect the app's production execution, only prevent tests from attempting to download it.
+configurations.matching { it.name.contains("Test") }.configureEach {
+    exclude(group = "org.jogamp.gluegen")
+    exclude(group = "org.jogamp.jogl")
+}
