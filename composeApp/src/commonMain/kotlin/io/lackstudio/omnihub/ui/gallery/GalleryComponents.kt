@@ -19,21 +19,28 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
 import androidx.compose.foundation.lazy.staggeredgrid.rememberLazyStaggeredGridState
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FilterNone
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -48,6 +55,7 @@ import com.brys.compose.blurhash.BlurHashImage
 import io.lackstudio.omnihub.platform.isPullToRefreshSupported // Variable defined recently
 import io.lackstudio.omnihub.ui.extensions.pagingGridItems
 import io.lackstudio.omnihub.ui.extensions.pagingStaggeredGridItems
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -163,7 +171,33 @@ fun TopicList(
 }
 
 @Composable
+fun PlaceholderBlurHash(
+    blurHash: String?,
+    modifier: Modifier = Modifier,
+    contentDescription: String = "",
+    contentScale: ContentScale = ContentScale.Crop
+) {
+    blurHash?.let {
+        BlurHashImage(
+            hash = blurHash,
+            contentDescription = contentDescription,
+            modifier = modifier
+        )
+    }?: Box(
+        modifier = modifier
+            .background(MaterialTheme.colorScheme.surfaceVariant)
+    )
+}
+
+@Composable
 fun GalleryCard(item: GalleryDisplayable) {
+    // 1. Prepare image list: Use preview photos if available, otherwise use single cover image
+    val previews = item.displayPreviewPhotos
+
+    // 2. Create Pager State
+    val pagerState = rememberPagerState(pageCount = { previews.size })
+    val coroutineScope = rememberCoroutineScope()
+
     val overlayBrush = remember {
         Brush.verticalGradient(
             colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.7f)),
@@ -207,33 +241,58 @@ fun GalleryCard(item: GalleryDisplayable) {
                     Text("Image Preview", color = Color.DarkGray)
                 }
             } else {
-
-                // Place BlurHash at the bottom
-                item.displayBlurHash?.let { hash ->
-                    BlurHashImage(
-                        hash = hash,
-                        contentDescription = "blur hash",
+                // ==========================================
+                // Layer 1: Image Layer (Use Pager or AsyncImage)
+                // ==========================================
+                if (previews.size > 1) {
+                    // [Multi-image mode] Use HorizontalPager
+                    HorizontalPager(
+                        state = pagerState,
+                        modifier = Modifier.fillMaxSize()
+                    ) { page ->
+                        val photo = previews[page]
+                        Box(modifier = Modifier.fillMaxSize()) {
+                            PlaceholderBlurHash(
+                                blurHash = photo.blurHash,
+                                modifier = Modifier.fillMaxSize()
+                            )
+                            AsyncImage(
+                                model = photo.url,
+                                contentDescription = null,
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop
+                            )
+                        }
+                    }
+                } else {
+                    PlaceholderBlurHash(
+                        item.displayBlurHash,
+                        contentDescription =  "blur hash",
                         modifier = Modifier.fillMaxSize(),
+                    )
+
+                    // Place AsyncImage on top (it will cover the bottom layer after loading)
+                    AsyncImage(
+                        model = item.displayImageUrl,
+                        contentDescription = item.displayTitle,
+                        modifier = Modifier.fillMaxWidth().wrapContentHeight(),
+                        contentScale = ContentScale.Crop
                     )
                 }
 
-                // Place AsyncImage on top (it will cover the bottom layer after loading)
-                AsyncImage(
-                    model = item.displayImageUrl,
-                    contentDescription = item.displayTitle,
-                    modifier = Modifier.fillMaxWidth().wrapContentHeight(),
-                    contentScale = ContentScale.Crop
-                )
             }
-
+            // ====================================================
             // Gradient shadow (makes text visible on light images)
+            // ====================================================
             Box(
                 modifier = Modifier
                     .matchParentSize() // Match parent size
                     .background(overlayBrush)
             )
 
+            // ====================================================
             // User information at bottom left (Avatar + Username)
+            // ====================================================
             Row(
                 modifier = Modifier
                     .align(Alignment.BottomStart) // Align bottom start
@@ -332,6 +391,77 @@ fun GalleryCard(item: GalleryDisplayable) {
                     )
                 }
             }
+
+            // ==========================================
+            // Layer 4: Carousel Controls (Only displayed when there are multiple images)
+            // ==========================================
+            if (previews.size > 1) {
+                // --- Left/Right Navigation Buttons ---
+                // Left button (Hidden on first page)
+                if (pagerState.currentPage > 0) {
+                    IconButton(
+                        onClick = {
+                            coroutineScope.launch {
+                                pagerState.animateScrollToPage(pagerState.currentPage - 1)
+                            }
+                        },
+                        modifier = Modifier
+                            .align(Alignment.CenterStart)
+                            .padding(start = 4.dp)
+                            .size(28.dp), // Make button slightly smaller
+                        colors = IconButtonDefaults.iconButtonColors(
+                            containerColor = Color.Black.copy(alpha = 0.3f),
+                            contentColor = Color.White
+                        )
+                    ) {
+                        Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, contentDescription = "Prev")
+                    }
+                }
+
+                // Right button (Hidden on last page)
+                if (pagerState.currentPage < previews.size - 1) {
+                    IconButton(
+                        onClick = {
+                            coroutineScope.launch {
+                                pagerState.animateScrollToPage(pagerState.currentPage + 1)
+                            }
+                        },
+                        modifier = Modifier
+                            .align(Alignment.CenterEnd)
+                            .padding(end = 4.dp)
+                            .size(28.dp),
+                        colors = IconButtonDefaults.iconButtonColors(
+                            containerColor = Color.Black.copy(alpha = 0.3f),
+                            contentColor = Color.White
+                        )
+                    ) {
+                        Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = "Next")
+                    }
+                }
+
+                // --- Bottom Dot Indicators (Dots) ---
+                Row(
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(bottom = 12.dp), // Place slightly above the bottom
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    repeat(previews.size) { iteration ->
+                        val isSelected = pagerState.currentPage == iteration
+                        val color = if (isSelected) Color.White else Color.White.copy(alpha = 0.5f)
+                        val size = if (isSelected) 6.dp else 4.dp // Slightly larger when selected
+
+                        Box(
+                            modifier = Modifier
+                                .padding(3.dp)
+                                .clip(CircleShape)
+                                .background(color)
+                                .size(size)
+                        )
+                    }
+                }
+            }
         }
     }
 }
@@ -349,13 +479,11 @@ fun TopicCard(topic: GalleryTopic) {
             contentAlignment = Alignment.Center // Title displayed in the center
         ) {
 
-            topic.blurhash?.let { hash ->
-                BlurHashImage(
-                    hash = hash,
-                    contentDescription = "",
-                    modifier = Modifier.fillMaxSize()
-                )
-            }
+            PlaceholderBlurHash(
+                topic.blurhash,
+                contentDescription = "topic blur hash",
+                modifier = Modifier.fillMaxSize()
+            )
 
             // Background image
             AsyncImage(

@@ -21,7 +21,13 @@ interface GalleryDisplayable {
     val displayBlurHash: String?
     val displayWidth: Int?
     val displayHeight: Int?
+    val displayPreviewPhotos: List<GalleryPreview>
 }
+
+data class GalleryPreview(
+    val url: String,
+    val blurHash: String?
+)
 
 data class GalleryPhoto(
     val id: String,
@@ -45,6 +51,7 @@ data class GalleryPhoto(
     override val displayBlurHash: String get() = blurhash
     override val displayWidth: Int get() = width
     override val displayHeight: Int get() = height
+    override val displayPreviewPhotos: List<GalleryPreview> get() = emptyList()
 }
 
 data class GalleryCollection(
@@ -56,7 +63,8 @@ data class GalleryCollection(
     val username: String? = null,
     val blurhash: String? = null,
     val width: Int? = 0,
-    val height: Int? = 0
+    val height: Int? = 0,
+    val previewPhotos: List<GalleryPreview> = emptyList()
 ) : GalleryDisplayable {
     override val displayId: String get() = id
     override val displayImageUrl: String? get() = coverUrl
@@ -68,6 +76,7 @@ data class GalleryCollection(
     override val displayBlurHash: String? get() = blurhash
     override val displayWidth: Int? get() = width
     override val displayHeight: Int? get() = height
+    override val displayPreviewPhotos: List<GalleryPreview> get() = previewPhotos
 }
 
 data class GalleryTopic(
@@ -90,6 +99,7 @@ data class GalleryTopic(
     override val displayBlurHash: String? get() = blurhash
     override val displayWidth: Int? get() = width
     override val displayHeight: Int? get() = height
+    override val displayPreviewPhotos: List<GalleryPreview> = emptyList()
 }
 
 // Define Enum with properties
