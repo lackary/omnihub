@@ -1,14 +1,24 @@
-name: Continuous Integration (main)
+name: Continuous Integration (mikepenz)
 
 on:
   push:
     branches: [ "main" ]
     paths-ignore:
       - '**.md' # ignore all of .md files
+      - '.gitignore'
+      - 'LICENSE'
+      - 'run_act_safe.sh'
+      - '.releaserc.yml'
+      - '.github/workflows/release.yml'
   pull_request:
     branches: [ "main" ]
     paths-ignore:
       - '**.md' # ignore all of .md files
+      - '.gitignore'
+      - 'LICENSE'
+      - 'run_act_safe.sh'
+      - '.releaserc.yml'
+      - '.github/workflows/release.yml'
 
   workflow_dispatch:
     inputs:
@@ -29,9 +39,9 @@ on:
         default: false
 
 jobs:
-  build-and-test:
+  ci:
+    name: Build and Test
     runs-on: macos-latest
-
     env:
       UNSPLASH_ACCESS_KEY: ${{ secrets.UNSPLASH_ACCESS_KEY }}
       UNSPLASH_SECRET_KEY: ${{ secrets.UNSPLASH_SECRET_KEY }}
