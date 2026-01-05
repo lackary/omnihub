@@ -1,3 +1,11 @@
+# [0.6.0](https://github.com/lackary/omnihub/compare/v0.5.0...v0.6.0) (2026-01-05)
+
+
+### Features
+
+* **desktop:** configure initial window state and dimensions ([af49408](https://github.com/lackary/omnihub/commit/af4940892bd2aa5c294a4ac933254e09a45124ba))
+* **gallery:** implement image carousel for collection previews ([0333bff](https://github.com/lackary/omnihub/commit/0333bffbb5e597fb67a8d4c629a1a78f86ac871b))
+
 # [0.5.0](https://github.com/lackary/omnihub/compare/v0.4.0...v0.5.0) (2025-12-30)
 
 
