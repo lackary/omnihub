@@ -55,6 +55,7 @@ import io.lackstudio.omnihub.platform.isPullToRefreshSupported // Variable defin
 import io.lackstudio.omnihub.ui.extensions.pagingGridItems
 import io.lackstudio.omnihub.ui.extensions.pagingStaggeredGridItems
 import kotlinx.coroutines.launch
+import org.jetbrains.compose.ui.tooling.preview.Preview
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -563,3 +564,86 @@ fun TopicCard(topic: GalleryTopic) {
         }
     }
 }
+
+@Preview(showBackground = true, backgroundColor = 0xFFFFFFFF)
+@Composable
+fun PreviewGalleryUserInfo() {
+    MaterialTheme {
+        GalleryUserInfo(
+            avatarUrl = null,
+            username = "OmniHub Designer",
+            modifier = Modifier.padding(16.dp)
+        )
+    }
+}
+
+@Preview(showBackground = true, backgroundColor = 0xFFFFFFFF)
+@Composable
+fun PreviewGalleryLikeBadge() {
+    MaterialTheme {
+        GalleryLikeBadge(
+            likes = 1250,
+            modifier = Modifier.padding(16.dp)
+        )
+    }
+}
+
+@Preview(showBackground = true, widthDp = 300)
+@Composable
+fun PreviewGalleryCard_SinglePhoto() {
+    // Mock single photo
+    val mockItem = FakeGalleryItem(
+        displayUsername = "Alice Photographer",
+        displayLikes = 340,
+        displayCount = 0, // Single photo has no count badge
+        displayWidth = 400,
+        displayHeight = 300
+    )
+
+    MaterialTheme {
+        Box(modifier = Modifier.padding(16.dp)) {
+            GalleryCard(item = mockItem)
+        }
+    }
+}
+
+@Preview(showBackground = true, widthDp = 300)
+@Composable
+fun PreviewGalleryCard_Collection() {
+    // Mock Collection (Multiple images + Top right badge)
+    val mockItem = FakeGalleryItem(
+        displayUsername = "Bob Curator",
+        displayLikes = 88,
+        displayCount = 12, // Display 12 items
+        displayWidth = 300,
+        displayHeight = 400,
+        // Mock two preview photos to trigger Pager logic (Images won't show in Preview, but structure is visible)
+        displayPreviewPhotos = listOf(
+            GalleryPreview("url1", null),
+            GalleryPreview("url2", null)
+        )
+    )
+
+    MaterialTheme {
+        Box(modifier = Modifier.padding(16.dp)) {
+            GalleryCard(item = mockItem)
+        }
+    }
+}
+
+// --- Mock Data Helper for Previews ---
+// This is a fake data class to enable Preview
+// It implements the GalleryDisplayable interface (fields inferred from code)
+private data class FakeGalleryItem(
+    override val displayId: String = "mock_id",
+    override val displayPreviewPhotos: List<GalleryPreview> = emptyList(),
+    override val displayWidth: Int? = 1080,
+    override val displayHeight: Int? = 1080,
+    override val displayUserAvatar: String? = null,
+    override val displayUsername: String? = "Mock User",
+    override val displayLikes: Int = 0,
+    override val displayCount: Int = 0,
+    override val displayBlurHash: String? = null,
+    override val displayImageUrl: String? = null,
+    override val displayTitle: String = "Mock Title",
+) : GalleryDisplayable
