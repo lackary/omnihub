@@ -3,6 +3,7 @@ package io.lackstudio.omnihub.ui.gallery
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -191,84 +192,96 @@ fun PlaceholderBlurHash(
 
 @Composable
 fun GalleryCard(item: GalleryDisplayable) {
-    // 1. Prepare image list: Use preview photos if available, otherwise use single cover image
+    // 1. Prepare image list
     val previews = item.displayPreviewPhotos
-
     // 2. Create Pager State
     val pagerState = rememberPagerState(pageCount = { previews.size })
-    val coroutineScope = rememberCoroutineScope()
 
-    val overlayBrush = remember {
-        Brush.verticalGradient(
-            colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.7f)),
-            startY = 400f
-        )
-    }
-
-    // Note: We use remember because the Brush object is recreated on every Recomposition.
-    // If the list is scrolled rapidly, this would create a large number of short-lived objects.
-    // also it could be used in Staggered Grid style
+    // Calculate image aspect ratio
     val aspectRatio = remember(item.displayWidth, item.displayHeight) {
         val w = item.displayWidth ?: 0
         val h = item.displayHeight ?: 0
         if (h > 0 && w > 0) {
             w.toFloat() / h.toFloat()
         } else {
-            1f // Default aspect ratio to avoid crash due to division by zero
+            1f
         }
     }
-
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .aspectRatio(aspectRatio),
-        shape = RoundedCornerShape(12.dp),
-        elevation = CardDefaults.cardElevation(4.dp)
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(8.dp),
+        color = Color.Gray.copy(alpha = 0.2f),
+        contentColor = Color.White
     ) {
-        Box(modifier = Modifier.fillMaxSize()) {
-            // 1. Image Layer
-            GalleryCardImageContent(
-                previews = previews,
-                singleItem = item, // Used for single image fallback
-                pagerState = pagerState
-            )
+        // Use Column: Image on top, text below
+        Column(
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            // --- Top section: Image area ---
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .aspectRatio(aspectRatio),
+                shape = RoundedCornerShape(12.dp),
+                elevation = CardDefaults.cardElevation(2.dp)
+            ) {
+                Box(modifier = Modifier.fillMaxSize()) {
+                    // Image content
+                    GalleryCardImageContent(
+                        previews = previews,
+                        singleItem = item,
+                        pagerState = pagerState
+                    )
 
-            // 2. Overlay Layer
-            GalleryCardGradientOverlay()
+                    // Image count
+                    if (item.displayCount > 0) {
+                        GalleryCountBadge(
+                            count = item.displayCount,
+                            modifier = Modifier.align(Alignment.TopEnd).padding(8.dp)
+                        )
+                    }
 
-            // 3. Info Layer
-            // Bottom Left: User Info
-            GalleryUserInfo(
-                avatarUrl = item.displayUserAvatar,
-                username = item.displayUsername,
-                modifier = Modifier.align(Alignment.BottomStart).padding(12.dp)
-            )
+                    GalleryCardGradientOverlay()
 
-            // Top Right: Count Badge (Collection)
-            if (item.displayCount > 0) {
-                GalleryCountBadge(
-                    count = item.displayCount,
-                    modifier = Modifier.align(Alignment.TopEnd).padding(8.dp)
-                )
+                    // Control layer (Pager left/right arrows)
+                    if (previews.size > 1) {
+                        GalleryPagerNavigation(
+                            pagerState = pagerState,
+                            itemCount = previews.size,
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    }
+                }
             }
 
-            // Bottom Right: Likes Badge (Photo)
-            if (item.displayLikes > 0) {
-                GalleryLikeBadge(
-                    likes = item.displayLikes,
-                    modifier = Modifier.align(Alignment.BottomEnd).padding(12.dp)
+            // --- Bottom section: Info row (Username and Likes) ---
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 4.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                // Bottom Left: User info (Black text)
+                GalleryUserInfo(
+                    avatarUrl = item.displayUserAvatar,
+                    username = item.displayUsername,
+                    modifier = Modifier.weight(1f)
                 )
+
+                // Bottom Right: Likes (Black text + Red heart)
+                if (item.displayLikes > 0) {
+                    GalleryLikeBadge(
+                        likes = item.displayLikes,
+                        modifier = Modifier.padding(start = 8.dp)
+                    )
+                }
             }
 
-            // 4. Controls Layer
-            // Only shown when there are multiple images
-            if (previews.size > 1) {
-                GalleryPagerNavigation(
-                    pagerState = pagerState,
-                    itemCount = previews.size,
-                    modifier = Modifier.fillMaxSize()
-                )
-            }
+            // Extra bottom spacing (Optional)
+            Spacer(modifier = Modifier.height(4.dp))
         }
     }
 }
@@ -457,7 +470,7 @@ private fun GalleryUserInfo(
         Text(
             text = username ?: "",
             style = MaterialTheme.typography.bodyMedium,
-            color = Color.White,
+            color = Color.Black,
             fontWeight = FontWeight.SemiBold
         )
     }
@@ -506,7 +519,7 @@ private fun GalleryLikeBadge(likes: Int, modifier: Modifier = Modifier) {
         Text(
             text = likes.toString(),
             style = MaterialTheme.typography.bodyMedium,
-            color = Color.White,
+            color = Color.Black,
             fontWeight = FontWeight.Medium
         )
         Spacer(modifier = Modifier.width(4.dp))
@@ -514,7 +527,7 @@ private fun GalleryLikeBadge(likes: Int, modifier: Modifier = Modifier) {
             imageVector = Icons.Filled.Favorite,
             contentDescription = "Likes",
             modifier = Modifier.size(16.dp),
-            tint = Color.White
+            tint = Color.Red
         )
     }
 }
@@ -540,7 +553,8 @@ fun TopicCard(topic: GalleryTopic) {
 
             // Background image
             AsyncImage(
-                // Please confirm your GalleryTopic data structure field name (e.g. topic.coverUrl or topic.urls.small)
+                // Please confirm GalleryTopic data structure field name
+                // (e.g. topic.coverUrl or topic.urls.small)
                 model = topic.coverUrl,
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
