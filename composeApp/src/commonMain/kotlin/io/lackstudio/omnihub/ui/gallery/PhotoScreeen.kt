@@ -8,13 +8,9 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -22,7 +18,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -30,9 +25,11 @@ import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import coil3.request.crossfade
 import androidx.compose.animation.SharedTransitionLayout
+import androidx.compose.ui.text.font.FontWeight
 import coil3.compose.LocalPlatformContext
 import coil3.size.Size
 import io.lackstudio.omnifeed.ui.state.AppUiState
+import io.lackstudio.omnihub.utils.toSimpleDateStr
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -153,103 +150,19 @@ fun PhotoDetailContent(
             }
 
             // --- UI Control Layer (TopBar, BottomBar) ---
-            // --- Top Bar ---
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    // Note: Do NOT add statusBarsPadding to the outer layer, and do NOT fix the height
-                    // This allows the Box to extend to the very top of the screen (behind the status bar)
-                    .align(Alignment.TopCenter)
-            ) {
-                // 1. Background Layer
-                // This layer is for aesthetics; it covers the status bar to make white text clear
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(100.dp) // Set height taller to ensure a natural gradient
-                        .background(
-                            Brush.verticalGradient(
-                                colors = listOf(Color.Black.copy(alpha = 0.6f), Color.Transparent)
-                            )
-                        )
-                )
+            // Top Bar
+            PhotoDetailTopBar(
+                onBack = onBack,
+                modifier = Modifier.align(Alignment.TopCenter)
+            )
 
-                // 2. Content Layer
-                // This layer is for functionality and needs to avoid the status bar (Safe Area)
-                // We set the height to 64dp (standard TopAppBar height) here
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .statusBarsPadding() // ★ Key: Only the button layer needs to avoid the status bar
-                        .height(64.dp),
-                    contentAlignment = Alignment.CenterStart
-                ) {
-                    IconButton(
-                        onClick = onBack,
-                        modifier = Modifier.padding(start = 4.dp),
-                        colors = IconButtonDefaults.iconButtonColors(
-                            contentColor = Color.White,
-                            containerColor = Color.Transparent
-                        )
-                    ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back"
-                        )
-                    }
-                }
-            }
-
-            // Bottom Info Bar
-            AnimatedVisibility(
-                visible = state.detailState is AppUiState.Success,
-                modifier = Modifier.align(Alignment.BottomCenter),
-                enter = fadeIn(),
-                exit = fadeOut()
-            ) {
-                // Outer Box: Only responsible for bottom positioning, do NOT set a fixed height
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .align(Alignment.BottomCenter)
-                ) {
-                    // Background Layer (Gradient)
-                    // Set height taller (e.g., 120dp) to ensure it covers the Home Indicator area and extends upwards
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(120.dp)
-                            .align(Alignment.BottomCenter) // Align to bottom
-                            .background(
-                                Brush.verticalGradient(
-                                    listOf(Color.Transparent, Color.Black.copy(0.6f))
-                                )
-                            )
-                    )
-
-                    // Content Layer
-                    // Use navigationBarsPadding here to push the content up
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .navigationBarsPadding() // ★ Key: Avoid the bottom navigation bar
-                            .height(64.dp), // Set height of the content area
-                        contentAlignment = Alignment.CenterStart
-                    ) {
-                        IconButton(
-                            onClick = { showBottomSheet = true },
-                            modifier = Modifier
-                                .padding(start = 8.dp), // Only horizontal padding needed; vertical alignment handled by Box
-                            colors = IconButtonDefaults.iconButtonColors(contentColor = Color.White)
-                        ) {
-                            Icon(
-                                Icons.Default.Info,
-                                contentDescription = "Info"
-                            )
-                        }
-                    }
-                }
-            }
+            // Bottom Bar
+            PhotoDetailBottomBar(
+                photoDetail = photoDetail,
+                isVisible = state.detailState is AppUiState.Success,
+                onInfoClick = { showBottomSheet = true },
+                modifier = Modifier.align(Alignment.BottomCenter)
+            )
         }
 
         // --- Bottom Sheet ---
@@ -266,69 +179,125 @@ fun PhotoDetailContent(
 }
 
 @Composable
-fun PhotoDetailInfoContent(detail: Photo) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 24.dp)
-            .navigationBarsPadding()
-            .verticalScroll(rememberScrollState())
+fun PhotoDetailTopBar(
+    onBack: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier.fillMaxWidth()
     ) {
-        Text("Info", style = MaterialTheme.typography.headlineSmall, modifier = Modifier.padding(bottom = 16.dp))
-        HorizontalDivider()
+        // 1. Background Layer (Gradient)
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(100.dp)
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(Color.Black.copy(alpha = 0.6f), Color.Transparent)
+                    )
+                )
+        )
 
-        detail.exif?.let { exif ->
-            val subtitle = listOfNotNull(
-                exif.aperture,
-                exif.exposureTime,
-                exif.iso?.let { "ISO $it" },
-                exif.focalLength
-            ).joinToString(" • ")
-
-            val title = listOfNotNull(exif.make, exif.model).joinToString(" ").trim()
-            val finalTitle = title.ifBlank { "Unknown Camera" }
-
-            if (subtitle.isNotBlank() || title.isNotBlank()) {
-                InfoRow(Icons.Default.CameraAlt, finalTitle, subtitle)
+        // 2. Content Layer
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .statusBarsPadding()
+                .height(64.dp),
+            contentAlignment = Alignment.CenterStart
+        ) {
+            IconButton(
+                onClick = onBack,
+                modifier = Modifier.padding(start = 4.dp),
+                colors = IconButtonDefaults.iconButtonColors(
+                    contentColor = Color.White,
+                    containerColor = Color.Transparent
+                )
+            ) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "Back"
+                )
             }
         }
-
-        detail.location?.displayString()?.let { locationStr ->
-            val coords = if (detail.location.latitude != null && detail.location.longitude != null) {
-                "${detail.location.latitude}, ${detail.location.longitude}"
-            } else ""
-            InfoRow(Icons.Default.LocationOn, locationStr, coords)
-        }
-
-        if (!detail.description.isNullOrBlank()) {
-            Spacer(modifier = Modifier.height(16.dp))
-            Text(
-                text = detail.description,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.padding(vertical = 8.dp)
-            )
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-        Text(
-            text = "Photo by ${detail.username}",
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        Spacer(modifier = Modifier.height(24.dp))
     }
 }
 
 @Composable
-fun InfoRow(icon: ImageVector, title: String, subtitle: String) {
-    Row(modifier = Modifier.padding(vertical = 16.dp), verticalAlignment = Alignment.CenterVertically) {
-        Icon(icon, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
-        Spacer(modifier = Modifier.width(16.dp))
-        Column {
-            Text(title, style = MaterialTheme.typography.bodyLarge)
-            if (subtitle.isNotBlank()) {
-                Text(subtitle, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+fun PhotoDetailBottomBar(
+    photoDetail: Photo?,
+    isVisible: Boolean,
+    onInfoClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    AnimatedVisibility(
+        visible = isVisible,
+        modifier = modifier,
+        enter = fadeIn(),
+        exit = fadeOut()
+    ) {
+        // Outer Box
+        Box(
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            // Background Layer (Gradient)
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(200.dp)
+                    .align(Alignment.BottomCenter)
+                    .background(
+                        Brush.verticalGradient(
+                            listOf(Color.Transparent, Color.Black.copy(0.6f))
+                        )
+                    )
+            )
+
+            // Content Layer
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .navigationBarsPadding()
+                    .padding(bottom = 8.dp, start = 8.dp, end = 8.dp),
+            ) {
+                // Left side: Info Icon + Date
+                Row(
+                    modifier = Modifier
+                        .align(Alignment.BottomStart)
+                        .height(48.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    IconButton(
+                        onClick = onInfoClick,
+                        modifier = Modifier.padding(start = 8.dp),
+                        colors = IconButtonDefaults.iconButtonColors(contentColor = Color.White)
+                    ) {
+                        Icon(
+                            Icons.Default.Info,
+                            contentDescription = "Info"
+                        )
+                    }
+
+                    photoDetail?.createdAt?.let { date ->
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = date.toSimpleDateStr(),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = Color.White.copy(alpha = 0.8f),
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                }
+
+                // Right side: Metadata Overlay
+                photoDetail?.let {
+                    PhotoMetadataOverlay(
+                        photo = it,
+                        modifier = Modifier
+                            .align(Alignment.BottomEnd)
+                            .padding(end = 16.dp)
+                    )
+                }
             }
         }
     }
@@ -348,9 +317,14 @@ fun PhotoDetailScreenPreview() {
         fullUrl = "https://picsum.photos/400/600",
         username = "Test User",
         userAvatar = null,
-        description = "This is a beautiful test photo description.",
+        description = "Description",
         exif = PhotoExif("Canon", "EOS R5", "f/2.8", "1/200", 100, "24mm"),
-        location = PhotoLocation("Taipei", "Taiwan", 25.0, 121.0)
+        location = PhotoLocation("Taipei", "Taiwan", 25.0, 121.0),
+        // [Add dummy data]
+        views = 15400,
+        likes = 342,
+        downloads = 890,
+        createdAt = "2024-03-25T10:00:00Z"
     )
     val dummyState = PhotoDetailUiState(
         detailState = AppUiState.Success(dummyPhoto)

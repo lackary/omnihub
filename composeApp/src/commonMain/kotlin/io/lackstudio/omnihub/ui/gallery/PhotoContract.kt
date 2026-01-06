@@ -11,6 +11,10 @@ data class Photo(
     val username: String,
     val userAvatar: String?,
     val description: String?,
+    val views: Long = 0,
+    val downloads: Long = 0,
+    val likes: Int = 0,
+    val createdAt: String? = null,
     val exif: PhotoExif?,
     val location: PhotoLocation?
 )

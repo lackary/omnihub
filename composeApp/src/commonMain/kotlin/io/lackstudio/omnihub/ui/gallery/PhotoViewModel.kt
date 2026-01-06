@@ -32,28 +32,32 @@ class PhotoDetailViewModel(
             onSuccess = { photo ->
                 val detail = Photo(
                         id = photo.id,
-                fullUrl = photo.urls.full, // use regular or full
-                username = photo.user.username,
-                userAvatar = photo.user.profileImage.medium,
-                description = photo.description ?: photo.altDescription,
-                exif = photo.exif.let {
-                    PhotoExif(
-                        make = it.make,
-                        model = it.model,
-                        aperture = it.aperture,
-                        exposureTime = it.exposureTime,
-                        iso = it.iso,
-                        focalLength = it.focalLength
-                    )
-                },
-                location = photo.location.let { loc ->
-                    PhotoLocation(
-                        city = loc.city,
-                        country = loc.country,
-                        latitude = loc.position.latitude,
-                        longitude = loc.position.longitude
-                    )
-                }
+                    fullUrl = photo.urls.full, // use regular or full
+                    username = photo.user.username,
+                    userAvatar = photo.user.profileImage.medium,
+                    description = photo.description ?: photo.altDescription,
+                    views = photo.views,
+                    downloads = photo.downloads,
+                    likes = photo.likes,
+                    createdAt = photo.createdAt,
+                    exif = photo.exif.let {
+                        PhotoExif(
+                            make = it.make,
+                            model = it.model,
+                            aperture = it.aperture,
+                            exposureTime = it.exposureTime,
+                            iso = it.iso,
+                            focalLength = it.focalLength
+                        )
+                    },
+                    location = photo.location.let { loc ->
+                        PhotoLocation(
+                            city = loc.city,
+                            country = loc.country,
+                            latitude = loc.position.latitude,
+                            longitude = loc.position.longitude
+                        )
+                    }
                 )
                 _state.update { it.copy(detailState = AppUiState.Success(detail)) }
             },
