@@ -51,8 +51,17 @@ fun App() {
 
     // Get current layout info (Is it Rail or BottomBar?)
     val adaptiveInfo = currentWindowAdaptiveInfo()
-    val layoutType =
+    val defaultLayoutType =
         NavigationSuiteScaffoldDefaults.calculateFromAdaptiveInfo(adaptiveInfo)
+
+    // Check if the current destination is the PhotoDetail screen
+    val isPhotoDetail = currentDestination?.hasRoute<Feature.Photo>() == true
+    // Determine Layout Type: If it's PhotoDetail, force hide the navigation bar (None)
+    val layoutType = if (isPhotoDetail) {
+        NavigationSuiteType.None
+    } else {
+        defaultLayoutType
+    }
 
     // Define your navigation items
     val navItems = listOf(
@@ -72,6 +81,7 @@ fun App() {
 
     // Use NavigationSuiteScaffold instead of the original Scaffold
     NavigationSuiteScaffold(
+        layoutType = layoutType,
         navigationSuiteItems = {
             navItems.forEachIndexed { index, item ->
 

@@ -33,6 +33,9 @@ import androidx.compose.animation.SharedTransitionLayout
 import coil3.compose.LocalPlatformContext
 import coil3.size.Size
 import io.lackstudio.omnifeed.ui.state.AppUiState
+import omnihub.composeapp.generated.resources.Res
+import omnihub.composeapp.generated.resources.back
+import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -153,43 +156,100 @@ fun PhotoDetailContent(
             }
 
             // --- UI Control Layer (TopBar, BottomBar) ---
+            // --- Top Bar ---
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(100.dp)
+                    // Note: Do NOT add statusBarsPadding to the outer layer, and do NOT fix the height
+                    // This allows the Box to extend to the very top of the screen (behind the status bar)
                     .align(Alignment.TopCenter)
-                    .background(Brush.verticalGradient(listOf(Color.Black.copy(0.6f), Color.Transparent)))
             ) {
-                IconButton(
-                    onClick = onBack,
-                    modifier = Modifier.statusBarsPadding().padding(16.dp),
-                    colors = IconButtonDefaults.iconButtonColors(contentColor = Color.White)
+                // 1. Background Layer
+                // This layer is for aesthetics; it covers the status bar to make white text clear
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(100.dp) // Set height taller to ensure a natural gradient
+                        .background(
+                            Brush.verticalGradient(
+                                colors = listOf(Color.Black.copy(alpha = 0.6f), Color.Transparent)
+                            )
+                        )
+                )
+
+                // 2. Content Layer
+                // This layer is for functionality and needs to avoid the status bar (Safe Area)
+                // We set the height to 64dp (standard TopAppBar height) here
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .statusBarsPadding() // ★ Key: Only the button layer needs to avoid the status bar
+                        .height(64.dp),
+                    contentAlignment = Alignment.CenterStart
                 ) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    IconButton(
+                        onClick = onBack,
+                        modifier = Modifier.padding(start = 4.dp),
+                        colors = IconButtonDefaults.iconButtonColors(
+                            contentColor = Color.White,
+                            containerColor = Color.Transparent
+                        )
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Back"
+                        )
+                    }
                 }
             }
 
+            // Bottom Info Bar
             AnimatedVisibility(
                 visible = state.detailState is AppUiState.Success,
                 modifier = Modifier.align(Alignment.BottomCenter),
                 enter = fadeIn(),
                 exit = fadeOut()
             ) {
+                // Outer Box: Only responsible for bottom positioning, do NOT set a fixed height
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(100.dp)
-                        .background(Brush.verticalGradient(listOf(Color.Transparent, Color.Black.copy(0.6f))))
+                        .align(Alignment.BottomCenter)
                 ) {
-                    IconButton(
-                        onClick = { showBottomSheet = true },
+                    // Background Layer (Gradient)
+                    // Set height taller (e.g., 120dp) to ensure it covers the Home Indicator area and extends upwards
+                    Box(
                         modifier = Modifier
-                            .align(Alignment.BottomStart)
-                            .navigationBarsPadding()
-                            .padding(16.dp),
-                        colors = IconButtonDefaults.iconButtonColors(contentColor = Color.White)
+                            .fillMaxWidth()
+                            .height(120.dp)
+                            .align(Alignment.BottomCenter) // Align to bottom
+                            .background(
+                                Brush.verticalGradient(
+                                    listOf(Color.Transparent, Color.Black.copy(0.6f))
+                                )
+                            )
+                    )
+
+                    // Content Layer
+                    // Use navigationBarsPadding here to push the content up
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .navigationBarsPadding() // ★ Key: Avoid the bottom navigation bar
+                            .height(64.dp), // Set height of the content area
+                        contentAlignment = Alignment.CenterStart
                     ) {
-                        Icon(Icons.Default.Info, contentDescription = "Info")
+                        IconButton(
+                            onClick = { showBottomSheet = true },
+                            modifier = Modifier
+                                .padding(start = 8.dp), // Only horizontal padding needed; vertical alignment handled by Box
+                            colors = IconButtonDefaults.iconButtonColors(contentColor = Color.White)
+                        ) {
+                            Icon(
+                                Icons.Default.Info,
+                                contentDescription = "Info"
+                            )
+                        }
                     }
                 }
             }
