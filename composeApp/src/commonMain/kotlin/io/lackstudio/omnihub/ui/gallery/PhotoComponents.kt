@@ -1,11 +1,19 @@
 package io.lackstudio.omnihub.ui.gallery
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandHorizontally
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -15,6 +23,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CameraAlt
@@ -27,14 +36,20 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import io.lackstudio.omnihub.utils.toCompactDisplayString
@@ -114,51 +129,123 @@ fun PhotoMetadataOverlay(
     photo: Photo,
     modifier: Modifier = Modifier
 ) {
-    Column(
-        modifier = modifier,
-        horizontalAlignment = Alignment.CenterHorizontally, // Center Icon and Avatar on the same vertical line
-        verticalArrangement = Arrangement.spacedBy(16.dp) // Increase spacing as elements are stacked vertically
+    var showUsername by remember { mutableStateOf(false) }
+
+    // Define a unified width standard (includes Avatar and the data buttons below)
+    // This ensures their "center points" are on the same vertical line
+    val bartWidth = 48.dp
+
+    // Define vertical gradient (only used for the bar on the right)
+    val gradientBrush = Brush.verticalGradient(
+        colors = listOf(
+            Color.Transparent,
+            Color.Black.copy(alpha = 0.4f), // Slightly darker in the middle
+            Color.Black.copy(alpha = 0.7f)  // Darker at the bottom
+        )
+    )
+
+    // Use Box for layer stacking
+    // .height(IntrinsicSize.Min), allows Box height to be determined by the content height of child elements (Column)
+    Box(
+        modifier = modifier.height(IntrinsicSize.Min),
+        contentAlignment = Alignment.BottomEnd // Overall alignment to the bottom right
     ) {
-        // --- Avatar (Top) ---
-        photo.userAvatar?.let { avatarUrl ->
-            AsyncImage(
-                model = avatarUrl,
-                contentDescription = "Avatar",
-                modifier = Modifier
-                    .size(40.dp) // Avatar can be slightly larger
-                    .clip(CircleShape)
-                    .background(Color.Gray),
-                contentScale = ContentScale.Crop
+        // --- Layer 1: Background layer (fixed width, aligned right) ---
+        // This Box is responsible for displaying the gradient, it won't widen when Username slides out
+        Box(
+            modifier = Modifier
+                .fillMaxHeight() // Fill parent container height (i.e., follow content height)
+                .width(bartWidth) // [Key] Fixed width, only wraps the Icon
+                .align(Alignment.CenterEnd) // Locked to the right
+                .background(brush = gradientBrush, shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp)) // Add rounded corners for a smoother top
+        )
+
+        // --- Layer 2: Content layer ---
+        Column(
+            horizontalAlignment = Alignment.End, // Content aligned to the right
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            // Avatar Row (includes the sliding Username)
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.End
+            ) {
+                AnimatedVisibility(
+                    visible = showUsername,
+                    // Expand from the right (End) to left + Fade in
+                    enter = fadeIn() + expandHorizontally(expandFrom = Alignment.End),
+                    // Shrink back to the right (End) + Fade out
+                    exit = fadeOut() + shrinkHorizontally(shrinkTowards = Alignment.End)
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        // Username style background
+                        Box(
+                            modifier = Modifier
+                                .clip(CircleShape)
+                                .background(Color.Black.copy(alpha = 0.6f)) // Semi-transparent black background, ensures visibility
+                                .padding(horizontal = 12.dp, vertical = 6.dp)
+                        ) {
+                            Text(
+                                text = photo.username,
+                                style = MaterialTheme.typography.labelMedium,
+                                color = Color.White,
+                                fontWeight = FontWeight.Bold,
+                                maxLines = 1
+                            )
+                        }
+                        // Spacing between Username and Avatar
+                        Spacer(modifier = Modifier.width(8.dp))
+                    }
+                }
+
+                // Avatar (Click to toggle show/hide)
+                photo.userAvatar?.let { avatarUrl ->
+                    AsyncImage(
+                        model = avatarUrl,
+                        contentDescription = "Avatar",
+                        modifier = Modifier
+                            .size(bartWidth)
+                            .clip(CircleShape)
+                            .background(Color.Gray)
+                            .clickable { showUsername = !showUsername }, // Click to toggle state
+                        contentScale = ContentScale.Crop
+                    )
+                }
+            }
+
+            // --- Views ---
+            StatItem(
+                icon = Icons.Filled.Visibility,
+                value = photo.views.toCompactDisplayString(),
+                width = bartWidth
+            )
+
+            // --- Likes ---
+            StatItem(
+                icon = Icons.Filled.Favorite,
+                value = photo.likes.toCompactDisplayString(),
+                width = bartWidth
+            )
+
+            // --- Downloads (Bottom) ---
+            StatItem(
+                icon = Icons.Filled.Download,
+                value = photo.downloads.toCompactDisplayString(),
+                width = bartWidth
             )
         }
-
-        // --- Views ---
-        StatItem(
-            icon = Icons.Filled.Visibility,
-            value = photo.views.toCompactDisplayString()
-        )
-
-        // --- Likes ---
-        StatItem(
-            icon = Icons.Filled.Favorite,
-            value = photo.likes.toCompactDisplayString()
-        )
-
-        // --- Downloads (Bottom) ---
-        StatItem(
-            icon = Icons.Filled.Download,
-            value = photo.downloads.toCompactDisplayString()
-        )
     }
 }
 
 @Composable
 fun StatItem(
     icon: ImageVector,
-    value: String
+    value: String,
+    width: Dp
 ) {
     // Use Column to place the number below the Icon
     Column(
+        modifier = Modifier.width(width),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
@@ -174,7 +261,8 @@ fun StatItem(
             style = MaterialTheme.typography.labelSmall, // Smaller font suitable for placement below Icon
             color = Color.White,
             fontWeight = FontWeight.Medium,
-            textAlign = TextAlign.Center
+            textAlign = TextAlign.Center,
+            maxLines = 1
         )
     }
 }
@@ -261,13 +349,14 @@ fun PhotoMetadataOverlayPreview() {
 @Preview(showBackground = true, backgroundColor = 0xFF333333, name = "Single Stat Item")
 @Composable
 fun StatItemPreview() {
+    val contentWidth = 48.dp
     MaterialTheme {
         Row(
             modifier = Modifier.padding(16.dp),
             horizontalArrangement = Arrangement.spacedBy(20.dp)
         ) {
-            StatItem(icon = Icons.Filled.Visibility, value = "12.5k")
-            StatItem(icon = Icons.Filled.Favorite, value = "300")
+            StatItem(icon = Icons.Filled.Visibility, value = "12.5k", contentWidth)
+            StatItem(icon = Icons.Filled.Favorite, value = "300", contentWidth)
         }
     }
 }
