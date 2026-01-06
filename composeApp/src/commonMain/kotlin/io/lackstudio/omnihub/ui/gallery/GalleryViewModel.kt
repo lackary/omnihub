@@ -118,6 +118,7 @@ class GalleryViewModel(
         getOldList: (GalleryUiState) -> List<R>?, // Function to retrieve the latest data dynamically
         useCase: suspend () -> UseCaseResult<List<T>>,
         mapper: (List<T>) -> List<R>,
+        distinctBy: (R) -> Any,
         stateReducer: (GalleryUiState, AppUiState<List<R>>, Boolean) -> GalleryUiState,
         onSuccessUpdatePage: () -> Unit
     ) {
@@ -159,7 +160,7 @@ class GalleryViewModel(
                     }
 
                     // 2. Merge data
-                    val finalData = oldList + newItems
+                    val finalData = (oldList + newItems).distinctBy(distinctBy)
                     val finalSubState = AppUiState.Success(finalData)
 
                     // Turn off the refresh status of a specific Tab
@@ -211,6 +212,7 @@ class GalleryViewModel(
                         height = it.height
                     )
                 } },
+            distinctBy = { it.id },
             stateReducer = { state, newState, isEnd ->
                 state.copy(photosState = newState, photosEndOfList = isEnd)
             },
@@ -249,6 +251,7 @@ class GalleryViewModel(
                             }?: emptyList()
                     )
                 } },
+            distinctBy = { it.id },
             stateReducer = { state, newState, isEnd ->
                 state.copy(collectionsState = newState, collectionsEndOfList = isEnd)
             },
@@ -279,6 +282,7 @@ class GalleryViewModel(
                         height = it.coverPhoto.height
                     )
                 } },
+            distinctBy = { it.id },
             stateReducer = { state, newState, isEnd ->
                 state.copy(topicsState = newState, topicsEndOfList = isEnd)
             },

@@ -58,6 +58,7 @@ class PhotoDetailViewModel(
                 _state.update { it.copy(detailState = AppUiState.Success(detail)) }
             },
             onError = { msg ->
+//                println("Photo error: $msg")
                 _state.update { it.copy(detailState = AppUiState.Error(msg)) }
             }
         )

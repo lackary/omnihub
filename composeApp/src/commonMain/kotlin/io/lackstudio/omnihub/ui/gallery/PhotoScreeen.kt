@@ -33,9 +33,6 @@ import androidx.compose.animation.SharedTransitionLayout
 import coil3.compose.LocalPlatformContext
 import coil3.size.Size
 import io.lackstudio.omnifeed.ui.state.AppUiState
-import omnihub.composeapp.generated.resources.Res
-import omnihub.composeapp.generated.resources.back
-import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import org.koin.compose.viewmodel.koinViewModel
 
