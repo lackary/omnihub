@@ -19,7 +19,7 @@ val omniServices = listOf(
         title = "Gallery",
         description = "High-quality royalty-free photo search",
         icon = Icons.Filled.Photo,
-        route = Feature.Photos
+        route = Feature.Gallery
     ),
     OmniService(
         title = "News",

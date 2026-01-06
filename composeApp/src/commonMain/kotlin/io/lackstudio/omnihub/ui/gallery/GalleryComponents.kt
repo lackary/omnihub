@@ -1,6 +1,10 @@
 package io.lackstudio.omnihub.ui.gallery
 
+import androidx.compose.animation.AnimatedVisibilityScope
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -51,6 +55,10 @@ import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
+import coil3.compose.LocalPlatformContext
+import coil3.request.ImageRequest
+import coil3.request.crossfade
+import coil3.size.Size
 import com.brys.compose.blurhash.BlurHashImage
 import io.lackstudio.omnihub.platform.isPullToRefreshSupported // Variable defined recently
 import io.lackstudio.omnihub.ui.extensions.pagingGridItems
@@ -84,11 +92,15 @@ fun SafePullToRefreshBox(
 }
 
 // --- List Components ---
+@OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 fun PhotoList(
     photos: List<GalleryPhoto>,
+    sharedTransitionScope: SharedTransitionScope,
+    animatedVisibilityScope: AnimatedVisibilityScope,
     isEndOfList: Boolean,
-    onLoadMore: () -> Unit
+    onLoadMore: () -> Unit,
+    onPhotoClick: (String, String) -> Unit
 ) {
     // Use Staggered Grid State
     val state = rememberLazyStaggeredGridState()
@@ -114,16 +126,21 @@ fun PhotoList(
             onLoadMore = onLoadMore,
             key = { it.id }
         ) { photo ->
-            GalleryCard(photo)
+            GalleryCard(
+                item = photo,
+                onClick = { onPhotoClick(photo.id, photo.url) },
+                sharedTransitionScope = sharedTransitionScope,
+                animatedVisibilityScope = animatedVisibilityScope)
         }
     }
 }
 
+@OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 fun CollectionList(
     collections: List<GalleryCollection>,
     isEndOfList: Boolean,
-    onLoadMore: () -> Unit
+    onLoadMore: () -> Unit,
 ) {
     // Use Staggered Grid State
     val state = rememberLazyStaggeredGridState()
@@ -141,8 +158,8 @@ fun CollectionList(
             isEndOfList = isEndOfList,
             onLoadMore = onLoadMore,
             key = { it.id }
-        ) { photo ->
-            GalleryCard(photo)
+        ) { collection ->
+            GalleryCard(collection, onClick = {})
         }
     }
 }
@@ -190,8 +207,14 @@ fun PlaceholderBlurHash(
     )
 }
 
+@OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
-fun GalleryCard(item: GalleryDisplayable) {
+fun GalleryCard(
+    item: GalleryDisplayable,
+    sharedTransitionScope: SharedTransitionScope? = null,
+    animatedVisibilityScope: AnimatedVisibilityScope? = null,
+    onClick: () -> Unit
+) {
     // 1. Prepare image list
     val previews = item.displayPreviewPhotos
     // 2. Create Pager State
@@ -207,6 +230,19 @@ fun GalleryCard(item: GalleryDisplayable) {
             1f
         }
     }
+
+    // Calculate Shared Element Modifier
+    // If Scope exists, apply animation effect; otherwise return the original Modifier
+    val sharedElementModifier = if (sharedTransitionScope != null && animatedVisibilityScope != null) {
+        with(sharedTransitionScope) {
+            Modifier.sharedElement(
+                sharedContentState = rememberSharedContentState(key = "image-${item.displayId}"),
+                animatedVisibilityScope = animatedVisibilityScope
+            )
+        }
+    } else {
+        Modifier
+    }
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(8.dp),
@@ -215,13 +251,16 @@ fun GalleryCard(item: GalleryDisplayable) {
     ) {
         // Use Column: Image on top, text below
         Column(
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(onClick = onClick)
         ) {
             // --- Top section: Image area ---
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .aspectRatio(aspectRatio),
+                    .aspectRatio(aspectRatio).
+                    then(sharedElementModifier),
                 shape = RoundedCornerShape(12.dp),
                 elevation = CardDefaults.cardElevation(2.dp)
             ) {
@@ -327,6 +366,7 @@ private fun GalleryCardImageContent(
             }
         }
     } else {
+        println("singleItem.displayImageUrl ${singleItem.displayImageUrl}")
         // [Single Image Mode]
         PlaceholderBlurHash(
             blurHash = singleItem.displayBlurHash,
@@ -334,7 +374,11 @@ private fun GalleryCardImageContent(
             modifier = Modifier.fillMaxSize(),
         )
         AsyncImage(
-            model = singleItem.displayImageUrl,
+            model = ImageRequest.Builder(LocalPlatformContext.current)
+                .data(singleItem.displayImageUrl)
+                .size(Size.ORIGINAL)
+                .crossfade(true)
+                .build(),
             contentDescription = singleItem.displayTitle,
             modifier = Modifier.fillMaxSize(),
             contentScale = ContentScale.Crop
@@ -602,6 +646,7 @@ fun PreviewGalleryLikeBadge() {
     }
 }
 
+@OptIn(ExperimentalSharedTransitionApi::class)
 @Preview(showBackground = true, widthDp = 300)
 @Composable
 fun PreviewGalleryCard_SinglePhoto() {
@@ -616,11 +661,12 @@ fun PreviewGalleryCard_SinglePhoto() {
 
     MaterialTheme {
         Box(modifier = Modifier.padding(16.dp)) {
-            GalleryCard(item = mockItem)
+            GalleryCard(item = mockItem, onClick = {})
         }
     }
 }
 
+@OptIn(ExperimentalSharedTransitionApi::class)
 @Preview(showBackground = true, widthDp = 300)
 @Composable
 fun PreviewGalleryCard_Collection() {
@@ -640,7 +686,7 @@ fun PreviewGalleryCard_Collection() {
 
     MaterialTheme {
         Box(modifier = Modifier.padding(16.dp)) {
-            GalleryCard(item = mockItem)
+            GalleryCard(item = mockItem, onClick = {})
         }
     }
 }
