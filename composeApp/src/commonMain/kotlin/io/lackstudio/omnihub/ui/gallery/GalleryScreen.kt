@@ -1,5 +1,10 @@
 package io.lackstudio.omnihub.ui.gallery
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.AnimatedVisibilityScope
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionLayout
+import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.interaction.collectIsDraggedAsState
 import androidx.compose.foundation.layout.Box
@@ -53,11 +58,14 @@ import org.koin.compose.viewmodel.koinViewModel
 
 // Stateful Composable (Used for App navigation)
 // Responsible for communicating with Koin and ViewModel
+@OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 fun GalleryScreen(
     onNavigateToFeature: (Feature) -> Unit,
     onBack: () -> Unit,
-    viewModel: GalleryViewModel = koinViewModel()
+    viewModel: GalleryViewModel = koinViewModel(),
+    sharedTransitionScope: SharedTransitionScope,
+    animatedVisibilityScope: AnimatedVisibilityScope
 ) {
     // Triggered when the page becomes "Resume" (visible and interactive)
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
@@ -74,21 +82,29 @@ fun GalleryScreen(
         sideEffectFlow = viewModel.sideEffect,
         onEvent = viewModel::handleIntent, // Pass events back to ViewModel
         onNavigateToFeature = onNavigateToFeature,
-        onBack = onBack
+        onBack = onBack,
+        sharedTransitionScope = sharedTransitionScope,
+        animatedVisibilityScope = animatedVisibilityScope,
+        onPhotoClick = { photoId, photoUrl->
+            onNavigateToFeature(Feature.Photo(photoId, photoUrl))
+        }
     )
 }
 
 // Stateless Composable (Pure UI)
 // No ViewModel here, purely relies on passed parameters
 // This function can be safely called by Preview
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalSharedTransitionApi::class)
 @Composable
 fun GalleryScreenContent(
     state: GalleryUiState,          // Receive pure data state
     sideEffectFlow: Flow<GallerySideEffect>, // Receive onetime event
     onEvent: (GalleryIntent) -> Unit, // Receive event callbacks
     onNavigateToFeature: (Feature) -> Unit,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onPhotoClick: (String, String) -> Unit,
+    sharedTransitionScope: SharedTransitionScope,
+    animatedVisibilityScope: AnimatedVisibilityScope
 ) {
     // UI internal State (e.g., Pager, Scroll, Search) can be kept here
     val tabs = GalleryTab.entries
@@ -127,7 +143,7 @@ fun GalleryScreenContent(
     )
     // Detect if the user is "dragging" the Pager with their finger
     val isDragged by pagerState.interactionSource.collectIsDraggedAsState()
-    // Listen to Pager (swipe -> update VM)
+    // Sync Pager state with ViewModel when user swipes
     LaunchedEffect(pagerState) {
         // We listen to both currentPage and isScrollInProgress
         snapshotFlow { pagerState.currentPage }
@@ -164,7 +180,7 @@ fun GalleryScreenContent(
             .focusable()
             .onPreviewKeyEvent { keyEvent ->
             if (keyEvent.type == KeyEventType.KeyDown) {
-                //  F5
+                //  Support F5
                 if (keyEvent.key == Key.F5) {
                     onRefreshAction()
                     return@onPreviewKeyEvent true
@@ -273,7 +289,10 @@ fun GalleryScreenContent(
                         isRefreshing = state.refreshingStatus[GalleryTab.Photos] ?: false,
                         onRefresh = { onEvent(GalleryIntent.Refresh) },
                         isEndOfList = state.photosEndOfList,
-                        onLoadMore = { onEvent(GalleryIntent.LoadMore) }
+                        onLoadMore = { onEvent(GalleryIntent.LoadMore) },
+                        onPhotoClick = onPhotoClick,
+                        sharedTransitionScope = sharedTransitionScope,
+                        animatedVisibilityScope = animatedVisibilityScope
                     )
                     GalleryTab.Collections -> CollectionsContent(
                         state = state.collectionsState,
@@ -296,13 +315,17 @@ fun GalleryScreenContent(
 }
 
 // --- Content Sub-pages (Updated with onLoadMore) ---
+@OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 fun PhotosContent(
     state: AppUiState<List<GalleryPhoto>>,
     isRefreshing: Boolean,
     onRefresh: () -> Unit,
     isEndOfList: Boolean,
-    onLoadMore: () -> Unit
+    onLoadMore: () -> Unit,
+    onPhotoClick: (String, String) -> Unit,
+    sharedTransitionScope: SharedTransitionScope,
+    animatedVisibilityScope: AnimatedVisibilityScope
 ) {
     SafePullToRefreshBox(
         isRefreshing = isRefreshing,
@@ -321,8 +344,11 @@ fun PhotosContent(
                     if (state.data.isEmpty()) Text("No photos found.")
                     else PhotoList(
                         state.data,
+                        sharedTransitionScope = sharedTransitionScope,
+                        animatedVisibilityScope = animatedVisibilityScope,
                         isEndOfList = isEndOfList,
-                        onLoadMore
+                        onLoadMore,
+                        onPhotoClick = onPhotoClick
                     )
                 }
             }
@@ -395,6 +421,7 @@ fun TopicsContent(
 }
 
 // Add this function specifically for preview
+@OptIn(ExperimentalSharedTransitionApi::class)
 @Preview
 @Composable
 fun GalleryScreenPreview() {
@@ -427,11 +454,21 @@ fun GalleryScreenPreview() {
         )
     )
 
-    GalleryScreenContent(
-        state = dummyState, // Pass in dummy data
-        sideEffectFlow = emptyFlow(),
-        onEvent = {},       // Empty event handling
-        onNavigateToFeature = {},
-        onBack = {}
-    )
+    // 1. Create shared transition layout
+    SharedTransitionLayout {
+        // 2. Create visibility scope (set to true to make it immediately visible)
+        AnimatedVisibility(visible = true) {
+            GalleryScreenContent(
+                state = dummyState,
+                sideEffectFlow = emptyFlow(),
+                onEvent = {},
+                onNavigateToFeature = {},
+                onBack = {},
+                onPhotoClick = {_,_ ->},
+                // 3. Pass the Scope from the environment
+                sharedTransitionScope = this@SharedTransitionLayout,
+                animatedVisibilityScope = this // this refers to AnimatedVisibilityScope
+            )
+        }
+    }
 }

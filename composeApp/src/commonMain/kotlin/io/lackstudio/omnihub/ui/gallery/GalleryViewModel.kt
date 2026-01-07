@@ -118,12 +118,13 @@ class GalleryViewModel(
         getOldList: (GalleryUiState) -> List<R>?, // Function to retrieve the latest data dynamically
         useCase: suspend () -> UseCaseResult<List<T>>,
         mapper: (List<T>) -> List<R>,
+        distinctBy: (R) -> Any,
         stateReducer: (GalleryUiState, AppUiState<List<R>>, Boolean) -> GalleryUiState,
         onSuccessUpdatePage: () -> Unit
     ) {
         // Need to get the current Tab, or pass it as a parameter
         val currentTab = _state.value.currentTab
-        // [Guard] If "loading more" is in progress (Page > 1) and the flag shows busy, block the request
+        // Prevent concurrent load-more requests.
         if (targetPage > 1 && loadingStatus.getValue(currentTab)) return
 
         // Set flag: If Page > 1, mark as loading more
@@ -132,7 +133,6 @@ class GalleryViewModel(
         handleUseCaseCall(
             useCase = useCase,
             onLoading = {
-                // [UI State Management]
                 // Show full page loading (AppUiState.Loading) only when "Page 1" and "no old data"
                 val hasOldData = targetPage > 1 || (currentSubState is AppUiState.Success && currentSubState.data.isNotEmpty())
 
@@ -147,8 +147,6 @@ class GalleryViewModel(
                 val isEndOfList = newItems.isEmpty()
 
                 onSuccessUpdatePage()
-
-                // [Data Merge]
                 // Enter update block to get the "latest" state, instead of relying on the passed currentSubState
                 _state.update { currentState ->
                     // 1. Dynamically retrieve old data (prevent Page 1 from being overwritten by Page 2 before it's written)
@@ -159,7 +157,7 @@ class GalleryViewModel(
                     }
 
                     // 2. Merge data
-                    val finalData = oldList + newItems
+                    val finalData = (oldList + newItems).distinctBy(distinctBy)
                     val finalSubState = AppUiState.Success(finalData)
 
                     // Turn off the refresh status of a specific Tab
@@ -211,6 +209,7 @@ class GalleryViewModel(
                         height = it.height
                     )
                 } },
+            distinctBy = { it.id },
             stateReducer = { state, newState, isEnd ->
                 state.copy(photosState = newState, photosEndOfList = isEnd)
             },
@@ -249,6 +248,7 @@ class GalleryViewModel(
                             }?: emptyList()
                     )
                 } },
+            distinctBy = { it.id },
             stateReducer = { state, newState, isEnd ->
                 state.copy(collectionsState = newState, collectionsEndOfList = isEnd)
             },
@@ -279,6 +279,7 @@ class GalleryViewModel(
                         height = it.coverPhoto.height
                     )
                 } },
+            distinctBy = { it.id },
             stateReducer = { state, newState, isEnd ->
                 state.copy(topicsState = newState, topicsEndOfList = isEnd)
             },

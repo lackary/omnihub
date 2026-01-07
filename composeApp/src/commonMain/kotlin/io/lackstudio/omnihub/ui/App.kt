@@ -1,5 +1,7 @@
 package io.lackstudio.omnihub.ui
 
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding // Manual padding is not needed, NavigationSuiteScaffold will handle it
@@ -21,8 +23,10 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.toRoute
 import io.lackstudio.omnihub.ui.account.AccountScreen
 import io.lackstudio.omnihub.ui.gallery.GalleryScreen
+import io.lackstudio.omnihub.ui.gallery.PhotoDetailScreen
 import io.lackstudio.omnihub.ui.home.HomeScreen
 import io.lackstudio.omnihub.ui.navigation.Feature
 import io.lackstudio.omnihub.ui.navigation.Screen
@@ -36,6 +40,7 @@ data class NavItem(
     val isSelected: Boolean
 )
 
+@OptIn(ExperimentalSharedTransitionApi::class)
 @Preview(name = "Mobile", widthDp = 360, heightDp = 640)
 @Preview(name = "Desktop", widthDp = 1024, heightDp = 768)
 @Composable
@@ -46,8 +51,17 @@ fun App() {
 
     // Get current layout info (Is it Rail or BottomBar?)
     val adaptiveInfo = currentWindowAdaptiveInfo()
-    val layoutType =
+    val defaultLayoutType =
         NavigationSuiteScaffoldDefaults.calculateFromAdaptiveInfo(adaptiveInfo)
+
+    // Check if the current destination is the PhotoDetail screen
+    val isPhotoDetail = currentDestination?.hasRoute<Feature.Photo>() == true
+    // Determine Layout Type: If it's PhotoDetail, force hide the navigation bar (None)
+    val layoutType = if (isPhotoDetail) {
+        NavigationSuiteType.None
+    } else {
+        defaultLayoutType
+    }
 
     // Define your navigation items
     val navItems = listOf(
@@ -67,6 +81,7 @@ fun App() {
 
     // Use NavigationSuiteScaffold instead of the original Scaffold
     NavigationSuiteScaffold(
+        layoutType = layoutType,
         navigationSuiteItems = {
             navItems.forEachIndexed { index, item ->
 
@@ -93,48 +108,65 @@ fun App() {
             }
         }
     ) {
-        // Main content goes here (NavHost)
-        // Note: No need to handle innerPadding like in standard Scaffold,
-        // NavigationSuiteScaffold automatically handles the layout
-        NavHost(
-            navController = navController,
-            startDestination = Screen.Home,
-            modifier = Modifier
-                .fillMaxSize()
-        ) {
-            // Home Screen
-            composable<Screen.Home> {
-                HomeScreen(
-                    onNavigateToFeature = { feature -> navController.navigate(feature) }
-                )
-            }
-
-            // Account Screen
-            composable<Screen.Account> {
-                AccountScreen(
-                    onNavigateToFeature = { feature -> navController.navigate(feature) }
-                )
-            }
-
-            // Features
-            composable<Feature.Photos> {
-                GalleryScreen(
-                    onNavigateToFeature = { feature -> navController.navigate(feature) },
-                    onBack = { navController.popBackStack() }
-                )
-            }
-
-            composable<Feature.News> {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("News API Page")
+        SharedTransitionLayout {
+            // Main content goes here (NavHost)
+            // Note: No need to handle innerPadding like in standard Scaffold,
+            // NavigationSuiteScaffold automatically handles the layout
+            NavHost(
+                navController = navController,
+                startDestination = Screen.Home,
+                modifier = Modifier
+                    .fillMaxSize()
+            ) {
+                // Home Screen
+                composable<Screen.Home> {
+                    HomeScreen(
+                        onNavigateToFeature = { feature -> navController.navigate(feature) }
+                    )
                 }
-            }
 
-            composable<Feature.Stocks> {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("Stocks API Page")
+                // Account Screen
+                composable<Screen.Account> {
+                    AccountScreen(
+                        onNavigateToFeature = { feature -> navController.navigate(feature) }
+                    )
+                }
+
+                // Features
+                composable<Feature.Gallery> {
+                    GalleryScreen(
+                        onNavigateToFeature = { feature -> navController.navigate(feature) },
+                        onBack = { navController.popBackStack() },
+                        sharedTransitionScope = this@SharedTransitionLayout,
+                        animatedVisibilityScope = this@composable
+                    )
+                }
+
+                composable<Feature.Photo> { backStackEntry ->
+                    val route: Feature.Photo = backStackEntry.toRoute()
+
+                    PhotoDetailScreen(
+                        id = route.id,
+                        thumbUrl = route.url,
+                        onBack = { navController.popBackStack() },
+                        sharedTransitionScope = this@SharedTransitionLayout,
+                        animatedVisibilityScope = this@composable
+                    )
+                }
+
+                composable<Feature.News> {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Text("News API Page")
+                    }
+                }
+
+                composable<Feature.Stocks> {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Text("Stocks API Page")
+                    }
                 }
             }
         }
+
     }
 }
