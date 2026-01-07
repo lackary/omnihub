@@ -366,7 +366,6 @@ private fun GalleryCardImageContent(
             }
         }
     } else {
-        println("singleItem.displayImageUrl ${singleItem.displayImageUrl}")
         // [Single Image Mode]
         PlaceholderBlurHash(
             blurHash = singleItem.displayBlurHash,

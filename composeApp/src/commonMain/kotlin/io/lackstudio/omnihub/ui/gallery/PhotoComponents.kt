@@ -131,9 +131,9 @@ fun PhotoMetadataOverlay(
 ) {
     var showUsername by remember { mutableStateOf(false) }
 
-    // Define a unified width standard (includes Avatar and the data buttons below)
+    // Unified width for Avatar and stats icons to ensure vertical alignment.
     // This ensures their "center points" are on the same vertical line
-    val bartWidth = 48.dp
+    val barWidth = 48.dp
 
     // Define vertical gradient (only used for the bar on the right)
     val gradientBrush = Brush.verticalGradient(
@@ -151,11 +151,11 @@ fun PhotoMetadataOverlay(
         contentAlignment = Alignment.BottomEnd // Overall alignment to the bottom right
     ) {
         // --- Layer 1: Background layer (fixed width, aligned right) ---
-        // This Box is responsible for displaying the gradient, it won't widen when Username slides out
+        // Background layer: Fixed width to maintain gradient position independent of username expansion.
         Box(
             modifier = Modifier
                 .fillMaxHeight() // Fill parent container height (i.e., follow content height)
-                .width(bartWidth) // [Key] Fixed width, only wraps the Icon
+                .width(barWidth) // [Key] Fixed width, only wraps the Icon
                 .align(Alignment.CenterEnd) // Locked to the right
                 .background(brush = gradientBrush, shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp)) // Add rounded corners for a smoother top
         )
@@ -204,7 +204,7 @@ fun PhotoMetadataOverlay(
                         model = avatarUrl,
                         contentDescription = "Avatar",
                         modifier = Modifier
-                            .size(bartWidth)
+                            .size(barWidth)
                             .clip(CircleShape)
                             .background(Color.Gray)
                             .clickable { showUsername = !showUsername }, // Click to toggle state
@@ -217,21 +217,21 @@ fun PhotoMetadataOverlay(
             StatItem(
                 icon = Icons.Filled.Visibility,
                 value = photo.views.toCompactDisplayString(),
-                width = bartWidth
+                width = barWidth
             )
 
             // --- Likes ---
             StatItem(
                 icon = Icons.Filled.Favorite,
                 value = photo.likes.toCompactDisplayString(),
-                width = bartWidth
+                width = barWidth
             )
 
             // --- Downloads (Bottom) ---
             StatItem(
                 icon = Icons.Filled.Download,
                 value = photo.downloads.toCompactDisplayString(),
-                width = bartWidth
+                width = barWidth
             )
         }
     }

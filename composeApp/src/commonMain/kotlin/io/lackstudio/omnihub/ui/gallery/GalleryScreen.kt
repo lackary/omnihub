@@ -143,7 +143,7 @@ fun GalleryScreenContent(
     )
     // Detect if the user is "dragging" the Pager with their finger
     val isDragged by pagerState.interactionSource.collectIsDraggedAsState()
-    // Listen to Pager (swipe -> update VM)
+    // Sync Pager state with ViewModel when user swipes
     LaunchedEffect(pagerState) {
         // We listen to both currentPage and isScrollInProgress
         snapshotFlow { pagerState.currentPage }
@@ -180,7 +180,7 @@ fun GalleryScreenContent(
             .focusable()
             .onPreviewKeyEvent { keyEvent ->
             if (keyEvent.type == KeyEventType.KeyDown) {
-                //  F5
+                //  Support F5
                 if (keyEvent.key == Key.F5) {
                     onRefreshAction()
                     return@onPreviewKeyEvent true

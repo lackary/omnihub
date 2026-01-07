@@ -124,7 +124,7 @@ class GalleryViewModel(
     ) {
         // Need to get the current Tab, or pass it as a parameter
         val currentTab = _state.value.currentTab
-        // [Guard] If "loading more" is in progress (Page > 1) and the flag shows busy, block the request
+        // Prevent concurrent load-more requests.
         if (targetPage > 1 && loadingStatus.getValue(currentTab)) return
 
         // Set flag: If Page > 1, mark as loading more
@@ -133,7 +133,6 @@ class GalleryViewModel(
         handleUseCaseCall(
             useCase = useCase,
             onLoading = {
-                // [UI State Management]
                 // Show full page loading (AppUiState.Loading) only when "Page 1" and "no old data"
                 val hasOldData = targetPage > 1 || (currentSubState is AppUiState.Success && currentSubState.data.isNotEmpty())
 
@@ -148,8 +147,6 @@ class GalleryViewModel(
                 val isEndOfList = newItems.isEmpty()
 
                 onSuccessUpdatePage()
-
-                // [Data Merge]
                 // Enter update block to get the "latest" state, instead of relying on the passed currentSubState
                 _state.update { currentState ->
                     // 1. Dynamically retrieve old data (prevent Page 1 from being overwritten by Page 2 before it's written)
