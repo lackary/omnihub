@@ -295,18 +295,14 @@ fun PhotoDetailBottomBar(
     layoutInfo: DetailLayoutInfo,
     modifier: Modifier = Modifier
 ) {
-
-    val bottomOffset = if (layoutInfo.isOutsideVertical) {
-        (layoutInfo.bottomBlackBarHeight - 80.dp).coerceAtLeast(0.dp)
-    } else {
-        0.dp
-    }
-
     val gap = 12.dp
 
     AnimatedVisibility(
         visible = isVisible,
-        modifier = modifier.padding(bottom = bottomOffset),
+        modifier = modifier
+            // First apply system safe area padding (this automatically becomes about 34dp on iOS)
+            .windowInsetsPadding(WindowInsets.navigationBars)
+            .padding(bottom = 16.dp),
         enter = fadeIn(),
         exit = fadeOut()
     ) {

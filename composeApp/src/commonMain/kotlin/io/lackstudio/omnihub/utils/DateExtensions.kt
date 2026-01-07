@@ -15,7 +15,7 @@ fun String.toSimpleDateStr(): String {
 }
 
 /**
- * [Real Implementation] Display relative time
+ * Display relative time
  * Uses kotlinx-datetime to calculate the time difference
  */
 fun String.toRelativeTime(): String {
