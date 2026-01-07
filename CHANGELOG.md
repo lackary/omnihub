@@ -1,3 +1,22 @@
+# [0.7.0](https://github.com/lackary/omnihub/compare/v0.6.0...v0.7.0) (2026-01-07)
+
+
+### Bug Fixes
+
+* **gallery:** prevent duplicate items during pagination ([29f572e](https://github.com/lackary/omnihub/commit/29f572e34291c30f94882d0cdf3bd3dcd70b94dd))
+* **gallery:** support adaptive alignment in PhotoMetadataOverlay ([f977e60](https://github.com/lackary/omnihub/commit/f977e60789e58c92e3b779d44d46760ec418239c))
+* **ui:** adjust bottom bar padding handling in PhotoScreen ([ccb5d91](https://github.com/lackary/omnihub/commit/ccb5d9154a57e688ebdb236f7c0aa9960ee93f59))
+* **ui:** improve PhotoDetail immersion and system bar handling ([db18fd7](https://github.com/lackary/omnihub/commit/db18fd75712c2c5671753936ff101d73d27df873))
+
+
+### Features
+
+* **gallery:** enhance photo detail UI with metadata and statistics ([f6acb3c](https://github.com/lackary/omnihub/commit/f6acb3cabd752d8a7bbe2c324bead734a377957e))
+* **gallery:** enhance PhotoOverlay UI with animations and gradient layout ([fc2f548](https://github.com/lackary/omnihub/commit/fc2f548adec18f167960d179519dccbf5ac52571))
+* **gallery:** implement photo detail screen and shared element transitions ([608ee2f](https://github.com/lackary/omnihub/commit/608ee2f22363457ca9aced4991b2ced7bdca44e6)), closes [hi#resolution](https://github.com/hi/issues/resolution)
+* **gallery:** implement relative time display and update photo info ([7dbb467](https://github.com/lackary/omnihub/commit/7dbb46746abe94db5a330a0054a4a73bdc228106))
+* **ui:** implement adaptive layout for photo details and rename file ([e5f15cb](https://github.com/lackary/omnihub/commit/e5f15cb6e7ba5df7a223cc5485f1dcfdb68c88a6))
+
 # [0.6.0](https://github.com/lackary/omnihub/compare/v0.5.0...v0.6.0) (2026-01-05)
 
 
