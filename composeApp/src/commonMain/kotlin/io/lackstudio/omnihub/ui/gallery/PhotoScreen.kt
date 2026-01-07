@@ -33,7 +33,7 @@ import androidx.compose.ui.unit.Dp
 import coil3.compose.LocalPlatformContext
 import coil3.size.Size
 import io.lackstudio.omnifeed.ui.state.AppUiState
-import io.lackstudio.omnihub.utils.toSimpleDateStr
+import io.lackstudio.omnihub.utils.toRelativeTime
 import kotlin.math.min
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import org.koin.compose.viewmodel.koinViewModel
@@ -368,11 +368,11 @@ fun PhotoDetailBottomBar(
                             onClick = onInfoClick,
                             colors = IconButtonDefaults.iconButtonColors(contentColor = Color.White)
                         ) {
-                            Icon(Icons.Default.Info, contentDescription = "Info")
+                            Icon(Icons.Filled.Info, contentDescription = "Info")
                         }
                         photoDetail?.createdAt?.let { date ->
                             Text(
-                                text = date.toSimpleDateStr(),
+                                text = date.toRelativeTime(),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = Color.White.copy(alpha = 0.8f),
                                 fontWeight = FontWeight.Medium,

@@ -26,6 +26,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Favorite
@@ -66,6 +67,14 @@ fun PhotoDetailInfoContent(detail: Photo) {
     ) {
         Text("Info", style = MaterialTheme.typography.headlineSmall, modifier = Modifier.padding(bottom = 16.dp))
         HorizontalDivider()
+
+        detail.createdAt?.let { dateStr ->
+            InfoRow(
+                icon = Icons.Filled.CalendarToday,
+                title = "Published on",
+                subtitle = dateStr
+            )
+        }
 
         detail.exif?.let { exif ->
             val subtitle = listOfNotNull(
