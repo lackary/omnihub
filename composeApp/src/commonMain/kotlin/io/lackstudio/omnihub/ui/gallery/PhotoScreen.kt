@@ -321,7 +321,7 @@ fun PhotoDetailBottomBar(
                     .align(Alignment.BottomCenter)
                     .background(
                         Brush.verticalGradient(
-                            listOf(Color.Transparent, Color.Black.copy(0.6f))
+                            listOf(Color.Transparent, Color.Black.copy(gradientAlpha))
                         )
                     )
             )
@@ -410,10 +410,11 @@ fun PhotoDetailBottomBar(
 
                     Box(modifier = contentModifier) {
                         // Ensure internal alignment here as well
-                        val alignment = if (layoutInfo.isOutsideHorizontal) Alignment.CenterStart else Alignment.CenterEnd
+                        val alignment = if (layoutInfo.isOutsideHorizontal) Alignment.BottomStart else Alignment.BottomEnd
 
                         PhotoMetadataOverlay(
                             photo = photo,
+                            isLayoutOutside = layoutInfo.isOutsideHorizontal,
                             modifier = Modifier.align(alignment)
                         )
                     }

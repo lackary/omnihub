@@ -127,6 +127,7 @@ fun InfoRow(icon: ImageVector, title: String, subtitle: String) {
 @Composable
 fun PhotoMetadataOverlay(
     photo: Photo,
+    isLayoutOutside: Boolean,
     modifier: Modifier = Modifier
 ) {
     var showUsername by remember { mutableStateOf(false) }
@@ -134,6 +135,11 @@ fun PhotoMetadataOverlay(
     // Unified width for Avatar and stats icons to ensure vertical alignment.
     // This ensures their "center points" are on the same vertical line
     val barWidth = 48.dp
+
+    // Determine alignment based on whether it is outside
+    // Outside (Black border mode): Content should be close to the image (left side), so align to Start
+    // Inside (Overlay mode): Content should be close to the screen edge (right side), so align to End
+    val horizontalAlignment = if (isLayoutOutside) Alignment.Start else Alignment.End
 
     // Define vertical gradient (only used for the bar on the right)
     val gradientBrush = Brush.verticalGradient(
@@ -148,7 +154,7 @@ fun PhotoMetadataOverlay(
     // .height(IntrinsicSize.Min), allows Box height to be determined by the content height of child elements (Column)
     Box(
         modifier = modifier.height(IntrinsicSize.Min),
-        contentAlignment = Alignment.BottomEnd // Overall alignment to the bottom right
+        contentAlignment = if (isLayoutOutside) Alignment.BottomStart else Alignment.BottomEnd // Overall alignment to the bottom right
     ) {
         // --- Layer 1: Background layer (fixed width, aligned right) ---
         // Background layer: Fixed width to maintain gradient position independent of username expansion.
@@ -156,60 +162,82 @@ fun PhotoMetadataOverlay(
             modifier = Modifier
                 .fillMaxHeight() // Fill parent container height (i.e., follow content height)
                 .width(barWidth) // [Key] Fixed width, only wraps the Icon
-                .align(Alignment.CenterEnd) // Locked to the right
+                .align(if (isLayoutOutside) Alignment.CenterStart else Alignment.CenterEnd) // Locked to the right
                 .background(brush = gradientBrush, shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp)) // Add rounded corners for a smoother top
         )
 
         // --- Layer 2: Content layer ---
         Column(
-            horizontalAlignment = Alignment.End, // Content aligned to the right
+            horizontalAlignment = horizontalAlignment, // Content aligned to the right
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             // Avatar Row (includes the sliding Username)
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.End
+                horizontalArrangement = if (isLayoutOutside) Arrangement.Start else Arrangement.End
             ) {
-                AnimatedVisibility(
-                    visible = showUsername,
-                    // Expand from the right (End) to left + Fade in
-                    enter = fadeIn() + expandHorizontally(expandFrom = Alignment.End),
-                    // Shrink back to the right (End) + Fade out
-                    exit = fadeOut() + shrinkHorizontally(shrinkTowards = Alignment.End)
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        // Username style background
-                        Box(
+                // Define Avatar component (avoid duplication)
+                val avatarContent = @Composable {
+                    photo.userAvatar?.let { avatarUrl ->
+                        AsyncImage(
+                            model = avatarUrl,
+                            contentDescription = "Avatar",
                             modifier = Modifier
+                                .size(barWidth)
                                 .clip(CircleShape)
-                                .background(Color.Black.copy(alpha = 0.6f)) // Semi-transparent black background, ensures visibility
-                                .padding(horizontal = 12.dp, vertical = 6.dp)
-                        ) {
-                            Text(
-                                text = photo.username,
-                                style = MaterialTheme.typography.labelMedium,
-                                color = Color.White,
-                                fontWeight = FontWeight.Bold,
-                                maxLines = 1
-                            )
-                        }
-                        // Spacing between Username and Avatar
-                        Spacer(modifier = Modifier.width(8.dp))
+                                .background(Color.Gray)
+                                .clickable { showUsername = !showUsername },
+                            contentScale = ContentScale.Crop
+                        )
                     }
                 }
 
-                // Avatar (Click to toggle show/hide)
-                photo.userAvatar?.let { avatarUrl ->
-                    AsyncImage(
-                        model = avatarUrl,
-                        contentDescription = "Avatar",
-                        modifier = Modifier
-                            .size(barWidth)
-                            .clip(CircleShape)
-                            .background(Color.Gray)
-                            .clickable { showUsername = !showUsername }, // Click to toggle state
-                        contentScale = ContentScale.Crop
-                    )
+                // Define Username component (includes animation)
+                val usernameContent = @Composable {
+                    // Animation direction setting
+                    // Outside (slide right): expandFrom = Start
+                    // Inside (slide left): expandFrom = End
+                    val expandFrom = if (isLayoutOutside) Alignment.Start else Alignment.End
+
+                    AnimatedVisibility(
+                        visible = showUsername,
+                        enter = fadeIn() + expandHorizontally(expandFrom = expandFrom),
+                        exit = fadeOut() + shrinkHorizontally(shrinkTowards = expandFrom)
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            // If sliding right (Outside), spacing should be placed to the left of Username
+                            if (isLayoutOutside) Spacer(modifier = Modifier.width(8.dp))
+
+                            Box(
+                                modifier = Modifier
+                                    .clip(CircleShape)
+                                    .background(Color.Black.copy(alpha = 0.6f))
+                                    .padding(horizontal = 12.dp, vertical = 6.dp)
+                            ) {
+                                Text(
+                                    text = photo.username,
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = Color.White,
+                                    fontWeight = FontWeight.Bold,
+                                    maxLines = 1
+                                )
+                            }
+
+                            // If sliding left (Inside), spacing should be placed to the right of Username
+                            if (!isLayoutOutside) Spacer(modifier = Modifier.width(8.dp))
+                        }
+                    }
+                }
+
+                // Determine the order
+                if (isLayoutOutside) {
+                    // Mode: [Avatar] -> [Username] (Slide right)
+                    avatarContent()
+                    usernameContent()
+                } else {
+                    // Mode: [Username] <- [Avatar] (Slide left)
+                    usernameContent()
+                    avatarContent()
                 }
             }
 
@@ -337,7 +365,8 @@ fun PhotoMetadataOverlayPreview() {
             contentAlignment = Alignment.BottomEnd // Simulates being at the bottom end of the screen
         ) {
             PhotoMetadataOverlay(
-                photo = dummyPhoto
+                photo = dummyPhoto,
+                isLayoutOutside = false
             )
         }
     }
