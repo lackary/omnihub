@@ -84,10 +84,7 @@ fun GalleryScreen(
         onNavigateToFeature = onNavigateToFeature,
         onBack = onBack,
         sharedTransitionScope = sharedTransitionScope,
-        animatedVisibilityScope = animatedVisibilityScope,
-        onPhotoClick = { photoId, photoUrl->
-            onNavigateToFeature(Feature.Photo(photoId, photoUrl))
-        }
+        animatedVisibilityScope = animatedVisibilityScope
     )
 }
 
@@ -102,7 +99,6 @@ fun GalleryScreenContent(
     onEvent: (GalleryIntent) -> Unit, // Receive event callbacks
     onNavigateToFeature: (Feature) -> Unit,
     onBack: () -> Unit,
-    onPhotoClick: (String, String) -> Unit,
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope
 ) {
@@ -290,7 +286,7 @@ fun GalleryScreenContent(
                         onRefresh = { onEvent(GalleryIntent.Refresh) },
                         isEndOfList = state.photosEndOfList,
                         onLoadMore = { onEvent(GalleryIntent.LoadMore) },
-                        onPhotoClick = onPhotoClick,
+                        onNavigateToFeature = onNavigateToFeature,
                         sharedTransitionScope = sharedTransitionScope,
                         animatedVisibilityScope = animatedVisibilityScope
                     )
@@ -299,7 +295,8 @@ fun GalleryScreenContent(
                         isRefreshing = state.refreshingStatus[GalleryTab.Collections] ?: false,
                         onRefresh = { onEvent(GalleryIntent.Refresh) },
                         isEndOfList = state.collectionsEndOfList,
-                        onLoadMore = { onEvent(GalleryIntent.LoadMore) }
+                        onLoadMore = { onEvent(GalleryIntent.LoadMore) },
+                        onNavigateToFeature = onNavigateToFeature
                     )
                     GalleryTab.Topics -> TopicsContent(
                         state = state.topicsState,
@@ -323,7 +320,7 @@ fun PhotosContent(
     onRefresh: () -> Unit,
     isEndOfList: Boolean,
     onLoadMore: () -> Unit,
-    onPhotoClick: (String, String) -> Unit,
+    onNavigateToFeature: (Feature) -> Unit,
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope
 ) {
@@ -347,8 +344,10 @@ fun PhotosContent(
                         sharedTransitionScope = sharedTransitionScope,
                         animatedVisibilityScope = animatedVisibilityScope,
                         isEndOfList = isEndOfList,
-                        onLoadMore,
-                        onPhotoClick = onPhotoClick
+                        onLoadMore = onLoadMore,
+                        onPhotoClick = { id, url ->
+                            onNavigateToFeature(Feature.Photo(id, url))
+                        }
                     )
                 }
             }
@@ -362,7 +361,8 @@ fun CollectionsContent(
     isRefreshing: Boolean,
     onRefresh: () -> Unit,
     isEndOfList: Boolean,
-    onLoadMore: () -> Unit
+    onLoadMore: () -> Unit,
+    onNavigateToFeature: (Feature) -> Unit,
 ) {
     SafePullToRefreshBox(
         isRefreshing = isRefreshing,
@@ -378,7 +378,10 @@ fun CollectionsContent(
                     else CollectionList(
                         state.data,
                         isEndOfList = isEndOfList,
-                        onLoadMore
+                        onLoadMore = onLoadMore,
+                        onCollectionClick = { id ->
+                            onNavigateToFeature(Feature.Collection(id))
+                        }
                     )
                 }
             }
@@ -464,7 +467,6 @@ fun GalleryScreenPreview() {
                 onEvent = {},
                 onNavigateToFeature = {},
                 onBack = {},
-                onPhotoClick = {_,_ ->},
                 // 3. Pass the Scope from the environment
                 sharedTransitionScope = this@SharedTransitionLayout,
                 animatedVisibilityScope = this // this refers to AnimatedVisibilityScope

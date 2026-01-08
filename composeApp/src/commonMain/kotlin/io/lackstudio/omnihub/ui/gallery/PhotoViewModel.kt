@@ -7,7 +7,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 
-class PhotoDetailViewModel(
+class PhotoViewModel(
     private val getPhotoUseCase: GetPhotoUseCase
 ) : BaseViewModel() {
 
@@ -31,7 +31,7 @@ class PhotoDetailViewModel(
             },
             onSuccess = { photo ->
                 val detail = Photo(
-                        id = photo.id,
+                    id = photo.id,
                     fullUrl = photo.urls.full, // use regular or full
                     username = photo.user.username,
                     userAvatar = photo.user.profileImage.medium,

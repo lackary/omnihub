@@ -26,4 +26,7 @@ sealed interface Feature {
     // We need the url for sharedTransition
     @Serializable
     data class Photo(val id: String, val url: String) : Feature
+
+    @Serializable
+    data class Collection(val id: String) : Feature
 }
