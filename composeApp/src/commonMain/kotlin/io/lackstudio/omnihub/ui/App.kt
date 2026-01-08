@@ -163,7 +163,9 @@ fun App() {
                         onBack = { navController.popBackStack() },
                         onNavigateToPhoto = { photoId, url ->
                             navController.navigate(Feature.Photo(photoId, url))
-                        }
+                        },
+                        sharedTransitionScope = this@SharedTransitionLayout,
+                        animatedVisibilityScope = this@composable
                     )
                 }
 

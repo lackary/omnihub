@@ -1,6 +1,8 @@
 package io.lackstudio.omnihub.ui.gallery
 
+import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -54,12 +56,15 @@ import omnihub.composeapp.generated.resources.back
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 
+@OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 fun CollectionDetailScreen(
     collectionId: String,
     onBack: () -> Unit,
     onNavigateToPhoto: (String, String) -> Unit,
-     viewModel: CollectionViewModel = koinViewModel()
+    viewModel: CollectionViewModel = koinViewModel(),
+    sharedTransitionScope: SharedTransitionScope,
+    animatedVisibilityScope: AnimatedVisibilityScope
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
 
@@ -93,7 +98,9 @@ fun CollectionDetailScreen(
                 onNavigateToPhoto = onNavigateToPhoto,
                 onLoadMore = {
                     viewModel.handleIntent(CollectionDetailIntent.LoadMorePhotos)
-                }
+                },
+                sharedTransitionScope = sharedTransitionScope,
+                animatedVisibilityScope = animatedVisibilityScope
             )
         }
     }
@@ -104,7 +111,9 @@ fun CollectionDetailScreen(
 fun CollectionDetailContent(
     state: CollectionDetailUiState,
     onNavigateToPhoto: (String, String) -> Unit,
-    onLoadMore: () -> Unit
+    onLoadMore: () -> Unit,
+    sharedTransitionScope: SharedTransitionScope,
+    animatedVisibilityScope: AnimatedVisibilityScope
 ) {
     val scrollState = rememberLazyStaggeredGridState()
 
@@ -172,7 +181,9 @@ fun CollectionDetailContent(
 
                         GalleryCard(
                             item = displayItem,
-                            onClick = { onNavigateToPhoto(photo.id, photo.url) }
+                            onClick = { onNavigateToPhoto(photo.id, photo.url) },
+                            sharedTransitionScope = sharedTransitionScope,
+                            animatedVisibilityScope = animatedVisibilityScope
                         )
                     }
                 }
