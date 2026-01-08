@@ -27,6 +27,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -123,90 +124,100 @@ fun CollectionDetailContent(
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope
 ) {
-    val scrollState = rememberLazyStaggeredGridState()
-
-    LazyVerticalStaggeredGrid(
-        columns = StaggeredGridCells.Adaptive(minSize = 300.dp), // Adjusted to match Gallery
-        modifier = Modifier.fillMaxSize(),
-        state = scrollState,
-        contentPadding = PaddingValues(8.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalItemSpacing = 8.dp
-    ) {
-        // --- Part 1: Header Info (Handling Loading / Error / Success) ---
-        item(span = StaggeredGridItemSpan.FullLine) {
-            when (val infoState = state.infoState) {
-                is AppUiState.Loading, AppUiState.Idle -> {
-                    // Simple Header Loading placeholder
-                    Box(modifier = Modifier.fillMaxWidth().height(150.dp), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator()
-                    }
-                }
-                is AppUiState.Error -> {
-                    Text("Failed to load info: ${infoState.message}", color = MaterialTheme.colorScheme.error)
-                }
-                is AppUiState.Success -> {
-                    // Show actual data
-                    CollectionHeader(info = infoState.data)
-                    Spacer(modifier = Modifier.height(16.dp))
-                }
-            }
-        }
-
-        // --- Part 2: Photo List ---
-        when (val photosState = state.photosState) {
+    Column(modifier = Modifier.fillMaxSize()) {
+        when (val infoState = state.infoState) {
             is AppUiState.Loading, AppUiState.Idle -> {
-                // Loading state for initial list load
-                item(span = StaggeredGridItemSpan.FullLine) {
-                    Box(modifier = Modifier.fillMaxWidth().height(200.dp), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator()
-                    }
+                // Simple Header Loading placeholder
+                Box(
+                    modifier = Modifier.fillMaxWidth().padding(16.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator(modifier = Modifier.size(24.dp))
                 }
             }
             is AppUiState.Error -> {
-                item(span = StaggeredGridItemSpan.FullLine) {
-                    Text("Failed to load photos: ${photosState.message}", color = MaterialTheme.colorScheme.error)
+                Box(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+                    Text(
+                        text = "Failed to load info: ${infoState.message}",
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall
+                    )
                 }
             }
             is AppUiState.Success -> {
-                val photos = photosState.data
-                if (photos.isEmpty()) {
-                    item(span = StaggeredGridItemSpan.FullLine) {
-                        Box(modifier = Modifier.height(100.dp).fillMaxWidth(), contentAlignment = Alignment.Center) {
-                            Text("No photos in this collection", color = Color.Gray)
-                        }
-                    }
-                } else {
-                    // Use paging extension
-                    pagingStaggeredGridItems(
-                        items = photos,
-                        isEndOfList = state.isPhotosEndOfList,
-                        onLoadMore = onLoadMore,
-                        key = { it.id }
-                    ) { photo ->
-                        // Convert CollectionPhoto to GalleryDisplayable for GalleryCard use
-                        val displayItem = remember(photo) { photo.toGalleryDisplayable() }
-
-                        GalleryCard(
-                            item = displayItem,
-                            onClick = { onNavigateToPhoto(photo.id, photo.url) },
-                            sharedTransitionScope = sharedTransitionScope,
-                            animatedVisibilityScope = animatedVisibilityScope
-                        )
-                    }
+                Box(modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp)) {
+                    CollectionHeader(info = infoState.data)
                 }
+                HorizontalDivider(modifier = Modifier.padding(bottom = 8.dp))
             }
         }
 
-        // Handle Load More indicator (handled inside pagingStaggeredGridItems, or added here)
-        if (state.isPhotosLoadingMore) {
-            item(span = StaggeredGridItemSpan.FullLine) {
-                Box(modifier = Modifier.fillMaxWidth().padding(8.dp), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator(modifier = Modifier.size(24.dp))
+        val scrollState = rememberLazyStaggeredGridState()
+
+        LazyVerticalStaggeredGrid(
+            columns = StaggeredGridCells.Adaptive(minSize = 300.dp), // Adjusted to match Gallery
+            modifier = Modifier.fillMaxSize(),
+            state = scrollState,
+            contentPadding = PaddingValues(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalItemSpacing = 8.dp
+        ) {
+            // --- Photo List ---
+            when (val photosState = state.photosState) {
+                is AppUiState.Loading, AppUiState.Idle -> {
+                    // Loading state for initial list load
+                    item(span = StaggeredGridItemSpan.FullLine) {
+                        Box(modifier = Modifier.fillMaxWidth().height(200.dp), contentAlignment = Alignment.Center) {
+                            CircularProgressIndicator()
+                        }
+                    }
+                }
+                is AppUiState.Error -> {
+                    item(span = StaggeredGridItemSpan.FullLine) {
+                        Text("Failed to load photos: ${photosState.message}", color = MaterialTheme.colorScheme.error)
+                    }
+                }
+                is AppUiState.Success -> {
+                    val photos = photosState.data
+                    if (photos.isEmpty()) {
+                        item(span = StaggeredGridItemSpan.FullLine) {
+                            Box(modifier = Modifier.height(100.dp).fillMaxWidth(), contentAlignment = Alignment.Center) {
+                                Text("No photos in this collection", color = Color.Gray)
+                            }
+                        }
+                    } else {
+                        // Use paging extension
+                        pagingStaggeredGridItems(
+                            items = photos,
+                            isEndOfList = state.isPhotosEndOfList,
+                            onLoadMore = onLoadMore,
+                            key = { it.id }
+                        ) { photo ->
+                            // Convert CollectionPhoto to GalleryDisplayable for GalleryCard use
+                            val displayItem = remember(photo) { photo.toGalleryDisplayable() }
+
+                            GalleryCard(
+                                item = displayItem,
+                                onClick = { onNavigateToPhoto(photo.id, photo.url) },
+                                sharedTransitionScope = sharedTransitionScope,
+                                animatedVisibilityScope = animatedVisibilityScope
+                            )
+                        }
+                    }
+                }
+            }
+
+            // Handle Load More indicator (handled inside pagingStaggeredGridItems, or added here)
+            if (state.isPhotosLoadingMore) {
+                item(span = StaggeredGridItemSpan.FullLine) {
+                    Box(modifier = Modifier.fillMaxWidth().padding(8.dp), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                    }
                 }
             }
         }
     }
+
 }
 
 @Composable
@@ -218,7 +229,7 @@ fun CollectionHeader(info: Collection) {
                 model = info.avatarUrl,
                 contentDescription = null,
                 modifier = Modifier
-                    .size(32.dp)
+                    .size(60.dp)
                     .clip(CircleShape)
                     .background(Color.LightGray),
                 contentScale = ContentScale.Crop
@@ -226,8 +237,8 @@ fun CollectionHeader(info: Collection) {
             Spacer(modifier = Modifier.width(8.dp))
             Text(
                 text = info.name, // Use Collection's user name
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Medium
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.Bold
             )
 
             Spacer(modifier = Modifier.weight(1f))
@@ -236,7 +247,7 @@ fun CollectionHeader(info: Collection) {
             Text(
                 text = "${info.totalPhotos} photos",
                 style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.Bold,
+                fontWeight = FontWeight.Medium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
 
             )
@@ -245,6 +256,10 @@ fun CollectionHeader(info: Collection) {
         Spacer(modifier = Modifier.height(12.dp))
 
         // Expandable Description
+        val mockDesc =
+            "A curated collection of minimalist photography. Less is more. " +
+            "This description is long enough to test the expand functionality on mobile devices."
+
         info.description?.let { desc ->
             ExpandableText(
                 text = desc,
