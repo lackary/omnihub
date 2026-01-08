@@ -1,7 +1,8 @@
 package io.lackstudio.omnihub.di
 
+import io.lackstudio.omnihub.ui.gallery.CollectionViewModel
 import io.lackstudio.omnihub.ui.gallery.GalleryViewModel
-import io.lackstudio.omnihub.ui.gallery.PhotoDetailViewModel
+import io.lackstudio.omnihub.ui.gallery.PhotoViewModel
 import org.koin.core.module.dsl.viewModelOf // ⭐ Key import
 import org.koin.dsl.module
 
@@ -10,5 +11,6 @@ val appModule = module {
     // Koin automatically detects GalleryViewModel constructor parameters
     // (currently empty, but convenient for adding Repositories in the future)
     viewModelOf(::GalleryViewModel)
-    viewModelOf(::PhotoDetailViewModel)
+    viewModelOf(::PhotoViewModel)
+    viewModelOf(::CollectionViewModel)
 }

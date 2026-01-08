@@ -141,6 +141,7 @@ fun CollectionList(
     collections: List<GalleryCollection>,
     isEndOfList: Boolean,
     onLoadMore: () -> Unit,
+    onCollectionClick: (String, String) -> Unit
 ) {
     // Use Staggered Grid State
     val state = rememberLazyStaggeredGridState()
@@ -159,7 +160,10 @@ fun CollectionList(
             onLoadMore = onLoadMore,
             key = { it.id }
         ) { collection ->
-            GalleryCard(collection, onClick = {})
+            GalleryCard(
+                item = collection,
+                onClick = { onCollectionClick(collection.id, collection.title) }
+            )
         }
     }
 }

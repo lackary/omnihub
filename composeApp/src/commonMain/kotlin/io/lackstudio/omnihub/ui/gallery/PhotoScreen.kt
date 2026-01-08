@@ -47,7 +47,7 @@ fun PhotoDetailScreen(
     onBack: () -> Unit,
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope,
-    viewModel: PhotoDetailViewModel = koinViewModel()
+    viewModel: PhotoViewModel = koinViewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
 
