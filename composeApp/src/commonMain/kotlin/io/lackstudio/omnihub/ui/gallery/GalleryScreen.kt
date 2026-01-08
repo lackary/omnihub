@@ -379,8 +379,8 @@ fun CollectionsContent(
                         state.data,
                         isEndOfList = isEndOfList,
                         onLoadMore = onLoadMore,
-                        onCollectionClick = { id ->
-                            onNavigateToFeature(Feature.Collection(id))
+                        onCollectionClick = { id, title ->
+                            onNavigateToFeature(Feature.Collection(id, title))
                         }
                     )
                 }

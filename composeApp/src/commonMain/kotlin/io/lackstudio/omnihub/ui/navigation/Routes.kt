@@ -28,5 +28,5 @@ sealed interface Feature {
     data class Photo(val id: String, val url: String) : Feature
 
     @Serializable
-    data class Collection(val id: String) : Feature
+    data class Collection(val id: String, val title: String) : Feature
 }

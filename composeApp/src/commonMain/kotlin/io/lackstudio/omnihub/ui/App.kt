@@ -160,6 +160,7 @@ fun App() {
 
                     CollectionDetailScreen(
                         collectionId = route.id,
+                        title = route.title,
                         onBack = { navController.popBackStack() },
                         onNavigateToPhoto = { photoId, url ->
                             navController.navigate(Feature.Photo(photoId, url))

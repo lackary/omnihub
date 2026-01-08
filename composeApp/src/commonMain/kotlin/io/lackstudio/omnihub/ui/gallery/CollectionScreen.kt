@@ -52,6 +52,7 @@ import coil3.compose.AsyncImage
 import io.lackstudio.omnifeed.ui.state.AppUiState
 import io.lackstudio.omnihub.ui.extensions.pagingStaggeredGridItems
 import omnihub.composeapp.generated.resources.Res
+import omnihub.composeapp.generated.resources.app_name
 import omnihub.composeapp.generated.resources.back
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
@@ -60,6 +61,7 @@ import org.koin.compose.viewmodel.koinViewModel
 @Composable
 fun CollectionDetailScreen(
     collectionId: String,
+    title: String,
     onBack: () -> Unit,
     onNavigateToPhoto: (String, String) -> Unit,
     viewModel: CollectionViewModel = koinViewModel(),
@@ -76,7 +78,13 @@ fun CollectionDetailScreen(
         topBar = {
             @OptIn(ExperimentalMaterial3Api::class)
             TopAppBar(
-                title = { },
+                title = {
+                    Text(
+                        text = title,
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+                },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(
@@ -204,15 +212,6 @@ fun CollectionDetailContent(
 @Composable
 fun CollectionHeader(info: Collection) {
     Column(modifier = Modifier.fillMaxWidth()) {
-        // Title
-        Text(
-            text = info.title,
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Bold
-        )
-
-        Spacer(modifier = Modifier.height(12.dp))
-
         // User Info (Collection Creator)
         Row(verticalAlignment = Alignment.CenterVertically) {
             AsyncImage(
@@ -227,7 +226,7 @@ fun CollectionHeader(info: Collection) {
             Spacer(modifier = Modifier.width(8.dp))
             Text(
                 text = info.name, // Use Collection's user name
-                style = MaterialTheme.typography.titleMedium,
+                style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Medium
             )
 
@@ -236,8 +235,10 @@ fun CollectionHeader(info: Collection) {
             // Total Photos count (Optional)
             Text(
                 text = "${info.totalPhotos} photos",
-                style = MaterialTheme.typography.bodySmall,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
+
             )
         }
 
