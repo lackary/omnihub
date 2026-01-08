@@ -1,3 +1,12 @@
+# [0.8.0](https://github.com/lackary/omnihub/compare/v0.7.0...v0.8.0) (2026-01-08)
+
+
+### Features
+
+* **gallery:** implement collection detail screen and navigation ([f0da963](https://github.com/lackary/omnihub/commit/f0da963b3886a5b6dec9b2d46a0820086f8d9805))
+* **gallery:** pass collection title in navigation and refine details UI ([5ba8e37](https://github.com/lackary/omnihub/commit/5ba8e37a494ddde27ca455b0e914d25a512b8c58))
+* **gallery:** propagate shared transition scopes to collection details ([725a690](https://github.com/lackary/omnihub/commit/725a690cd1bda968579211f3176065e4f7c0a876))
+
 # [0.7.0](https://github.com/lackary/omnihub/compare/v0.6.0...v0.7.0) (2026-01-07)
 
 
