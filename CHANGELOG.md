@@ -1,3 +1,12 @@
+# [0.9.0](https://github.com/lackary/omnihub/compare/v0.8.0...v0.9.0) (2026-01-09)
+
+
+### Features
+
+* **gallery:** adjust TopicScreen grid layout and padding ([6386716](https://github.com/lackary/omnihub/commit/6386716d57ed7c2e24cca76fafef4e149542b961))
+* **gallery:** implement Topic detail screen and navigation ([383c680](https://github.com/lackary/omnihub/commit/383c68025a41ee3a0b99f200054010b2352a7cb8))
+* **gallery:** update collection screen text and visibility ([66efb01](https://github.com/lackary/omnihub/commit/66efb0171222758c6af13bc04c8a977f8dc44ca2))
+
 # [0.8.0](https://github.com/lackary/omnihub/compare/v0.7.0...v0.8.0) (2026-01-08)
 
 
