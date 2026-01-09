@@ -245,7 +245,7 @@ fun CollectionHeader(info: Collection) {
 
             // Total Photos count (Optional)
             Text(
-                text = "${info.totalPhotos} photos",
+                text = "${info.totalPhotos} images",
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Medium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -270,7 +270,7 @@ fun CollectionHeader(info: Collection) {
 }
 
 @Composable
-fun ExpandableText(
+private fun ExpandableText(
     text: String,
     modifier: Modifier = Modifier,
     style: androidx.compose.ui.text.TextStyle = MaterialTheme.typography.bodyMedium,
