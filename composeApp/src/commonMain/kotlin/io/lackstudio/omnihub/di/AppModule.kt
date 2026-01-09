@@ -4,7 +4,8 @@ import io.lackstudio.omnihub.ui.gallery.CollectionViewModel
 import io.lackstudio.omnihub.ui.gallery.GalleryViewModel
 import io.lackstudio.omnihub.ui.gallery.PhotoViewModel
 import io.lackstudio.omnihub.ui.gallery.TopicViewModel
-import org.koin.core.module.dsl.viewModelOf // ⭐ Key import
+import io.lackstudio.omnihub.ui.gallery.UserViewModel
+import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
 
 val appModule = module {
@@ -15,4 +16,5 @@ val appModule = module {
     viewModelOf(::PhotoViewModel)
     viewModelOf(::CollectionViewModel)
     viewModelOf(::TopicViewModel)
+    viewModelOf(::UserViewModel)
 }

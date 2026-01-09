@@ -29,6 +29,7 @@ import io.lackstudio.omnihub.ui.gallery.CollectionDetailScreen
 import io.lackstudio.omnihub.ui.gallery.GalleryScreen
 import io.lackstudio.omnihub.ui.gallery.PhotoDetailScreen
 import io.lackstudio.omnihub.ui.gallery.TopicDetailScreen
+import io.lackstudio.omnihub.ui.gallery.UserDetailScreen
 import io.lackstudio.omnihub.ui.home.HomeScreen
 import io.lackstudio.omnihub.ui.navigation.Feature
 import io.lackstudio.omnihub.ui.navigation.Screen
@@ -166,6 +167,9 @@ fun App() {
                         onNavigateToPhoto = { photoId, url ->
                             navController.navigate(Feature.Photo(photoId, url))
                         },
+                        onNavigateToUser = { username ->
+                            navController.navigate(Feature.User(username))
+                        },
                         sharedTransitionScope = this@SharedTransitionLayout,
                         animatedVisibilityScope = this@composable
                     )
@@ -177,6 +181,22 @@ fun App() {
                     TopicDetailScreen(
                         topicId = route.idOrSlug,
                         title = route.title,
+                        onBack = { navController.popBackStack() },
+                        onNavigateToPhoto = { photoId, url ->
+                            navController.navigate(Feature.Photo(photoId, url))
+                        },
+                        onNavigateToUser = { username ->
+                            navController.navigate(Feature.User(username))
+                        },
+                        sharedTransitionScope = this@SharedTransitionLayout,
+                        animatedVisibilityScope = this@composable
+                    )
+                }
+
+                composable<Feature.User> { backStackEntry ->
+                    val route: Feature.User = backStackEntry.toRoute()
+                    UserDetailScreen(
+                        username = route.username,
                         onBack = { navController.popBackStack() },
                         onNavigateToPhoto = { photoId, url ->
                             navController.navigate(Feature.Photo(photoId, url))

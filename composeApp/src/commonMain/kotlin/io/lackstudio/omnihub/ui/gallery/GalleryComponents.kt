@@ -95,12 +95,13 @@ fun SafePullToRefreshBox(
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 fun PhotoList(
-    photos: List<GalleryPhoto>,
+    photos: List<GalleryDisplayable>,
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope,
     isEndOfList: Boolean,
     onLoadMore: () -> Unit,
-    onPhotoClick: (String, String) -> Unit
+    onPhotoClick: (String, String) -> Unit,
+    onUserClick: (String) -> Unit = {}
 ) {
     // Use Staggered Grid State
     val state = rememberLazyStaggeredGridState()
@@ -112,7 +113,6 @@ fun PhotoList(
         // - On Desktop/Web (large width), it automatically becomes 3, 4, 5... columns
         // Value can be adjusted based on design, smaller value means more columns
         columns = StaggeredGridCells.Adaptive(minSize = 300.dp),
-
         modifier = Modifier.fillMaxSize(),
         state = state,
         contentPadding = PaddingValues(8.dp),
@@ -124,11 +124,12 @@ fun PhotoList(
             items = photos,
             isEndOfList = isEndOfList,
             onLoadMore = onLoadMore,
-            key = { it.id }
-        ) { photo ->
+            key = { it.displayId }
+        ) { item ->
             GalleryCard(
-                item = photo,
-                onClick = { onPhotoClick(photo.id, photo.url) },
+                item = item,
+                onClick = { onPhotoClick(item.displayId, item.displayImageUrl?: "") },
+                onUserClick = { item.displayUsername?.let { onUserClick(it) } },
                 sharedTransitionScope = sharedTransitionScope,
                 animatedVisibilityScope = animatedVisibilityScope)
         }
@@ -141,7 +142,8 @@ fun CollectionList(
     collections: List<GalleryCollection>,
     isEndOfList: Boolean,
     onLoadMore: () -> Unit,
-    onCollectionClick: (String, String) -> Unit
+    onCollectionClick: (String, String) -> Unit,
+    onUserClick: (String) -> Unit = {}
 ) {
     // Use Staggered Grid State
     val state = rememberLazyStaggeredGridState()
@@ -162,7 +164,8 @@ fun CollectionList(
         ) { collection ->
             GalleryCard(
                 item = collection,
-                onClick = { onCollectionClick(collection.id, collection.title) }
+                onClick = { onCollectionClick(collection.id, collection.title) },
+                onUserClick = { onUserClick(collection.username) }
             )
         }
     }
@@ -221,7 +224,8 @@ fun GalleryCard(
     item: GalleryDisplayable,
     sharedTransitionScope: SharedTransitionScope? = null,
     animatedVisibilityScope: AnimatedVisibilityScope? = null,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    onUserClick: (String) -> Unit = {}
 ) {
     // 1. Prepare image list
     val previews = item.displayPreviewPhotos
@@ -311,18 +315,31 @@ fun GalleryCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
+
                 // Bottom Left: User info (Black text)
-                GalleryUserInfo(
-                    avatarUrl = item.displayUserAvatar,
-                    username = item.displayUsername,
-                    modifier = Modifier.weight(1f)
-                )
+                // Don't need display avatar and username for user screen
+                if (item.displayUserAvatar != null && item.displayUsername != null ) {
+                    GalleryUserInfo(
+                        avatarUrl = item.displayUserAvatar,
+                        username = item.displayUsername,
+                        modifier = Modifier.weight(1f),
+                        onUserClick = {
+                            item.displayUsername?.let { onUserClick(it) }
+                        }
+                    )
+                } else {
+                    // [User Page] Hide User Info, but need Spacer to keep layout consistent
+                    // This ensures the LikeBadge on the right is pushed to the edge
+                    Spacer(modifier = Modifier.weight(1f))
+                }
+
 
                 // Bottom Right: Likes (Black text + Red heart)
                 if (item.displayLikes > 0) {
                     GalleryLikeBadge(
                         likes = item.displayLikes,
-                        modifier = Modifier.padding(start = 8.dp)
+                        modifier = Modifier
+                            .padding(start = 8.dp)
                     )
                 }
             }
@@ -496,10 +513,11 @@ private fun GalleryPagerNavigation(
 private fun GalleryUserInfo(
     avatarUrl: String?,
     username: String?,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onUserClick: () -> Unit
 ) {
     Row(
-        modifier = modifier,
+        modifier = modifier.clickable(onClick = onUserClick),
         verticalAlignment = Alignment.CenterVertically
     ) {
         if (LocalInspectionMode.current) {
@@ -641,7 +659,8 @@ fun PreviewGalleryUserInfo() {
         GalleryUserInfo(
             avatarUrl = null,
             username = "OmniHub Designer",
-            modifier = Modifier.padding(16.dp)
+            modifier = Modifier.padding(16.dp),
+            onUserClick = {}
         )
     }
 }

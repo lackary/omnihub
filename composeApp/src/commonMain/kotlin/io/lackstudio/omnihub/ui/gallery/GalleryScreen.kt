@@ -348,6 +348,9 @@ fun PhotosContent(
                         onLoadMore = onLoadMore,
                         onPhotoClick = { id, url ->
                             onNavigateToFeature(Feature.Photo(id, url))
+                        },
+                        onUserClick = { id ->
+                            onNavigateToFeature(Feature.User(id))
                         }
                     )
                 }
@@ -382,6 +385,9 @@ fun CollectionsContent(
                         onLoadMore = onLoadMore,
                         onCollectionClick = { id, title ->
                             onNavigateToFeature(Feature.Collection(id, title))
+                        },
+                        onUserClick = { id ->
+                            onNavigateToFeature(Feature.User(id))
                         }
                     )
                 }

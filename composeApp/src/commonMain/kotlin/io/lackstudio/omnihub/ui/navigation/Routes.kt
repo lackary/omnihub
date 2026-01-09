@@ -32,4 +32,7 @@ sealed interface Feature {
 
     @Serializable
     data class Topic(val idOrSlug: String, val title: String) : Feature
+
+    @Serializable
+    data class User(val username: String) : Feature
 }

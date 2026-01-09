@@ -29,11 +29,7 @@ fun LoadingFooter(
             .padding(16.dp),
         contentAlignment = Alignment.Center
     ) {
-        CircularProgressIndicator(
-            modifier = Modifier.size(24.dp),
-            strokeWidth = 2.dp,
-            color = MaterialTheme.colorScheme.primary
-        )
+        CircularProgressIndicator(modifier = Modifier.size(24.dp))
     }
 }
 

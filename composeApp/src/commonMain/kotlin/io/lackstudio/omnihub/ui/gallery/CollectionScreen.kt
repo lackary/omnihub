@@ -4,10 +4,8 @@ import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -16,10 +14,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
-import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
-import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridItemSpan
-import androidx.compose.foundation.lazy.staggeredgrid.rememberLazyStaggeredGridState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -47,7 +41,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import io.lackstudio.omnifeed.ui.state.AppUiState
 import io.lackstudio.omnihub.ui.components.ExpandableText
-import io.lackstudio.omnihub.ui.extensions.pagingStaggeredGridItems
 import omnihub.composeapp.generated.resources.Res
 import omnihub.composeapp.generated.resources.back
 import org.jetbrains.compose.resources.stringResource
@@ -60,6 +53,7 @@ fun CollectionDetailScreen(
     title: String,
     onBack: () -> Unit,
     onNavigateToPhoto: (String, String) -> Unit,
+    onNavigateToUser: (String) -> Unit,
     viewModel: CollectionViewModel = koinViewModel(),
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope
@@ -100,6 +94,7 @@ fun CollectionDetailScreen(
             CollectionDetailContent(
                 state = state,
                 onNavigateToPhoto = onNavigateToPhoto,
+                onNavigateToUser = onNavigateToUser,
                 onLoadMore = {
                     viewModel.handleIntent(CollectionDetailIntent.LoadMorePhotos)
                 },
@@ -115,6 +110,7 @@ fun CollectionDetailScreen(
 fun CollectionDetailContent(
     state: CollectionDetailUiState,
     onNavigateToPhoto: (String, String) -> Unit,
+    onNavigateToUser: (String) -> Unit,
     onLoadMore: () -> Unit,
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope
@@ -147,72 +143,48 @@ fun CollectionDetailContent(
             }
         }
 
-        val scrollState = rememberLazyStaggeredGridState()
-
-        LazyVerticalStaggeredGrid(
-            columns = StaggeredGridCells.Adaptive(minSize = 300.dp), // Adjusted to match Gallery
-            modifier = Modifier.fillMaxSize(),
-            state = scrollState,
-            contentPadding = PaddingValues(8.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalItemSpacing = 8.dp
-        ) {
-            // --- Photo List ---
-            when (val photosState = state.photosState) {
-                is AppUiState.Loading, AppUiState.Idle -> {
-                    // Loading state for initial list load
-                    item(span = StaggeredGridItemSpan.FullLine) {
-                        Box(modifier = Modifier.fillMaxWidth().height(200.dp), contentAlignment = Alignment.Center) {
-                            CircularProgressIndicator()
-                        }
-                    }
-                }
-                is AppUiState.Error -> {
-                    item(span = StaggeredGridItemSpan.FullLine) {
-                        Text("Failed to load photos: ${photosState.message}", color = MaterialTheme.colorScheme.error)
-                    }
-                }
-                is AppUiState.Success -> {
-                    val photos = photosState.data
-                    if (photos.isEmpty()) {
-                        item(span = StaggeredGridItemSpan.FullLine) {
-                            Box(modifier = Modifier.height(100.dp).fillMaxWidth(), contentAlignment = Alignment.Center) {
-                                Text("No photos in this collection", color = Color.Gray)
-                            }
-                        }
-                    } else {
-                        // Use paging extension
-                        pagingStaggeredGridItems(
-                            items = photos,
-                            isEndOfList = state.isPhotosEndOfList,
-                            onLoadMore = onLoadMore,
-                            key = { it.id }
-                        ) { photo ->
-                            // Convert CollectionPhoto to GalleryDisplayable for GalleryCard use
-                            val displayItem = remember(photo) { photo.toGalleryDisplayable() }
-
-                            GalleryCard(
-                                item = displayItem,
-                                onClick = { onNavigateToPhoto(photo.id, photo.url) },
-                                sharedTransitionScope = sharedTransitionScope,
-                                animatedVisibilityScope = animatedVisibilityScope
-                            )
-                        }
-                    }
+        // --- Photo List Section ---
+        // Handle state and type conversion.
+        // We need to convert AppUiState<List<CollectionPhoto>> to AppUiState<List<GalleryDisplayable>>,
+        // or convert the data directly in the Success state.
+        when (val photosState = state.photosState) {
+            is AppUiState.Loading, AppUiState.Idle -> {
+                Box(modifier = Modifier.fillMaxWidth().height(200.dp), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
                 }
             }
-
-            // Handle Load More indicator (handled inside pagingStaggeredGridItems, or added here)
-            if (state.isPhotosLoadingMore) {
-                item(span = StaggeredGridItemSpan.FullLine) {
-                    Box(modifier = Modifier.fillMaxWidth().padding(8.dp), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator(modifier = Modifier.size(24.dp))
+            is AppUiState.Error -> {
+                Box(modifier = Modifier.fillMaxWidth().padding(16.dp), contentAlignment = Alignment.Center) {
+                    Text("Failed to load photos", color = MaterialTheme.colorScheme.error)
+                }
+            }
+            is AppUiState.Success -> {
+                val photos = photosState.data
+                if (photos.isEmpty()) {
+                    Box(modifier = Modifier.height(100.dp).fillMaxWidth(), contentAlignment = Alignment.Center) {
+                        Text("No photos in this topic", color = Color.Gray)
                     }
+                } else {
+                    // Key conversion: Convert CollectionPhoto list to GalleryDisplayable list.
+                    // Use remember to optimize performance and avoid re-mapping on every recomposition.
+                    val displayablePhotos = remember(photos) {
+                        photos.map { it.toGalleryDisplayable() }
+                    }
+
+                    // Use the shared PhotoList component.
+                    PhotoList(
+                        photos = displayablePhotos,
+                        sharedTransitionScope = sharedTransitionScope,
+                        animatedVisibilityScope = animatedVisibilityScope,
+                        isEndOfList = state.isPhotosEndOfList,
+                        onLoadMore = onLoadMore,
+                        onPhotoClick = onNavigateToPhoto,
+                        onUserClick = onNavigateToUser
+                    )
                 }
             }
         }
     }
-
 }
 
 @Composable

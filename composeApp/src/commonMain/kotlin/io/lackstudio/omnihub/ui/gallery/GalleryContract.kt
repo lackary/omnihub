@@ -60,7 +60,7 @@ data class GalleryCollection(
     val title: String,
     val totalPhotos: Int,
     val userProfileImage: String? = null,
-    val username: String? = null,
+    val username: String,
     val blurhash: String? = null,
     val width: Int? = 0,
     val height: Int? = 0,
@@ -71,7 +71,7 @@ data class GalleryCollection(
     override val displayTitle: String get() = title
     override val displayCount: Int get() = totalPhotos
     override val displayUserAvatar: String? get() = userProfileImage
-    override val displayUsername: String? get() = username
+    override val displayUsername: String get() = username
     override val displayLikes: Int get() = 0
     override val displayBlurHash: String? get() = blurhash
     override val displayWidth: Int? get() = width
