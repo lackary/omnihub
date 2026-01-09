@@ -3,9 +3,7 @@ package io.lackstudio.omnihub.ui.gallery
 import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
-import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
@@ -26,11 +24,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import io.lackstudio.omnifeed.ui.state.AppUiState
+import io.lackstudio.omnihub.ui.components.ExpandableText
 import io.lackstudio.omnihub.ui.extensions.pagingStaggeredGridItems
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -251,36 +249,6 @@ fun ContributorsDropdown(contributors: List<TopicContributor>) {
                 )
             }
         }
-    }
-}
-
-// Reusable ExpandableText from CollectionScreen
-// If this is already defined as a common component elsewhere, it can be imported directly; otherwise, keep it here.
-@Composable
-private fun ExpandableText(
-    text: String,
-    modifier: Modifier = Modifier,
-    style: androidx.compose.ui.text.TextStyle = MaterialTheme.typography.bodyMedium,
-    collapsedMaxLines: Int = 1
-) {
-    var isExpanded by remember { mutableStateOf(false) }
-    var isClickable by remember { mutableStateOf(false) }
-
-    Box(modifier = modifier
-        .clickable(enabled = isClickable) { isExpanded = !isExpanded }
-        .animateContentSize()
-    ) {
-        Text(
-            text = text,
-            style = style,
-            maxLines = if (isExpanded) Int.MAX_VALUE else collapsedMaxLines,
-            overflow = TextOverflow.Ellipsis,
-            onTextLayout = { textLayoutResult ->
-                if (!isExpanded && textLayoutResult.hasVisualOverflow) {
-                    isClickable = true
-                }
-            }
-        )
     }
 }
 
