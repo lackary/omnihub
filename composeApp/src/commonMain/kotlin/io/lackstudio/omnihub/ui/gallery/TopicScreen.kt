@@ -113,10 +113,10 @@ fun TopicDetailContent(
         val scrollState = rememberLazyStaggeredGridState()
 
         LazyVerticalStaggeredGrid(
-            columns = StaggeredGridCells.Adaptive(minSize = 150.dp),
+            columns = StaggeredGridCells.Adaptive(minSize = 300.dp),
             modifier = Modifier.weight(1f).fillMaxWidth(),
             state = scrollState,
-            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+            contentPadding = PaddingValues(8.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalItemSpacing = 8.dp
         ) {
