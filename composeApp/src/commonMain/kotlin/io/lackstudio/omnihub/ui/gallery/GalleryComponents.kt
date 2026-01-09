@@ -172,7 +172,8 @@ fun CollectionList(
 fun TopicList(
     topics: List<GalleryTopic>,
     isEndOfList: Boolean,
-    onLoadMore: () -> Unit
+    onLoadMore: () -> Unit,
+    onTopicClick: (String, String) -> Unit
 ) {
     LazyVerticalGrid(
         columns = GridCells.Fixed(2),
@@ -187,7 +188,10 @@ fun TopicList(
             onLoadMore = onLoadMore,
             key = { topic -> topic.id }
         ) { topic ->
-            TopicCard(topic = topic)
+            TopicCard(
+                topic = topic,
+                onClick = { onTopicClick(topic.id, topic.title) }
+            )
         }
     }
 }
@@ -580,11 +584,15 @@ private fun GalleryLikeBadge(likes: Int, modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun TopicCard(topic: GalleryTopic) {
+fun TopicCard(
+    topic: GalleryTopic,
+    onClick: () -> Unit
+) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .height(140.dp), // Limit height (adjust dp as needed)
+            .height(140.dp)
+            .clickable(onClick = onClick), // Limit height (adjust dp as needed)
         shape = MaterialTheme.shapes.medium
     ) {
         Box(

@@ -4,38 +4,20 @@ import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridItemSpan
 import androidx.compose.foundation.lazy.staggeredgrid.rememberLazyStaggeredGridState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
+import androidx.compose.material.icons.filled.Group
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -48,26 +30,23 @@ import coil3.compose.AsyncImage
 import io.lackstudio.omnifeed.ui.state.AppUiState
 import io.lackstudio.omnihub.ui.components.ExpandableText
 import io.lackstudio.omnihub.ui.extensions.pagingStaggeredGridItems
-import omnihub.composeapp.generated.resources.Res
-import omnihub.composeapp.generated.resources.back
-import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
-fun CollectionDetailScreen(
-    collectionId: String,
+fun TopicDetailScreen(
+    topicId: String,
     title: String,
     onBack: () -> Unit,
     onNavigateToPhoto: (String, String) -> Unit,
-    viewModel: CollectionViewModel = koinViewModel(),
+    viewModel: TopicViewModel = koinViewModel(),
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
 
-    LaunchedEffect(collectionId) {
-         viewModel.handleIntent(CollectionDetailIntent.LoadData(collectionId)) // temp id = 8961198
+    LaunchedEffect(topicId) {
+        viewModel.handleIntent(TopicDetailIntent.LoadData(topicId))
     }
 
     Scaffold(
@@ -83,26 +62,17 @@ fun CollectionDetailScreen(
                 },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = stringResource(Res.string.back)
-                        )
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 }
             )
         }
     ) { paddingValues ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-        ) {
-            CollectionDetailContent(
+        Box(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
+            TopicDetailContent(
                 state = state,
                 onNavigateToPhoto = onNavigateToPhoto,
-                onLoadMore = {
-                    viewModel.handleIntent(CollectionDetailIntent.LoadMorePhotos)
-                },
+                onLoadMore = { viewModel.handleIntent(TopicDetailIntent.LoadMorePhotos) },
                 sharedTransitionScope = sharedTransitionScope,
                 animatedVisibilityScope = animatedVisibilityScope
             )
@@ -112,55 +82,46 @@ fun CollectionDetailScreen(
 
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
-fun CollectionDetailContent(
-    state: CollectionDetailUiState,
+fun TopicDetailContent(
+    state: TopicDetailUiState,
     onNavigateToPhoto: (String, String) -> Unit,
     onLoadMore: () -> Unit,
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
+
+        // --- Header Section (Fixed at the top) ---
         when (val infoState = state.infoState) {
             is AppUiState.Loading, AppUiState.Idle -> {
-                // Simple Header Loading placeholder
-                Box(
-                    modifier = Modifier.fillMaxWidth().padding(16.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                Box(modifier = Modifier.fillMaxWidth().height(100.dp), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
                 }
             }
             is AppUiState.Error -> {
-                Box(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
-                    Text(
-                        text = "Failed to load info: ${infoState.message}",
-                        color = MaterialTheme.colorScheme.error,
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                }
+                Text("Error: ${infoState.message}", color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(16.dp))
             }
             is AppUiState.Success -> {
-                Box(modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp)) {
-                    CollectionHeader(info = infoState.data)
+                Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+                    TopicHeader(topic = infoState.data)
                 }
                 HorizontalDivider(modifier = Modifier.padding(bottom = 8.dp))
             }
         }
 
+        // --- Photo List Section ---
         val scrollState = rememberLazyStaggeredGridState()
 
         LazyVerticalStaggeredGrid(
-            columns = StaggeredGridCells.Adaptive(minSize = 300.dp), // Adjusted to match Gallery
-            modifier = Modifier.fillMaxSize(),
+            columns = StaggeredGridCells.Adaptive(minSize = 300.dp),
+            modifier = Modifier.weight(1f).fillMaxWidth(),
             state = scrollState,
             contentPadding = PaddingValues(8.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalItemSpacing = 8.dp
         ) {
-            // --- Photo List ---
             when (val photosState = state.photosState) {
                 is AppUiState.Loading, AppUiState.Idle -> {
-                    // Loading state for initial list load
                     item(span = StaggeredGridItemSpan.FullLine) {
                         Box(modifier = Modifier.fillMaxWidth().height(200.dp), contentAlignment = Alignment.Center) {
                             CircularProgressIndicator()
@@ -169,7 +130,7 @@ fun CollectionDetailContent(
                 }
                 is AppUiState.Error -> {
                     item(span = StaggeredGridItemSpan.FullLine) {
-                        Text("Failed to load photos: ${photosState.message}", color = MaterialTheme.colorScheme.error)
+                        Text("Failed to load photos", color = MaterialTheme.colorScheme.error)
                     }
                 }
                 is AppUiState.Success -> {
@@ -177,20 +138,17 @@ fun CollectionDetailContent(
                     if (photos.isEmpty()) {
                         item(span = StaggeredGridItemSpan.FullLine) {
                             Box(modifier = Modifier.height(100.dp).fillMaxWidth(), contentAlignment = Alignment.Center) {
-                                Text("No photos in this collection", color = Color.Gray)
+                                Text("No photos in this topic", color = Color.Gray)
                             }
                         }
                     } else {
-                        // Use paging extension
                         pagingStaggeredGridItems(
                             items = photos,
                             isEndOfList = state.isPhotosEndOfList,
                             onLoadMore = onLoadMore,
                             key = { it.id }
                         ) { photo ->
-                            // Convert CollectionPhoto to GalleryDisplayable for GalleryCard use
                             val displayItem = remember(photo) { photo.toGalleryDisplayable() }
-
                             GalleryCard(
                                 item = displayItem,
                                 onClick = { onNavigateToPhoto(photo.id, photo.url) },
@@ -202,7 +160,6 @@ fun CollectionDetailContent(
                 }
             }
 
-            // Handle Load More indicator (handled inside pagingStaggeredGridItems, or added here)
             if (state.isPhotosLoadingMore) {
                 item(span = StaggeredGridItemSpan.FullLine) {
                     Box(modifier = Modifier.fillMaxWidth().padding(8.dp), contentAlignment = Alignment.Center) {
@@ -212,50 +169,19 @@ fun CollectionDetailContent(
             }
         }
     }
-
 }
 
 @Composable
-fun CollectionHeader(info: Collection) {
+fun TopicHeader(topic: Topic) {
     Column(modifier = Modifier.fillMaxWidth()) {
-        // User Info (Collection Creator)
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            AsyncImage(
-                model = info.avatarUrl,
-                contentDescription = null,
-                modifier = Modifier
-                    .size(60.dp)
-                    .clip(CircleShape)
-                    .background(Color.LightGray),
-                contentScale = ContentScale.Crop
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(
-                text = info.name, // Use Collection's user name
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.Bold
-            )
-
-            Spacer(modifier = Modifier.weight(1f))
-
-            // Total Photos count (Optional)
-            Text(
-                text = "${info.totalPhotos} images",
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.Medium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-
-            )
+        // 2. Dropdown Menu for Top Contributors
+        if (topic.contributors.isNotEmpty()) {
+            ContributorsDropdown(contributors = topic.contributors)
+            Spacer(modifier = Modifier.height(12.dp))
         }
 
-        Spacer(modifier = Modifier.height(12.dp))
-
-        // Expandable Description
-        val mockDesc =
-            "A curated collection of minimalist photography. Less is more. " +
-            "This description is long enough to test the expand functionality on mobile devices."
-
-        info.description?.let { desc ->
+        // 3. Description
+        topic.description?.let { desc ->
             ExpandableText(
                 text = desc,
                 style = MaterialTheme.typography.bodyMedium
@@ -264,8 +190,70 @@ fun CollectionHeader(info: Collection) {
     }
 }
 
-// Extension to map CollectionPhoto to GalleryDisplayable for GalleryCard
-private fun CollectionPhoto.toGalleryDisplayable(): GalleryDisplayable {
+@Composable
+fun ContributorsDropdown(contributors: List<TopicContributor>) {
+    var expanded by remember { mutableStateOf(false) }
+    Box {
+        // Dropdown Trigger Button
+        OutlinedButton(
+            onClick = { expanded = true },
+            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
+            shape = RoundedCornerShape(8.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Group,
+                contentDescription = null,
+                modifier = Modifier.size(18.dp)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                text = "Top Contributors",
+                style = MaterialTheme.typography.labelLarge
+            )
+            Spacer(modifier = Modifier.width(4.dp))
+            Icon(
+                imageVector = if (expanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                contentDescription = null,
+                modifier = Modifier.size(18.dp)
+            )
+        }
+
+        // The Menu
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false }
+        ) {
+            contributors.forEach { user ->
+                DropdownMenuItem(
+                    text = {
+                        Column {
+                            Text(text = user.name, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                            Text(text = "@${user.username}", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
+                        }
+                    },
+                    leadingIcon = {
+                        AsyncImage(
+                            model = user.avatarUrl,
+                            contentDescription = null,
+                            modifier = Modifier
+                                .size(32.dp)
+                                .clip(CircleShape)
+                                .background(Color.LightGray),
+                            contentScale = ContentScale.Crop
+                        )
+                    },
+                    onClick = {
+                        // TODO: Handle user click if needed (e.g., navigate to user profile)
+                        expanded = false
+                    }
+                )
+            }
+        }
+    }
+}
+
+// Extension to map TopicPhoto to GalleryDisplayable
+private fun TopicPhoto.toGalleryDisplayable(): GalleryDisplayable {
     return object : GalleryDisplayable {
         override val displayId: String = id
         override val displayImageUrl: String = url
@@ -274,7 +262,7 @@ private fun CollectionPhoto.toGalleryDisplayable(): GalleryDisplayable {
         override val displayUsername: String = username
         override val displayLikes: Int = likes
         override val displayCount: Int = 0
-        override val displayBlurHash: String = blurhash
+        override val displayBlurHash: String? = blurhash
         override val displayWidth: Int = width
         override val displayHeight: Int = height
         override val displayPreviewPhotos: List<GalleryPreview> = emptyList()
