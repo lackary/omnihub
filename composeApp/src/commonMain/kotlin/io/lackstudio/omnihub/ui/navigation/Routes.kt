@@ -29,4 +29,7 @@ sealed interface Feature {
 
     @Serializable
     data class Collection(val id: String, val title: String) : Feature
+
+    @Serializable
+    data class Topic(val idOrSlug: String, val title: String) : Feature
 }

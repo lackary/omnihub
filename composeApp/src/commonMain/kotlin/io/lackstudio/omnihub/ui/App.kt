@@ -28,6 +28,7 @@ import io.lackstudio.omnihub.ui.account.AccountScreen
 import io.lackstudio.omnihub.ui.gallery.CollectionDetailScreen
 import io.lackstudio.omnihub.ui.gallery.GalleryScreen
 import io.lackstudio.omnihub.ui.gallery.PhotoDetailScreen
+import io.lackstudio.omnihub.ui.gallery.TopicDetailScreen
 import io.lackstudio.omnihub.ui.home.HomeScreen
 import io.lackstudio.omnihub.ui.navigation.Feature
 import io.lackstudio.omnihub.ui.navigation.Screen
@@ -160,6 +161,21 @@ fun App() {
 
                     CollectionDetailScreen(
                         collectionId = route.id,
+                        title = route.title,
+                        onBack = { navController.popBackStack() },
+                        onNavigateToPhoto = { photoId, url ->
+                            navController.navigate(Feature.Photo(photoId, url))
+                        },
+                        sharedTransitionScope = this@SharedTransitionLayout,
+                        animatedVisibilityScope = this@composable
+                    )
+                }
+
+                composable<Feature.Topic> { backStackEntry ->
+                    val route: Feature.Topic = backStackEntry.toRoute()
+
+                    TopicDetailScreen(
+                        topicId = route.idOrSlug,
                         title = route.title,
                         onBack = { navController.popBackStack() },
                         onNavigateToPhoto = { photoId, url ->

@@ -303,7 +303,8 @@ fun GalleryScreenContent(
                         isRefreshing = state.refreshingStatus[GalleryTab.Topics] ?: false,
                         onRefresh = { onEvent(GalleryIntent.Refresh) },
                         isEndOfList = state.topicsEndOfList,
-                        onLoadMore = { onEvent(GalleryIntent.LoadMore) }
+                        onLoadMore = { onEvent(GalleryIntent.LoadMore) },
+                        onNavigateToFeature = onNavigateToFeature
                     )
                 }
             }
@@ -395,7 +396,8 @@ fun TopicsContent(
     isRefreshing: Boolean,
     onRefresh: () -> Unit,
     isEndOfList: Boolean,
-    onLoadMore: () -> Unit
+    onLoadMore: () -> Unit,
+    onNavigateToFeature: (Feature) -> Unit,
 ) {
     SafePullToRefreshBox(
         isRefreshing = isRefreshing,
@@ -415,7 +417,10 @@ fun TopicsContent(
                     else TopicList(
                         state.data,
                         isEndOfList = isEndOfList,
-                        onLoadMore
+                        onLoadMore,
+                        onTopicClick = { id, title ->
+                            onNavigateToFeature(Feature.Topic(idOrSlug = id, title = title ))
+                        }
                     )
                 }
             }
