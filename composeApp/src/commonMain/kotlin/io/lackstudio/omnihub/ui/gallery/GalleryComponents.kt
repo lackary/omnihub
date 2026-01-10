@@ -24,6 +24,7 @@ import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
 import androidx.compose.foundation.lazy.staggeredgrid.rememberLazyStaggeredGridState
 import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -52,6 +53,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalInspectionMode
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
@@ -321,9 +323,10 @@ fun GalleryCard(
                 if (item.displayUserAvatar != null && item.displayUsername != null ) {
                     GalleryUserInfo(
                         avatarUrl = item.displayUserAvatar,
+                        username = item.displayUsername,
                         name = item.displayName,
                         modifier = Modifier.weight(1f),
-                        onUserClick = {
+                        onAvatarClick = {
                             item.displayUsername?.let { onUserClick(it) }
                         }
                     )
@@ -357,7 +360,7 @@ fun GalleryCard(
 private fun GalleryCardImageContent(
     previews: List<GalleryPreview>,
     singleItem: GalleryDisplayable,
-    pagerState: androidx.compose.foundation.pager.PagerState
+    pagerState: PagerState
 ) {
     if (LocalInspectionMode.current) {
         // Preview Mode
@@ -433,7 +436,7 @@ private fun GalleryCardGradientOverlay() {
  */
 @Composable
 private fun GalleryPagerNavigation(
-    pagerState: androidx.compose.foundation.pager.PagerState,
+    pagerState: PagerState,
     itemCount: Int,
     modifier: Modifier = Modifier
 ) {
@@ -509,41 +512,53 @@ private fun GalleryPagerNavigation(
 /**
  * User info row (Avatar + Name)
  */
-@Composable
-private fun GalleryUserInfo(
-    avatarUrl: String?,
-    name: String?,
-    modifier: Modifier = Modifier,
-    onUserClick: () -> Unit
-) {
-    Row(
-        modifier = modifier.clickable(onClick = onUserClick),
-        verticalAlignment = Alignment.CenterVertically
+    @Composable
+    private fun GalleryUserInfo(
+        avatarUrl: String?,
+        username: String?,
+        name: String?,
+        onAvatarClick: () -> Unit,
+        modifier: Modifier = Modifier,
     ) {
-        if (LocalInspectionMode.current) {
-            Box(modifier = Modifier.size(32.dp).clip(CircleShape).background(Color.Gray))
-        } else {
-            AsyncImage(
-                model = avatarUrl,
-                contentDescription = "Avatar",
+        val uriHandler = LocalUriHandler.current
+
+        Row(
+            modifier = modifier,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            if (LocalInspectionMode.current) {
+                Box(modifier = Modifier.size(32.dp).clip(CircleShape).background(Color.Gray))
+            } else {
+                AsyncImage(
+                    model = avatarUrl,
+                    contentDescription = "Avatar",
+                    modifier = Modifier
+                        .size(32.dp)
+                        .clip(CircleShape)
+                        .clickable(onClick = onAvatarClick)
+                        .background(Color.LightGray),
+                    contentScale = ContentScale.Crop
+                )
+            }
+
+            Spacer(modifier = Modifier.width(8.dp))
+
+            Text(
+                text = name ?: "",
+                style = MaterialTheme.typography.bodyMedium,
+                color = Color.Black,
+                fontWeight = FontWeight.SemiBold,
                 modifier = Modifier
-                    .size(32.dp)
-                    .clip(CircleShape)
-                    .background(Color.LightGray),
-                contentScale = ContentScale.Crop
+                    .clickable {
+                        username?.let {
+                            // Construct the URL according to Unsplash API guidelines for attribution
+                            val url = "https://unsplash.com/@$it?utm_source=OmniHub&utm_medium=referral"
+                            uriHandler.openUri(url)
+                        }
+                    }
             )
         }
-
-        Spacer(modifier = Modifier.width(8.dp))
-
-        Text(
-            text = name ?: "",
-            style = MaterialTheme.typography.bodyMedium,
-            color = Color.Black,
-            fontWeight = FontWeight.SemiBold
-        )
     }
-}
 
 /**
  * Top right count badge (Collections)
@@ -658,9 +673,10 @@ fun PreviewGalleryUserInfo() {
     MaterialTheme {
         GalleryUserInfo(
             avatarUrl = null,
+            username = "OmniHubDesigner",
             name = "OmniHub Designer",
-            modifier = Modifier.padding(16.dp),
-            onUserClick = {}
+            onAvatarClick = {},
+            modifier = Modifier.padding(16.dp)
         )
     }
 }

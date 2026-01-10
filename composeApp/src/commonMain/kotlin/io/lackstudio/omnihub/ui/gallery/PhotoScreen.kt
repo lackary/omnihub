@@ -27,13 +27,10 @@ import coil3.request.ImageRequest
 import coil3.request.crossfade
 import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import coil3.compose.LocalPlatformContext
 import coil3.size.Size
 import io.lackstudio.omnifeed.ui.state.AppUiState
-import io.lackstudio.omnihub.utils.toRelativeTime
 import kotlin.math.min
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import org.koin.compose.viewmodel.koinViewModel
@@ -365,24 +362,23 @@ fun PhotoDetailBottomBar(
                         modifier = Modifier.fillMaxWidth(), // Fill this small section
                         horizontalAlignment = alignment
                     ) {
-                        IconButton(
-                            onClick = onInfoClick,
-                            colors = IconButtonDefaults.iconButtonColors(contentColor = Color.White)
-                        ) {
-                            Icon(Icons.Filled.Info, contentDescription = "Info")
-                        }
-                        photoDetail?.createdAt?.let { date ->
-                            Text(
-                                text = date.toRelativeTime(),
-                                style = MaterialTheme.typography.labelSmall,
-                                color = Color.White.copy(alpha = 0.8f),
-                                fontWeight = FontWeight.Medium,
-                                // Align text with Icon
-                                textAlign =
-                                    if (layoutInfo.isOutsideHorizontal) TextAlign.End
-                                    else TextAlign.Start,
-                                maxLines = 1
-                            )
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            IconButton(
+                                onClick = onInfoClick,
+                                colors = IconButtonDefaults.iconButtonColors(contentColor = Color.White)
+                            ) {
+                                Icon(Icons.Filled.Info, contentDescription = "Info")
+                            }
+
+                            if (photoDetail != null) {
+                                Text(
+                                    text = "Photo by ${photoDetail.name} on Unsplash",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = Color.White,
+                                    maxLines = 1,
+                                    modifier = Modifier.width(IntrinsicSize.Max)
+                                )
+                            }
                         }
                     }
                 }

@@ -32,10 +32,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -49,6 +45,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import io.lackstudio.omnihub.utils.toCompactDisplayString
+import io.lackstudio.omnihub.utils.toRelativeTime
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
 @Composable
@@ -95,7 +92,7 @@ fun PhotoDetailInfoContent(detail: Photo) {
         }
 
         if (!detail.description.isNullOrBlank()) {
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = detail.description,
                 style = MaterialTheme.typography.bodyMedium,
@@ -104,21 +101,15 @@ fun PhotoDetailInfoContent(detail: Photo) {
             )
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
-        Text(
-            text = "Photo by ${detail.username}",
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
         Spacer(modifier = Modifier.height(24.dp))
     }
 }
 
 @Composable
 fun InfoRow(icon: ImageVector, title: String, subtitle: String) {
-    Row(modifier = Modifier.padding(vertical = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+    Row(modifier = Modifier.padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
         Icon(icon, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
-        Spacer(modifier = Modifier.width(16.dp))
+        Spacer(modifier = Modifier.width(8.dp))
         Column {
             Text(title, style = MaterialTheme.typography.bodyLarge)
             if (subtitle.isNotBlank()) {
@@ -207,6 +198,15 @@ fun PhotoMetadataOverlay(
                 value = photo.downloads.toCompactDisplayString(),
                 width = barWidth
             )
+
+            // --- Created date
+            photo.createdAt?.let { date ->
+                StatItem(
+                    icon = Icons.Filled.CalendarToday,
+                    value = date.toRelativeTime(),
+                    width = barWidth
+                )
+            }
         }
     }
 }

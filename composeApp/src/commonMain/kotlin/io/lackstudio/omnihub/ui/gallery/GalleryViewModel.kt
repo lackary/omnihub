@@ -105,7 +105,7 @@ class GalleryViewModel(
      * Generic Helper function: Handle "Smart Loading" and "State Update" uniformly
      * @param targetPage Target page number
      * @param currentSubState Current state of the field (used for Loading check only)
-     * @param getOldList [Fixed] Lambda to retrieve the *latest* list data at the moment of update
+     * @param getOldList Lambda to retrieve the *latest* list data at the moment of update
      * @param useCase API call logic
      * @param mapper Data transformation logic (Domain -> UI)
      * @param stateReducer State update logic (specify which field of state to update)
