@@ -9,6 +9,7 @@ data class Photo(
     val id: String,
     val fullUrl: String,
     val username: String,
+    val name: String,
     val userAvatar: String?,
     val description: String?,
     val views: Long = 0,

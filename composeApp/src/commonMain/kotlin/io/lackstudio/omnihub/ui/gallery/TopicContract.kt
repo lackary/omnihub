@@ -25,6 +25,7 @@ data class TopicPhoto(
     val title: String?,
     val userProfileImage: String?,
     val username: String,
+    val name: String,
     val likes: Int,
     val blurhash: String?,
     val width: Int,

@@ -5,6 +5,7 @@ import io.lackstudio.omnifeed.ui.state.AppUiState
 data class Collection(
     val id: String,
     val title: String,
+    val username: String,
     val name: String,
     val avatarUrl: String,
     val description: String?,
@@ -17,6 +18,7 @@ data class CollectionPhoto(
     val title: String? = null,
     val userProfileImage: String?,
     val username: String,
+    val name: String,
     val likes: Int,
     val blurhash: String,
     val width: Int,

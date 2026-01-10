@@ -152,6 +152,9 @@ fun App() {
                         id = route.id,
                         thumbUrl = route.url,
                         onBack = { navController.popBackStack() },
+                        onNavigateToUser = { username ->
+                            navController.navigate(Feature.User(username))
+                        },
                         sharedTransitionScope = this@SharedTransitionLayout,
                         animatedVisibilityScope = this@composable
                     )

@@ -88,6 +88,7 @@ class TopicViewModel(
                         title = photo.description ?: photo.altDescription,
                         userProfileImage = photo.user.profileImage.medium,
                         username = photo.user.username,
+                        name = photo.user.name,
                         likes = photo.likes,
                         blurhash = photo.blurHash,
                         width = photo.width,

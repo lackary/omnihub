@@ -34,6 +34,7 @@ class PhotoViewModel(
                     id = photo.id,
                     fullUrl = photo.urls.full, // use regular or full
                     username = photo.user.username,
+                    name = photo.user.name,
                     userAvatar = photo.user.profileImage.medium,
                     description = photo.description ?: photo.altDescription,
                     views = photo.views,

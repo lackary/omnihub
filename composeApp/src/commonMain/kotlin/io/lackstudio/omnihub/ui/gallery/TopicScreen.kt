@@ -101,7 +101,10 @@ fun TopicDetailContent(
             }
             is AppUiState.Success -> {
                 Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
-                    TopicHeader(topic = infoState.data)
+                    TopicHeader(
+                        topic = infoState.data,
+                        onUserClick = onNavigateToUser
+                    )
                 }
                 HorizontalDivider(modifier = Modifier.padding(bottom = 8.dp))
             }
@@ -152,15 +155,21 @@ fun TopicDetailContent(
 }
 
 @Composable
-fun TopicHeader(topic: Topic) {
+fun TopicHeader(
+    topic: Topic,
+    onUserClick: (String) -> Unit
+) {
     Column(modifier = Modifier.fillMaxWidth()) {
-        // 2. Dropdown Menu for Top Contributors
+        // Dropdown Menu for Top Contributors
         if (topic.contributors.isNotEmpty()) {
-            ContributorsDropdown(contributors = topic.contributors)
+            ContributorsDropdown(
+                contributors = topic.contributors,
+                onUserClick = onUserClick
+            )
             Spacer(modifier = Modifier.height(12.dp))
         }
 
-        // 3. Description
+        // Description
         topic.description?.let { desc ->
             ExpandableText(
                 text = desc,
@@ -171,7 +180,10 @@ fun TopicHeader(topic: Topic) {
 }
 
 @Composable
-fun ContributorsDropdown(contributors: List<TopicContributor>) {
+fun ContributorsDropdown(
+    contributors: List<TopicContributor>,
+    onUserClick: (String) -> Unit
+) {
     var expanded by remember { mutableStateOf(false) }
     Box {
         // Dropdown Trigger Button
@@ -223,8 +235,8 @@ fun ContributorsDropdown(contributors: List<TopicContributor>) {
                         )
                     },
                     onClick = {
-                        // TODO: Handle user click if needed (e.g., navigate to user profile)
                         expanded = false
+                        onUserClick(user.username)
                     }
                 )
             }
@@ -240,6 +252,7 @@ private fun TopicPhoto.toGalleryDisplayable(): GalleryDisplayable {
         override val displayTitle: String = title ?: ""
         override val displayUserAvatar: String? = userProfileImage
         override val displayUsername: String = username
+        override val displayName: String get() = name
         override val displayLikes: Int = likes
         override val displayCount: Int = 0
         override val displayBlurHash: String? = blurhash

@@ -57,6 +57,7 @@ class CollectionViewModel(
                 val uiCollection = Collection(
                     id = domainCollection.id,
                     title = domainCollection.title,
+                    username = domainCollection.user.username,
                     name = domainCollection.user.name,
                     avatarUrl = domainCollection.user.profileImage.medium,
                     description = domainCollection.description,
@@ -102,6 +103,7 @@ class CollectionViewModel(
                         title = photo.description,
                         userProfileImage = photo.user.profileImage.medium,
                         username = photo.user.username,
+                        name = photo.user.name,
                         likes = photo.likes,
                         blurhash = photo.blurHash,
                         width = photo.width,

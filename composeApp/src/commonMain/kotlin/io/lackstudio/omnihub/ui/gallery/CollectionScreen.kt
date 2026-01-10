@@ -4,6 +4,7 @@ import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -137,7 +138,10 @@ fun CollectionDetailContent(
             }
             is AppUiState.Success -> {
                 Box(modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp)) {
-                    CollectionHeader(info = infoState.data)
+                    CollectionHeader(
+                        info = infoState.data,
+                        onUserClick = onNavigateToUser
+                    )
                 }
                 HorizontalDivider(modifier = Modifier.padding(bottom = 8.dp))
             }
@@ -188,25 +192,36 @@ fun CollectionDetailContent(
 }
 
 @Composable
-fun CollectionHeader(info: Collection) {
+fun CollectionHeader(
+    info: Collection,
+    onUserClick: (String) -> Unit
+) {
     Column(modifier = Modifier.fillMaxWidth()) {
         // User Info (Collection Creator)
         Row(verticalAlignment = Alignment.CenterVertically) {
-            AsyncImage(
-                model = info.avatarUrl,
-                contentDescription = null,
+            Row(
                 modifier = Modifier
-                    .size(60.dp)
-                    .clip(CircleShape)
-                    .background(Color.LightGray),
-                contentScale = ContentScale.Crop
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(
-                text = info.name, // Use Collection's user name
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.Bold
-            )
+                    .clip(MaterialTheme.shapes.small)
+                    .clickable { onUserClick(info.username) }
+                    .padding(4.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                AsyncImage(
+                    model = info.avatarUrl,
+                    contentDescription = null,
+                    modifier = Modifier
+                        .size(60.dp)
+                        .clip(CircleShape)
+                        .background(Color.LightGray),
+                    contentScale = ContentScale.Crop
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = info.name,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Bold
+                )
+            }
 
             Spacer(modifier = Modifier.weight(1f))
 
@@ -244,6 +259,7 @@ private fun CollectionPhoto.toGalleryDisplayable(): GalleryDisplayable {
         override val displayTitle: String = title ?: ""
         override val displayUserAvatar: String? = userProfileImage
         override val displayUsername: String = username
+        override val displayName: String get() = name
         override val displayLikes: Int = likes
         override val displayCount: Int = 0
         override val displayBlurHash: String = blurhash

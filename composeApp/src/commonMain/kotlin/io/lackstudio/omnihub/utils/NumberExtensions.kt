@@ -11,11 +11,11 @@ fun Long.toCompactDisplayString(): String {
         this < 1000 -> this.toString()
         this < 1_000_000 -> {
             val value = this / 1000.0
-            "${value.roundToOneDecimal()}k"
+            "${value.roundToOneDecimal()} k"
         }
         else -> {
             val value = this / 1_000_000.0
-            "${value.roundToOneDecimal()}m"
+            "${value.roundToOneDecimal()} m"
         }
     }
 }

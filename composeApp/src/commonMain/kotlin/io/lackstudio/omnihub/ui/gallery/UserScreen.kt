@@ -300,6 +300,7 @@ private fun UserPhoto.toGalleryDisplayable(): GalleryDisplayable {
         override val displayTitle: String = title ?: ""
         override val displayUserAvatar: String? = null // Profile page doesn't show user avatar on each photo
         override val displayUsername: String? = null
+        override val displayName: String? get() = null
         override val displayLikes: Int = likes
         override val displayCount: Int = 0
         override val displayBlurHash: String? = blurhash

@@ -45,6 +45,7 @@ fun PhotoDetailScreen(
     id: String,
     thumbUrl: String,
     onBack: () -> Unit,
+    onNavigateToUser: (String) -> Unit,
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope,
     viewModel: PhotoViewModel = koinViewModel()
@@ -61,6 +62,7 @@ fun PhotoDetailScreen(
         state = state,
         onBack = onBack,
         onRetry = { viewModel.handleIntent(PhotoDetailIntent.Retry) },
+        onNavigateToUser = onNavigateToUser,
         sharedTransitionScope = sharedTransitionScope,
         animatedVisibilityScope = animatedVisibilityScope
     )
@@ -75,6 +77,7 @@ fun PhotoDetailContent(
     state: PhotoDetailUiState,
     onBack: () -> Unit,
     onRetry: () -> Unit,
+    onNavigateToUser: (String) -> Unit,
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope
 ) {
@@ -222,6 +225,7 @@ fun PhotoDetailContent(
                     photoDetail = photoDetail,
                     isVisible = state.detailState is AppUiState.Success,
                     onInfoClick = { showBottomSheet = true },
+                    onUserClick = onNavigateToUser,
                     layoutInfo = detailLayoutInfo,
                     modifier = Modifier.align(Alignment.BottomCenter)
                 )
@@ -292,6 +296,7 @@ fun PhotoDetailBottomBar(
     photoDetail: Photo?,
     isVisible: Boolean,
     onInfoClick: () -> Unit,
+    onUserClick: (String) -> Unit,
     layoutInfo: DetailLayoutInfo,
     modifier: Modifier = Modifier
 ) {
@@ -411,6 +416,7 @@ fun PhotoDetailBottomBar(
                         PhotoMetadataOverlay(
                             photo = photo,
                             isLayoutOutside = layoutInfo.isOutsideHorizontal,
+                            onUserClick = onUserClick,
                             modifier = Modifier.align(alignment)
                         )
                     }
@@ -432,7 +438,8 @@ fun PhotoDetailScreenPreview() {
     val dummyPhoto = Photo(
         id = "1",
         fullUrl = "https://picsum.photos/400/600",
-        username = "Test User",
+        username = "TestUser",
+        name = "Test User",
         userAvatar = null,
         description = "Description",
         exif = PhotoExif("Canon", "EOS R5", "f/2.8", "1/200", 100, "24mm"),
@@ -459,6 +466,7 @@ fun PhotoDetailScreenPreview() {
                 state = dummyState,
                 onBack = {},
                 onRetry = {},
+                onNavigateToUser = {},
                 sharedTransitionScope = this@SharedTransitionLayout, // Pass in Layout Scope
                 animatedVisibilityScope = this // Pass in AnimatedVisibility Scope
             )

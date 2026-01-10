@@ -321,7 +321,7 @@ fun GalleryCard(
                 if (item.displayUserAvatar != null && item.displayUsername != null ) {
                     GalleryUserInfo(
                         avatarUrl = item.displayUserAvatar,
-                        username = item.displayUsername,
+                        name = item.displayName,
                         modifier = Modifier.weight(1f),
                         onUserClick = {
                             item.displayUsername?.let { onUserClick(it) }
@@ -512,7 +512,7 @@ private fun GalleryPagerNavigation(
 @Composable
 private fun GalleryUserInfo(
     avatarUrl: String?,
-    username: String?,
+    name: String?,
     modifier: Modifier = Modifier,
     onUserClick: () -> Unit
 ) {
@@ -537,7 +537,7 @@ private fun GalleryUserInfo(
         Spacer(modifier = Modifier.width(8.dp))
 
         Text(
-            text = username ?: "",
+            text = name ?: "",
             style = MaterialTheme.typography.bodyMedium,
             color = Color.Black,
             fontWeight = FontWeight.SemiBold
@@ -658,7 +658,7 @@ fun PreviewGalleryUserInfo() {
     MaterialTheme {
         GalleryUserInfo(
             avatarUrl = null,
-            username = "OmniHub Designer",
+            name = "OmniHub Designer",
             modifier = Modifier.padding(16.dp),
             onUserClick = {}
         )
@@ -731,6 +731,7 @@ private data class FakeGalleryItem(
     override val displayHeight: Int? = 1080,
     override val displayUserAvatar: String? = null,
     override val displayUsername: String? = "Mock User",
+    override val displayName: String? = "Mock Name",
     override val displayLikes: Int = 0,
     override val displayCount: Int = 0,
     override val displayBlurHash: String? = null,

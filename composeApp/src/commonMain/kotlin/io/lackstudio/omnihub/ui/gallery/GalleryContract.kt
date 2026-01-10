@@ -16,6 +16,7 @@ interface GalleryDisplayable {
     val displayTitle: String
     val displayUserAvatar: String? // Allow null (because Collections or Topic might not have a User)
     val displayUsername: String?  // Allow null
+    val displayName: String?
     val displayCount: Int
     val displayLikes: Int
     val displayBlurHash: String?
@@ -35,6 +36,7 @@ data class GalleryPhoto(
     val title: String,
     val userProfileImage: String?,
     val username: String,
+    val name: String,
     val likes: Int,
     val blurhash: String,
     val width: Int,
@@ -47,6 +49,7 @@ data class GalleryPhoto(
     override val displayCount: Int get() = 0
     override val displayUserAvatar: String? get() = userProfileImage
     override val displayUsername: String get() = username
+    override val displayName: String get() = name
     override val displayLikes: Int get() = likes
     override val displayBlurHash: String get() = blurhash
     override val displayWidth: Int get() = width
@@ -61,6 +64,7 @@ data class GalleryCollection(
     val totalPhotos: Int,
     val userProfileImage: String? = null,
     val username: String,
+    val name: String,
     val blurhash: String? = null,
     val width: Int? = 0,
     val height: Int? = 0,
@@ -72,6 +76,7 @@ data class GalleryCollection(
     override val displayCount: Int get() = totalPhotos
     override val displayUserAvatar: String? get() = userProfileImage
     override val displayUsername: String get() = username
+    override val displayName: String get() = name
     override val displayLikes: Int get() = 0
     override val displayBlurHash: String? get() = blurhash
     override val displayWidth: Int? get() = width
@@ -95,6 +100,7 @@ data class GalleryTopic(
     override val displayCount: Int get() = totalPhotos
     override val displayUserAvatar: String? get() = null
     override val displayUsername: String? get() = null
+    override val displayName: String? get() = null
     override val displayLikes: Int get() = 0
     override val displayBlurHash: String? get() = blurhash
     override val displayWidth: Int? get() = width
