@@ -1,10 +1,5 @@
 package io.lackstudio.omnihub.ui.gallery
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.expandHorizontally
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -37,10 +32,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -54,6 +45,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import io.lackstudio.omnihub.utils.toCompactDisplayString
+import io.lackstudio.omnihub.utils.toRelativeTime
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
 @Composable
@@ -100,7 +92,7 @@ fun PhotoDetailInfoContent(detail: Photo) {
         }
 
         if (!detail.description.isNullOrBlank()) {
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = detail.description,
                 style = MaterialTheme.typography.bodyMedium,
@@ -109,21 +101,15 @@ fun PhotoDetailInfoContent(detail: Photo) {
             )
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
-        Text(
-            text = "Photo by ${detail.username}",
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
         Spacer(modifier = Modifier.height(24.dp))
     }
 }
 
 @Composable
 fun InfoRow(icon: ImageVector, title: String, subtitle: String) {
-    Row(modifier = Modifier.padding(vertical = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+    Row(modifier = Modifier.padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
         Icon(icon, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
-        Spacer(modifier = Modifier.width(16.dp))
+        Spacer(modifier = Modifier.width(8.dp))
         Column {
             Text(title, style = MaterialTheme.typography.bodyLarge)
             if (subtitle.isNotBlank()) {
@@ -137,10 +123,9 @@ fun InfoRow(icon: ImageVector, title: String, subtitle: String) {
 fun PhotoMetadataOverlay(
     photo: Photo,
     isLayoutOutside: Boolean,
+    onUserClick: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var showUsername by remember { mutableStateOf(false) }
-
     // Unified width for Avatar and stats icons to ensure vertical alignment.
     // This ensures their "center points" are on the same vertical line
     val barWidth = 48.dp
@@ -180,74 +165,17 @@ fun PhotoMetadataOverlay(
             horizontalAlignment = horizontalAlignment, // Content aligned to the right
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Avatar Row (includes the sliding Username)
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = if (isLayoutOutside) Arrangement.Start else Arrangement.End
-            ) {
-                // Define Avatar component (avoid duplication)
-                val avatarContent = @Composable {
-                    photo.userAvatar?.let { avatarUrl ->
-                        AsyncImage(
-                            model = avatarUrl,
-                            contentDescription = "Avatar",
-                            modifier = Modifier
-                                .size(barWidth)
-                                .clip(CircleShape)
-                                .background(Color.Gray)
-                                .clickable { showUsername = !showUsername },
-                            contentScale = ContentScale.Crop
-                        )
-                    }
-                }
-
-                // Define Username component (includes animation)
-                val usernameContent = @Composable {
-                    // Animation direction setting
-                    // Outside (slide right): expandFrom = Start
-                    // Inside (slide left): expandFrom = End
-                    val expandFrom = if (isLayoutOutside) Alignment.Start else Alignment.End
-
-                    AnimatedVisibility(
-                        visible = showUsername,
-                        enter = fadeIn() + expandHorizontally(expandFrom = expandFrom),
-                        exit = fadeOut() + shrinkHorizontally(shrinkTowards = expandFrom)
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            // If sliding right (Outside), spacing should be placed to the left of Username
-                            if (isLayoutOutside) Spacer(modifier = Modifier.width(8.dp))
-
-                            Box(
-                                modifier = Modifier
-                                    .clip(CircleShape)
-                                    .background(Color.Black.copy(alpha = 0.6f))
-                                    .padding(horizontal = 12.dp, vertical = 6.dp)
-                            ) {
-                                Text(
-                                    text = photo.username,
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = Color.White,
-                                    fontWeight = FontWeight.Bold,
-                                    maxLines = 1
-                                )
-                            }
-
-                            // If sliding left (Inside), spacing should be placed to the right of Username
-                            if (!isLayoutOutside) Spacer(modifier = Modifier.width(8.dp))
-                        }
-                    }
-                }
-
-                // Determine the order
-                if (isLayoutOutside) {
-                    // Mode: [Avatar] -> [Username] (Slide right)
-                    avatarContent()
-                    usernameContent()
-                } else {
-                    // Mode: [Username] <- [Avatar] (Slide left)
-                    usernameContent()
-                    avatarContent()
-                }
+            photo.userAvatar?.let { avatarUrl ->
+                AsyncImage(
+                    model = avatarUrl,
+                    contentDescription = "Avatar",
+                    modifier = Modifier
+                        .size(barWidth)
+                        .clip(CircleShape)
+                        .background(Color.Gray)
+                        .clickable { onUserClick(photo.username) },
+                    contentScale = ContentScale.Crop
+                )
             }
 
             // --- Views ---
@@ -270,6 +198,15 @@ fun PhotoMetadataOverlay(
                 value = photo.downloads.toCompactDisplayString(),
                 width = barWidth
             )
+
+            // --- Created date
+            photo.createdAt?.let { date ->
+                StatItem(
+                    icon = Icons.Filled.CalendarToday,
+                    value = date.toRelativeTime(),
+                    width = barWidth
+                )
+            }
         }
     }
 }
@@ -314,7 +251,8 @@ fun PhotoDetailInfoContentPreview() {
     val dummyPhoto = Photo(
         id = "1",
         fullUrl = "",
-        username = "Photographer Name",
+        username = "PhotographerName",
+        name = "Photographer Name",
         userAvatar = "https://example.com/avatar.jpg",
         description = "This is a beautiful shot taken during the golden hour in the mountains. The lighting was perfect.",
         exif = PhotoExif(
@@ -356,6 +294,7 @@ fun PhotoMetadataOverlayPreview() {
         id = "1",
         fullUrl = "",
         username = "TestUser",
+        name = "Test User",
         userAvatar = null, // Test case without avatar (or you can provide a url string)
         description = null,
         exif = null,
@@ -375,7 +314,8 @@ fun PhotoMetadataOverlayPreview() {
         ) {
             PhotoMetadataOverlay(
                 photo = dummyPhoto,
-                isLayoutOutside = false
+                isLayoutOutside = false,
+                onUserClick = {}
             )
         }
     }

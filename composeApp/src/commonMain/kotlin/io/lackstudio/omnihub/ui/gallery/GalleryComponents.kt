@@ -24,6 +24,7 @@ import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
 import androidx.compose.foundation.lazy.staggeredgrid.rememberLazyStaggeredGridState
 import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -52,6 +53,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalInspectionMode
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
@@ -95,12 +97,13 @@ fun SafePullToRefreshBox(
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 fun PhotoList(
-    photos: List<GalleryPhoto>,
+    photos: List<GalleryDisplayable>,
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope,
     isEndOfList: Boolean,
     onLoadMore: () -> Unit,
-    onPhotoClick: (String, String) -> Unit
+    onPhotoClick: (String, String) -> Unit,
+    onUserClick: (String) -> Unit = {}
 ) {
     // Use Staggered Grid State
     val state = rememberLazyStaggeredGridState()
@@ -112,7 +115,6 @@ fun PhotoList(
         // - On Desktop/Web (large width), it automatically becomes 3, 4, 5... columns
         // Value can be adjusted based on design, smaller value means more columns
         columns = StaggeredGridCells.Adaptive(minSize = 300.dp),
-
         modifier = Modifier.fillMaxSize(),
         state = state,
         contentPadding = PaddingValues(8.dp),
@@ -124,11 +126,12 @@ fun PhotoList(
             items = photos,
             isEndOfList = isEndOfList,
             onLoadMore = onLoadMore,
-            key = { it.id }
-        ) { photo ->
+            key = { it.displayId }
+        ) { item ->
             GalleryCard(
-                item = photo,
-                onClick = { onPhotoClick(photo.id, photo.url) },
+                item = item,
+                onClick = { onPhotoClick(item.displayId, item.displayImageUrl?: "") },
+                onUserClick = { item.displayUsername?.let { onUserClick(it) } },
                 sharedTransitionScope = sharedTransitionScope,
                 animatedVisibilityScope = animatedVisibilityScope)
         }
@@ -141,7 +144,8 @@ fun CollectionList(
     collections: List<GalleryCollection>,
     isEndOfList: Boolean,
     onLoadMore: () -> Unit,
-    onCollectionClick: (String, String) -> Unit
+    onCollectionClick: (String, String) -> Unit,
+    onUserClick: (String) -> Unit = {}
 ) {
     // Use Staggered Grid State
     val state = rememberLazyStaggeredGridState()
@@ -162,7 +166,8 @@ fun CollectionList(
         ) { collection ->
             GalleryCard(
                 item = collection,
-                onClick = { onCollectionClick(collection.id, collection.title) }
+                onClick = { onCollectionClick(collection.id, collection.title) },
+                onUserClick = { onUserClick(collection.username) }
             )
         }
     }
@@ -221,7 +226,8 @@ fun GalleryCard(
     item: GalleryDisplayable,
     sharedTransitionScope: SharedTransitionScope? = null,
     animatedVisibilityScope: AnimatedVisibilityScope? = null,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    onUserClick: (String) -> Unit = {}
 ) {
     // 1. Prepare image list
     val previews = item.displayPreviewPhotos
@@ -311,18 +317,32 @@ fun GalleryCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
+
                 // Bottom Left: User info (Black text)
-                GalleryUserInfo(
-                    avatarUrl = item.displayUserAvatar,
-                    username = item.displayUsername,
-                    modifier = Modifier.weight(1f)
-                )
+                // Don't need display avatar and username for user screen
+                if (item.displayUserAvatar != null && item.displayUsername != null ) {
+                    GalleryUserInfo(
+                        avatarUrl = item.displayUserAvatar,
+                        username = item.displayUsername,
+                        name = item.displayName,
+                        modifier = Modifier.weight(1f),
+                        onAvatarClick = {
+                            item.displayUsername?.let { onUserClick(it) }
+                        }
+                    )
+                } else {
+                    // [User Page] Hide User Info, but need Spacer to keep layout consistent
+                    // This ensures the LikeBadge on the right is pushed to the edge
+                    Spacer(modifier = Modifier.weight(1f))
+                }
+
 
                 // Bottom Right: Likes (Black text + Red heart)
                 if (item.displayLikes > 0) {
                     GalleryLikeBadge(
                         likes = item.displayLikes,
-                        modifier = Modifier.padding(start = 8.dp)
+                        modifier = Modifier
+                            .padding(start = 8.dp)
                     )
                 }
             }
@@ -340,7 +360,7 @@ fun GalleryCard(
 private fun GalleryCardImageContent(
     previews: List<GalleryPreview>,
     singleItem: GalleryDisplayable,
-    pagerState: androidx.compose.foundation.pager.PagerState
+    pagerState: PagerState
 ) {
     if (LocalInspectionMode.current) {
         // Preview Mode
@@ -416,7 +436,7 @@ private fun GalleryCardGradientOverlay() {
  */
 @Composable
 private fun GalleryPagerNavigation(
-    pagerState: androidx.compose.foundation.pager.PagerState,
+    pagerState: PagerState,
     itemCount: Int,
     modifier: Modifier = Modifier
 ) {
@@ -492,40 +512,53 @@ private fun GalleryPagerNavigation(
 /**
  * User info row (Avatar + Name)
  */
-@Composable
-private fun GalleryUserInfo(
-    avatarUrl: String?,
-    username: String?,
-    modifier: Modifier = Modifier
-) {
-    Row(
-        modifier = modifier,
-        verticalAlignment = Alignment.CenterVertically
+    @Composable
+    private fun GalleryUserInfo(
+        avatarUrl: String?,
+        username: String?,
+        name: String?,
+        onAvatarClick: () -> Unit,
+        modifier: Modifier = Modifier,
     ) {
-        if (LocalInspectionMode.current) {
-            Box(modifier = Modifier.size(32.dp).clip(CircleShape).background(Color.Gray))
-        } else {
-            AsyncImage(
-                model = avatarUrl,
-                contentDescription = "Avatar",
+        val uriHandler = LocalUriHandler.current
+
+        Row(
+            modifier = modifier,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            if (LocalInspectionMode.current) {
+                Box(modifier = Modifier.size(32.dp).clip(CircleShape).background(Color.Gray))
+            } else {
+                AsyncImage(
+                    model = avatarUrl,
+                    contentDescription = "Avatar",
+                    modifier = Modifier
+                        .size(32.dp)
+                        .clip(CircleShape)
+                        .clickable(onClick = onAvatarClick)
+                        .background(Color.LightGray),
+                    contentScale = ContentScale.Crop
+                )
+            }
+
+            Spacer(modifier = Modifier.width(8.dp))
+
+            Text(
+                text = name ?: "",
+                style = MaterialTheme.typography.bodyMedium,
+                color = Color.Black,
+                fontWeight = FontWeight.SemiBold,
                 modifier = Modifier
-                    .size(32.dp)
-                    .clip(CircleShape)
-                    .background(Color.LightGray),
-                contentScale = ContentScale.Crop
+                    .clickable {
+                        username?.let {
+                            // Construct the URL according to Unsplash API guidelines for attribution
+                            val url = "https://unsplash.com/@$it?utm_source=OmniHub&utm_medium=referral"
+                            uriHandler.openUri(url)
+                        }
+                    }
             )
         }
-
-        Spacer(modifier = Modifier.width(8.dp))
-
-        Text(
-            text = username ?: "",
-            style = MaterialTheme.typography.bodyMedium,
-            color = Color.Black,
-            fontWeight = FontWeight.SemiBold
-        )
     }
-}
 
 /**
  * Top right count badge (Collections)
@@ -640,7 +673,9 @@ fun PreviewGalleryUserInfo() {
     MaterialTheme {
         GalleryUserInfo(
             avatarUrl = null,
-            username = "OmniHub Designer",
+            username = "OmniHubDesigner",
+            name = "OmniHub Designer",
+            onAvatarClick = {},
             modifier = Modifier.padding(16.dp)
         )
     }
@@ -712,6 +747,7 @@ private data class FakeGalleryItem(
     override val displayHeight: Int? = 1080,
     override val displayUserAvatar: String? = null,
     override val displayUsername: String? = "Mock User",
+    override val displayName: String? = "Mock Name",
     override val displayLikes: Int = 0,
     override val displayCount: Int = 0,
     override val displayBlurHash: String? = null,

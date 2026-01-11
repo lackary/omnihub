@@ -27,13 +27,11 @@ import coil3.request.ImageRequest
 import coil3.request.crossfade
 import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import coil3.compose.LocalPlatformContext
 import coil3.size.Size
 import io.lackstudio.omnifeed.ui.state.AppUiState
-import io.lackstudio.omnihub.utils.toRelativeTime
+import io.lackstudio.omnihub.ui.navigation.Feature
 import kotlin.math.min
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import org.koin.compose.viewmodel.koinViewModel
@@ -45,6 +43,7 @@ fun PhotoDetailScreen(
     id: String,
     thumbUrl: String,
     onBack: () -> Unit,
+    onNavigateToFeature: (Feature) -> Unit,
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope,
     viewModel: PhotoViewModel = koinViewModel()
@@ -61,6 +60,9 @@ fun PhotoDetailScreen(
         state = state,
         onBack = onBack,
         onRetry = { viewModel.handleIntent(PhotoDetailIntent.Retry) },
+        onNavigateToUser = { username ->
+            onNavigateToFeature(Feature.User(username))
+        },
         sharedTransitionScope = sharedTransitionScope,
         animatedVisibilityScope = animatedVisibilityScope
     )
@@ -75,6 +77,7 @@ fun PhotoDetailContent(
     state: PhotoDetailUiState,
     onBack: () -> Unit,
     onRetry: () -> Unit,
+    onNavigateToUser: (String) -> Unit,
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope
 ) {
@@ -222,6 +225,7 @@ fun PhotoDetailContent(
                     photoDetail = photoDetail,
                     isVisible = state.detailState is AppUiState.Success,
                     onInfoClick = { showBottomSheet = true },
+                    onUserClick = onNavigateToUser,
                     layoutInfo = detailLayoutInfo,
                     modifier = Modifier.align(Alignment.BottomCenter)
                 )
@@ -292,6 +296,7 @@ fun PhotoDetailBottomBar(
     photoDetail: Photo?,
     isVisible: Boolean,
     onInfoClick: () -> Unit,
+    onUserClick: (String) -> Unit,
     layoutInfo: DetailLayoutInfo,
     modifier: Modifier = Modifier
 ) {
@@ -360,24 +365,23 @@ fun PhotoDetailBottomBar(
                         modifier = Modifier.fillMaxWidth(), // Fill this small section
                         horizontalAlignment = alignment
                     ) {
-                        IconButton(
-                            onClick = onInfoClick,
-                            colors = IconButtonDefaults.iconButtonColors(contentColor = Color.White)
-                        ) {
-                            Icon(Icons.Filled.Info, contentDescription = "Info")
-                        }
-                        photoDetail?.createdAt?.let { date ->
-                            Text(
-                                text = date.toRelativeTime(),
-                                style = MaterialTheme.typography.labelSmall,
-                                color = Color.White.copy(alpha = 0.8f),
-                                fontWeight = FontWeight.Medium,
-                                // Align text with Icon
-                                textAlign =
-                                    if (layoutInfo.isOutsideHorizontal) TextAlign.End
-                                    else TextAlign.Start,
-                                maxLines = 1
-                            )
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            IconButton(
+                                onClick = onInfoClick,
+                                colors = IconButtonDefaults.iconButtonColors(contentColor = Color.White)
+                            ) {
+                                Icon(Icons.Filled.Info, contentDescription = "Info")
+                            }
+
+                            if (photoDetail != null) {
+                                Text(
+                                    text = "Photo by ${photoDetail.name} on Unsplash",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = Color.White,
+                                    maxLines = 1,
+                                    modifier = Modifier.width(IntrinsicSize.Max)
+                                )
+                            }
                         }
                     }
                 }
@@ -411,6 +415,7 @@ fun PhotoDetailBottomBar(
                         PhotoMetadataOverlay(
                             photo = photo,
                             isLayoutOutside = layoutInfo.isOutsideHorizontal,
+                            onUserClick = onUserClick,
                             modifier = Modifier.align(alignment)
                         )
                     }
@@ -432,7 +437,8 @@ fun PhotoDetailScreenPreview() {
     val dummyPhoto = Photo(
         id = "1",
         fullUrl = "https://picsum.photos/400/600",
-        username = "Test User",
+        username = "TestUser",
+        name = "Test User",
         userAvatar = null,
         description = "Description",
         exif = PhotoExif("Canon", "EOS R5", "f/2.8", "1/200", 100, "24mm"),
@@ -459,6 +465,7 @@ fun PhotoDetailScreenPreview() {
                 state = dummyState,
                 onBack = {},
                 onRetry = {},
+                onNavigateToUser = {},
                 sharedTransitionScope = this@SharedTransitionLayout, // Pass in Layout Scope
                 animatedVisibilityScope = this // Pass in AnimatedVisibility Scope
             )

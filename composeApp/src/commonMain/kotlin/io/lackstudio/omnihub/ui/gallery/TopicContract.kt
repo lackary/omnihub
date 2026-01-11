@@ -25,6 +25,7 @@ data class TopicPhoto(
     val title: String?,
     val userProfileImage: String?,
     val username: String,
+    val name: String,
     val likes: Int,
     val blurhash: String?,
     val width: Int,
@@ -34,7 +35,7 @@ data class TopicPhoto(
 // UI State
 data class TopicDetailUiState(
     val infoState: AppUiState<Topic> = AppUiState.Idle,
-    val photosState: AppUiState<List<TopicPhoto>> = AppUiState.Idle,
+    val photosState: AppUiState<List<GalleryPhoto>> = AppUiState.Idle,
     val isPhotosLoadingMore: Boolean = false,
     val isPhotosEndOfList: Boolean = false,
     val photosPage: Int = 1

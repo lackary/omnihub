@@ -5,10 +5,6 @@ import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
-import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
-import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridItemSpan
-import androidx.compose.foundation.lazy.staggeredgrid.rememberLazyStaggeredGridState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -29,7 +25,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import io.lackstudio.omnifeed.ui.state.AppUiState
 import io.lackstudio.omnihub.ui.components.ExpandableText
-import io.lackstudio.omnihub.ui.extensions.pagingStaggeredGridItems
+import io.lackstudio.omnihub.ui.navigation.Feature
 import org.koin.compose.viewmodel.koinViewModel
 
 @OptIn(ExperimentalSharedTransitionApi::class)
@@ -38,7 +34,7 @@ fun TopicDetailScreen(
     topicId: String,
     title: String,
     onBack: () -> Unit,
-    onNavigateToPhoto: (String, String) -> Unit,
+    onNavigateToFeature: (Feature) -> Unit,
     viewModel: TopicViewModel = koinViewModel(),
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope
@@ -71,7 +67,12 @@ fun TopicDetailScreen(
         Box(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
             TopicDetailContent(
                 state = state,
-                onNavigateToPhoto = onNavigateToPhoto,
+                onNavigateToPhoto = { id, url ->
+                    onNavigateToFeature(Feature.Photo(id, url))
+                },
+                onNavigateToUser = { username ->
+                    onNavigateToFeature(Feature.User(username))
+                },
                 onLoadMore = { viewModel.handleIntent(TopicDetailIntent.LoadMorePhotos) },
                 sharedTransitionScope = sharedTransitionScope,
                 animatedVisibilityScope = animatedVisibilityScope
@@ -85,6 +86,7 @@ fun TopicDetailScreen(
 fun TopicDetailContent(
     state: TopicDetailUiState,
     onNavigateToPhoto: (String, String) -> Unit,
+    onNavigateToUser: (String) -> Unit,
     onLoadMore: () -> Unit,
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope
@@ -103,68 +105,47 @@ fun TopicDetailContent(
             }
             is AppUiState.Success -> {
                 Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
-                    TopicHeader(topic = infoState.data)
+                    TopicHeader(
+                        topic = infoState.data,
+                        onUserClick = onNavigateToUser
+                    )
                 }
                 HorizontalDivider(modifier = Modifier.padding(bottom = 8.dp))
             }
         }
 
         // --- Photo List Section ---
-        val scrollState = rememberLazyStaggeredGridState()
-
-        LazyVerticalStaggeredGrid(
-            columns = StaggeredGridCells.Adaptive(minSize = 300.dp),
-            modifier = Modifier.weight(1f).fillMaxWidth(),
-            state = scrollState,
-            contentPadding = PaddingValues(8.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalItemSpacing = 8.dp
-        ) {
-            when (val photosState = state.photosState) {
-                is AppUiState.Loading, AppUiState.Idle -> {
-                    item(span = StaggeredGridItemSpan.FullLine) {
-                        Box(modifier = Modifier.fillMaxWidth().height(200.dp), contentAlignment = Alignment.Center) {
-                            CircularProgressIndicator()
-                        }
-                    }
-                }
-                is AppUiState.Error -> {
-                    item(span = StaggeredGridItemSpan.FullLine) {
-                        Text("Failed to load photos", color = MaterialTheme.colorScheme.error)
-                    }
-                }
-                is AppUiState.Success -> {
-                    val photos = photosState.data
-                    if (photos.isEmpty()) {
-                        item(span = StaggeredGridItemSpan.FullLine) {
-                            Box(modifier = Modifier.height(100.dp).fillMaxWidth(), contentAlignment = Alignment.Center) {
-                                Text("No photos in this topic", color = Color.Gray)
-                            }
-                        }
-                    } else {
-                        pagingStaggeredGridItems(
-                            items = photos,
-                            isEndOfList = state.isPhotosEndOfList,
-                            onLoadMore = onLoadMore,
-                            key = { it.id }
-                        ) { photo ->
-                            val displayItem = remember(photo) { photo.toGalleryDisplayable() }
-                            GalleryCard(
-                                item = displayItem,
-                                onClick = { onNavigateToPhoto(photo.id, photo.url) },
-                                sharedTransitionScope = sharedTransitionScope,
-                                animatedVisibilityScope = animatedVisibilityScope
-                            )
-                        }
-                    }
+        // Handle state and type conversion
+        // We need to convert AppUiState<List<TopicPhoto>> to AppUiState<List<GalleryDisplayable>>
+        // Or convert data directly upon Success
+        when (val photosState = state.photosState) {
+            is AppUiState.Loading, AppUiState.Idle -> {
+                Box(modifier = Modifier.fillMaxWidth().height(200.dp), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
                 }
             }
-
-            if (state.isPhotosLoadingMore) {
-                item(span = StaggeredGridItemSpan.FullLine) {
-                    Box(modifier = Modifier.fillMaxWidth().padding(8.dp), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator(modifier = Modifier.size(24.dp))
+            is AppUiState.Error -> {
+                Box(modifier = Modifier.fillMaxWidth().padding(16.dp), contentAlignment = Alignment.Center) {
+                    Text("Failed to load photos", color = MaterialTheme.colorScheme.error)
+                }
+            }
+            is AppUiState.Success -> {
+                val photos = photosState.data
+                if (photos.isEmpty()) {
+                    Box(modifier = Modifier.height(100.dp).fillMaxWidth(), contentAlignment = Alignment.Center) {
+                        Text("No photos in this topic", color = Color.Gray)
                     }
+                } else {
+                    // Use the shared PhotoList
+                    PhotoList(
+                        photos = photos,
+                        sharedTransitionScope = sharedTransitionScope,
+                        animatedVisibilityScope = animatedVisibilityScope,
+                        isEndOfList = state.isPhotosEndOfList,
+                        onLoadMore = onLoadMore,
+                        onPhotoClick = onNavigateToPhoto,
+                        onUserClick = onNavigateToUser
+                    )
                 }
             }
         }
@@ -172,26 +153,32 @@ fun TopicDetailContent(
 }
 
 @Composable
-fun TopicHeader(topic: Topic) {
+fun TopicHeader(
+    topic: Topic,
+    onUserClick: (String) -> Unit
+) {
     Column(modifier = Modifier.fillMaxWidth()) {
-        // 2. Dropdown Menu for Top Contributors
+        // Dropdown Menu for Top Contributors
         if (topic.contributors.isNotEmpty()) {
-            ContributorsDropdown(contributors = topic.contributors)
+            ContributorsDropdown(
+                contributors = topic.contributors,
+                onUserClick = onUserClick
+            )
             Spacer(modifier = Modifier.height(12.dp))
         }
 
-        // 3. Description
+        // Description
         topic.description?.let { desc ->
-            ExpandableText(
-                text = desc,
-                style = MaterialTheme.typography.bodyMedium
-            )
+            ExpandableText(text = desc)
         }
     }
 }
 
 @Composable
-fun ContributorsDropdown(contributors: List<TopicContributor>) {
+fun ContributorsDropdown(
+    contributors: List<TopicContributor>,
+    onUserClick: (String) -> Unit
+) {
     var expanded by remember { mutableStateOf(false) }
     Box {
         // Dropdown Trigger Button
@@ -243,28 +230,11 @@ fun ContributorsDropdown(contributors: List<TopicContributor>) {
                         )
                     },
                     onClick = {
-                        // TODO: Handle user click if needed (e.g., navigate to user profile)
                         expanded = false
+                        onUserClick(user.username)
                     }
                 )
             }
         }
-    }
-}
-
-// Extension to map TopicPhoto to GalleryDisplayable
-private fun TopicPhoto.toGalleryDisplayable(): GalleryDisplayable {
-    return object : GalleryDisplayable {
-        override val displayId: String = id
-        override val displayImageUrl: String = url
-        override val displayTitle: String = title ?: ""
-        override val displayUserAvatar: String? = userProfileImage
-        override val displayUsername: String = username
-        override val displayLikes: Int = likes
-        override val displayCount: Int = 0
-        override val displayBlurHash: String? = blurhash
-        override val displayWidth: Int = width
-        override val displayHeight: Int = height
-        override val displayPreviewPhotos: List<GalleryPreview> = emptyList()
     }
 }

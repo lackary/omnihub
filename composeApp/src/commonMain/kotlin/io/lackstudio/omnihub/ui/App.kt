@@ -29,6 +29,7 @@ import io.lackstudio.omnihub.ui.gallery.CollectionDetailScreen
 import io.lackstudio.omnihub.ui.gallery.GalleryScreen
 import io.lackstudio.omnihub.ui.gallery.PhotoDetailScreen
 import io.lackstudio.omnihub.ui.gallery.TopicDetailScreen
+import io.lackstudio.omnihub.ui.gallery.UserDetailScreen
 import io.lackstudio.omnihub.ui.home.HomeScreen
 import io.lackstudio.omnihub.ui.navigation.Feature
 import io.lackstudio.omnihub.ui.navigation.Screen
@@ -151,6 +152,7 @@ fun App() {
                         id = route.id,
                         thumbUrl = route.url,
                         onBack = { navController.popBackStack() },
+                        onNavigateToFeature = { feature -> navController.navigate(feature) },
                         sharedTransitionScope = this@SharedTransitionLayout,
                         animatedVisibilityScope = this@composable
                     )
@@ -163,9 +165,7 @@ fun App() {
                         collectionId = route.id,
                         title = route.title,
                         onBack = { navController.popBackStack() },
-                        onNavigateToPhoto = { photoId, url ->
-                            navController.navigate(Feature.Photo(photoId, url))
-                        },
+                        onNavigateToFeature = { feature -> navController.navigate(feature) },
                         sharedTransitionScope = this@SharedTransitionLayout,
                         animatedVisibilityScope = this@composable
                     )
@@ -178,9 +178,18 @@ fun App() {
                         topicId = route.idOrSlug,
                         title = route.title,
                         onBack = { navController.popBackStack() },
-                        onNavigateToPhoto = { photoId, url ->
-                            navController.navigate(Feature.Photo(photoId, url))
-                        },
+                        onNavigateToFeature = { feature -> navController.navigate(feature) },
+                        sharedTransitionScope = this@SharedTransitionLayout,
+                        animatedVisibilityScope = this@composable
+                    )
+                }
+
+                composable<Feature.User> { backStackEntry ->
+                    val route: Feature.User = backStackEntry.toRoute()
+                    UserDetailScreen(
+                        username = route.username,
+                        onBack = { navController.popBackStack() },
+                        onNavigateToFeature = { feature -> navController.navigate(feature) },
                         sharedTransitionScope = this@SharedTransitionLayout,
                         animatedVisibilityScope = this@composable
                     )

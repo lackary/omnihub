@@ -105,7 +105,7 @@ class GalleryViewModel(
      * Generic Helper function: Handle "Smart Loading" and "State Update" uniformly
      * @param targetPage Target page number
      * @param currentSubState Current state of the field (used for Loading check only)
-     * @param getOldList [Fixed] Lambda to retrieve the *latest* list data at the moment of update
+     * @param getOldList Lambda to retrieve the *latest* list data at the moment of update
      * @param useCase API call logic
      * @param mapper Data transformation logic (Domain -> UI)
      * @param stateReducer State update logic (specify which field of state to update)
@@ -203,6 +203,7 @@ class GalleryViewModel(
                         title = it.description ?: "",
                         userProfileImage = it.user.profileImage.small,
                         username = it.user.username,
+                        name = it.user.name,
                         likes = it.likes,
                         blurhash = it.blurHash,
                         width = it.width,
@@ -236,6 +237,7 @@ class GalleryViewModel(
                         totalPhotos = it.totalPhotos,
                         userProfileImage = it.user.profileImage.small,
                         username = it.user.username,
+                        name = it.user.name,
                         blurhash = it.coverPhoto?.blurHash,
                         width = it.coverPhoto?.width,
                         height = it.coverPhoto?.height,
