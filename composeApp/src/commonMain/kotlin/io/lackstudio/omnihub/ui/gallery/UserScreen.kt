@@ -186,7 +186,7 @@ fun UserDetailContent(
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 fun UserPhotosSection(
-    state: AppUiState<List<UserPhoto>>,
+    state: AppUiState<List<GalleryPhoto>>,
     isEndOfList: Boolean,
     onLoadMore: () -> Unit,
     onNavigateToFeature: (Feature) -> Unit,
@@ -211,12 +211,8 @@ fun UserPhotosSection(
                     Text("No photos uploaded", color = Color.Gray)
                 }
             } else {
-                val displayablePhotos = remember(photos) {
-                    photos.map { it.toGalleryDisplayable() }
-                }
-
                 PhotoList(
-                    photos = displayablePhotos,
+                    photos = photos,
                     sharedTransitionScope = sharedTransitionScope,
                     animatedVisibilityScope = animatedVisibilityScope,
                     isEndOfList = isEndOfList,
@@ -412,23 +408,5 @@ fun SocialLinkButton(icon: Painter, text: String, onClick: () -> Unit) {
             Spacer(modifier = Modifier.width(6.dp))
             Text(text, style = MaterialTheme.typography.labelMedium)
         }
-    }
-}
-
-// Extension to map UserPhoto to GalleryDisplayable
-private fun UserPhoto.toGalleryDisplayable(): GalleryDisplayable {
-    return object : GalleryDisplayable {
-        override val displayId: String = id
-        override val displayImageUrl: String = url
-        override val displayTitle: String = title ?: ""
-        override val displayUserAvatar: String? = userProfileImage
-        override val displayUsername: String? = username
-        override val displayName: String? = name
-        override val displayLikes: Int = likes
-        override val displayCount: Int = 0
-        override val displayBlurHash: String? = blurhash
-        override val displayWidth: Int = width
-        override val displayHeight: Int = height
-        override val displayPreviewPhotos: List<GalleryPreview> = emptyList()
     }
 }

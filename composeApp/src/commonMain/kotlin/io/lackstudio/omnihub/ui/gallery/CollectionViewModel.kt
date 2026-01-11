@@ -97,10 +97,10 @@ class CollectionViewModel(
             onSuccess = { domainPhotos ->
                 // Convert Domain Model to UI Model (CollectionPhoto)
                 val newPhotos = domainPhotos.map { photo ->
-                    CollectionPhoto(
+                    GalleryPhoto(
                         id = photo.id,
                         url = photo.urls.small, // Lists usually use small or regular
-                        title = photo.description,
+                        title = photo.description?: "",
                         userProfileImage = photo.user.profileImage.medium,
                         username = photo.user.username,
                         name = photo.user.name,

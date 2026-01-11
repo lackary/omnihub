@@ -31,7 +31,7 @@ data class CollectionDetailUiState(
     val infoState: AppUiState<Collection> = AppUiState.Idle,
 
     // Section 2: List of photos in this Collection
-    val photosState: AppUiState<List<CollectionPhoto>> = AppUiState.Idle,
+    val photosState: AppUiState<List<GalleryPhoto>> = AppUiState.Idle,
 
     // List pagination control
     val isPhotosLoadingMore: Boolean = false,

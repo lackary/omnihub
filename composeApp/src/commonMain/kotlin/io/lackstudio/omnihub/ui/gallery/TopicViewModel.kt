@@ -82,10 +82,10 @@ class TopicViewModel(
             },
             onSuccess = { domainPhotos ->
                 val newPhotos = domainPhotos.map { photo ->
-                    TopicPhoto(
+                    GalleryPhoto(
                         id = photo.id,
                         url = photo.urls.small,
-                        title = photo.description ?: photo.altDescription,
+                        title = photo.description?: "",
                         userProfileImage = photo.user.profileImage.medium,
                         username = photo.user.username,
                         name = photo.user.name,

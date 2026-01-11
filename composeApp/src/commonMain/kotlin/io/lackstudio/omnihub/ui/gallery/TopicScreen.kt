@@ -25,6 +25,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import io.lackstudio.omnifeed.ui.state.AppUiState
 import io.lackstudio.omnihub.ui.components.ExpandableText
+import io.lackstudio.omnihub.ui.navigation.Feature
 import org.koin.compose.viewmodel.koinViewModel
 
 @OptIn(ExperimentalSharedTransitionApi::class)
@@ -33,8 +34,7 @@ fun TopicDetailScreen(
     topicId: String,
     title: String,
     onBack: () -> Unit,
-    onNavigateToPhoto: (String, String) -> Unit,
-    onNavigateToUser: (String) -> Unit,
+    onNavigateToFeature: (Feature) -> Unit,
     viewModel: TopicViewModel = koinViewModel(),
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope
@@ -67,8 +67,12 @@ fun TopicDetailScreen(
         Box(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
             TopicDetailContent(
                 state = state,
-                onNavigateToPhoto = onNavigateToPhoto,
-                onNavigateToUser = onNavigateToUser,
+                onNavigateToPhoto = { id, url ->
+                    onNavigateToFeature(Feature.Photo(id, url))
+                },
+                onNavigateToUser = { username ->
+                    onNavigateToFeature(Feature.User(username))
+                },
                 onLoadMore = { viewModel.handleIntent(TopicDetailIntent.LoadMorePhotos) },
                 sharedTransitionScope = sharedTransitionScope,
                 animatedVisibilityScope = animatedVisibilityScope
@@ -132,15 +136,9 @@ fun TopicDetailContent(
                         Text("No photos in this topic", color = Color.Gray)
                     }
                 } else {
-                    // Key conversion: map TopicPhoto list to GalleryDisplayable list
-                    // Use remember for performance optimization, avoiding repeated mapping on recomposition
-                    val displayablePhotos = remember(photos) {
-                        photos.map { it.toGalleryDisplayable() }
-                    }
-
                     // Use the shared PhotoList
                     PhotoList(
-                        photos = displayablePhotos,
+                        photos = photos,
                         sharedTransitionScope = sharedTransitionScope,
                         animatedVisibilityScope = animatedVisibilityScope,
                         isEndOfList = state.isPhotosEndOfList,
@@ -238,23 +236,5 @@ fun ContributorsDropdown(
                 )
             }
         }
-    }
-}
-
-// Extension to map TopicPhoto to GalleryDisplayable
-private fun TopicPhoto.toGalleryDisplayable(): GalleryDisplayable {
-    return object : GalleryDisplayable {
-        override val displayId: String = id
-        override val displayImageUrl: String = url
-        override val displayTitle: String = title ?: ""
-        override val displayUserAvatar: String? = userProfileImage
-        override val displayUsername: String = username
-        override val displayName: String get() = name
-        override val displayLikes: Int = likes
-        override val displayCount: Int = 0
-        override val displayBlurHash: String? = blurhash
-        override val displayWidth: Int = width
-        override val displayHeight: Int = height
-        override val displayPreviewPhotos: List<GalleryPreview> = emptyList()
     }
 }

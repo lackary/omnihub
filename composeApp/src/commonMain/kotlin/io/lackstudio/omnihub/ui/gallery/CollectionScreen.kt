@@ -30,7 +30,6 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -42,6 +41,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import io.lackstudio.omnifeed.ui.state.AppUiState
 import io.lackstudio.omnihub.ui.components.ExpandableText
+import io.lackstudio.omnihub.ui.navigation.Feature
 import omnihub.composeapp.generated.resources.Res
 import omnihub.composeapp.generated.resources.back
 import org.jetbrains.compose.resources.stringResource
@@ -53,8 +53,7 @@ fun CollectionDetailScreen(
     collectionId: String,
     title: String,
     onBack: () -> Unit,
-    onNavigateToPhoto: (String, String) -> Unit,
-    onNavigateToUser: (String) -> Unit,
+    onNavigateToFeature: (Feature) -> Unit,
     viewModel: CollectionViewModel = koinViewModel(),
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope
@@ -94,8 +93,12 @@ fun CollectionDetailScreen(
         ) {
             CollectionDetailContent(
                 state = state,
-                onNavigateToPhoto = onNavigateToPhoto,
-                onNavigateToUser = onNavigateToUser,
+                onNavigateToPhoto = { id, url ->
+                    onNavigateToFeature(Feature.Photo(id, url))
+                },
+                onNavigateToUser = { username ->
+                    onNavigateToFeature(Feature.User(username))
+                },
                 onLoadMore = {
                     viewModel.handleIntent(CollectionDetailIntent.LoadMorePhotos)
                 },
@@ -169,15 +172,9 @@ fun CollectionDetailContent(
                         Text("No photos in this topic", color = Color.Gray)
                     }
                 } else {
-                    // Key conversion: Convert CollectionPhoto list to GalleryDisplayable list.
-                    // Use remember to optimize performance and avoid re-mapping on every recomposition.
-                    val displayablePhotos = remember(photos) {
-                        photos.map { it.toGalleryDisplayable() }
-                    }
-
                     // Use the shared PhotoList component.
                     PhotoList(
-                        photos = displayablePhotos,
+                        photos = photos,
                         sharedTransitionScope = sharedTransitionScope,
                         animatedVisibilityScope = animatedVisibilityScope,
                         isEndOfList = state.isPhotosEndOfList,
@@ -245,23 +242,5 @@ fun CollectionHeader(
         info.description?.let { desc ->
             ExpandableText(text = desc)
         }
-    }
-}
-
-// Extension to map CollectionPhoto to GalleryDisplayable for GalleryCard
-private fun CollectionPhoto.toGalleryDisplayable(): GalleryDisplayable {
-    return object : GalleryDisplayable {
-        override val displayId: String = id
-        override val displayImageUrl: String = url
-        override val displayTitle: String = title ?: ""
-        override val displayUserAvatar: String? = userProfileImage
-        override val displayUsername: String = username
-        override val displayName: String get() = name
-        override val displayLikes: Int = likes
-        override val displayCount: Int = 0
-        override val displayBlurHash: String = blurhash
-        override val displayWidth: Int = width
-        override val displayHeight: Int = height
-        override val displayPreviewPhotos: List<GalleryPreview> = emptyList()
     }
 }

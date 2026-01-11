@@ -207,11 +207,14 @@ class UserViewModel(
             // Mapper
             mapper = { list ->
                 list.map { photo ->
-                    UserPhoto(
+                    GalleryPhoto(
                         id = photo.id,
                         url = photo.urls.small,
-                        title = photo.description ?: photo.altDescription,
+                        title = photo.description ?: "",
                         likes = photo.likes,
+                        userProfileImage = null,
+                        username = "",
+                        name = "",
                         blurhash = photo.blurHash,
                         width = photo.width,
                         height = photo.height
@@ -274,14 +277,14 @@ class UserViewModel(
             mapper = { list ->
                 list.map { photo ->
                     val isSameUser = photo.user.username == currentUsername
-                    UserPhoto(
+                    GalleryPhoto(
                         id = photo.id,
                         url = photo.urls.small,
-                        title = photo.description ?: photo.altDescription,
+                        title = photo.description?: "",
                         likes = photo.likes,
                         userProfileImage = if (isSameUser) null else photo.user.profileImage.small,
-                        username = if (isSameUser) null else photo.user.username,
-                        name = if (isSameUser) null else photo.user.name,
+                        username = if (isSameUser) "" else photo.user.username,
+                        name = if (isSameUser) "" else photo.user.name,
                         blurhash = photo.blurHash,
                         width = photo.width,
                         height = photo.height,

@@ -31,6 +31,7 @@ import androidx.compose.ui.unit.Dp
 import coil3.compose.LocalPlatformContext
 import coil3.size.Size
 import io.lackstudio.omnifeed.ui.state.AppUiState
+import io.lackstudio.omnihub.ui.navigation.Feature
 import kotlin.math.min
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import org.koin.compose.viewmodel.koinViewModel
@@ -42,7 +43,7 @@ fun PhotoDetailScreen(
     id: String,
     thumbUrl: String,
     onBack: () -> Unit,
-    onNavigateToUser: (String) -> Unit,
+    onNavigateToFeature: (Feature) -> Unit,
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope,
     viewModel: PhotoViewModel = koinViewModel()
@@ -59,7 +60,9 @@ fun PhotoDetailScreen(
         state = state,
         onBack = onBack,
         onRetry = { viewModel.handleIntent(PhotoDetailIntent.Retry) },
-        onNavigateToUser = onNavigateToUser,
+        onNavigateToUser = { username ->
+            onNavigateToFeature(Feature.User(username))
+        },
         sharedTransitionScope = sharedTransitionScope,
         animatedVisibilityScope = animatedVisibilityScope
     )

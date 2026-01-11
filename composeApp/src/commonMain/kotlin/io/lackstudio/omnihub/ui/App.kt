@@ -152,9 +152,7 @@ fun App() {
                         id = route.id,
                         thumbUrl = route.url,
                         onBack = { navController.popBackStack() },
-                        onNavigateToUser = { username ->
-                            navController.navigate(Feature.User(username))
-                        },
+                        onNavigateToFeature = { feature -> navController.navigate(feature) },
                         sharedTransitionScope = this@SharedTransitionLayout,
                         animatedVisibilityScope = this@composable
                     )
@@ -167,12 +165,7 @@ fun App() {
                         collectionId = route.id,
                         title = route.title,
                         onBack = { navController.popBackStack() },
-                        onNavigateToPhoto = { photoId, url ->
-                            navController.navigate(Feature.Photo(photoId, url))
-                        },
-                        onNavigateToUser = { username ->
-                            navController.navigate(Feature.User(username))
-                        },
+                        onNavigateToFeature = { feature -> navController.navigate(feature) },
                         sharedTransitionScope = this@SharedTransitionLayout,
                         animatedVisibilityScope = this@composable
                     )
@@ -185,12 +178,7 @@ fun App() {
                         topicId = route.idOrSlug,
                         title = route.title,
                         onBack = { navController.popBackStack() },
-                        onNavigateToPhoto = { photoId, url ->
-                            navController.navigate(Feature.Photo(photoId, url))
-                        },
-                        onNavigateToUser = { username ->
-                            navController.navigate(Feature.User(username))
-                        },
+                        onNavigateToFeature = { feature -> navController.navigate(feature) },
                         sharedTransitionScope = this@SharedTransitionLayout,
                         animatedVisibilityScope = this@composable
                     )

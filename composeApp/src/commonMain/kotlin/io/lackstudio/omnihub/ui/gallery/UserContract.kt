@@ -52,9 +52,9 @@ data class UserDetailUiState(
     val pages: Map<UserTab, Int> = emptyMap(),
 
     val infoState: AppUiState<UserProfile> = AppUiState.Idle,
-    val photosState: AppUiState<List<UserPhoto>> = AppUiState.Idle,
+    val photosState: AppUiState<List<GalleryPhoto>> = AppUiState.Idle,
     val collectionsState: AppUiState<List<GalleryCollection>> = AppUiState.Idle,
-    val likesState: AppUiState<List<UserPhoto>> = AppUiState.Idle
+    val likesState: AppUiState<List<GalleryPhoto>> = AppUiState.Idle
 )
 
 // UI Intents
