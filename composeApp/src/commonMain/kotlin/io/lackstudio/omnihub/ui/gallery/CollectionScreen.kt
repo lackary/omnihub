@@ -243,10 +243,7 @@ fun CollectionHeader(
             "This description is long enough to test the expand functionality on mobile devices."
 
         info.description?.let { desc ->
-            ExpandableText(
-                text = desc,
-                style = MaterialTheme.typography.bodyMedium
-            )
+            ExpandableText(text = desc)
         }
     }
 }

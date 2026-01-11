@@ -14,8 +14,9 @@ data class UserProfile(
     val totalPhotos: Long,
     val totalCollections: Long,
     val totalLikes: Long,
-    val instagramUsername: String?,
-    val twitterUsername: String?
+    val portfolioUrl: String? = null,
+    val instagramUsername: String? = null,
+    val twitterUsername: String? = null
 )
 
 // User photo list (for List)

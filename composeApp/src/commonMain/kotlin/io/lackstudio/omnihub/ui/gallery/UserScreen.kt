@@ -13,6 +13,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.Public
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -20,6 +21,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
@@ -29,6 +31,7 @@ import coil3.compose.AsyncImage
 import io.lackstudio.omnifeed.ui.state.AppUiState
 import io.lackstudio.omnihub.ui.components.ExpandableText
 import io.lackstudio.omnihub.ui.extensions.pagingStaggeredGridItems
+import io.lackstudio.omnihub.utils.toCompactDisplayString
 import omnihub.composeapp.generated.resources.Res
 import omnihub.composeapp.generated.resources.ic_instagram
 import omnihub.composeapp.generated.resources.ic_x_twitter
@@ -235,7 +238,7 @@ fun UserHeader(user: UserProfile) {
 
         // 3. Bio
         user.bio?.let { bio ->
-            ExpandableText(text = bio, collapsedMaxLines = 2)
+            ExpandableText(text = bio)
             Spacer(modifier = Modifier.height(12.dp))
         }
 
@@ -244,16 +247,31 @@ fun UserHeader(user: UserProfile) {
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.Start
         ) {
+            user.portfolioUrl?.let { portfolioUrl ->
+                SocialLinkButton(
+                    icon = rememberVectorPainter(Icons.Filled.Public),
+                    text = ""
+                ) {
+                    uriHandler.openUri(portfolioUrl)
+                }
+                Spacer(modifier = Modifier.width(8.dp))
+            }
             // Instagram (Construct URL)
             user.instagramUsername?.let { ig ->
-                SocialLinkButton(icon = painterResource(Res.drawable.ic_instagram), text = "") {
+                SocialLinkButton(
+                    icon = painterResource(Res.drawable.ic_instagram),
+                    text = ""
+                ) {
                     uriHandler.openUri("https://instagram.com/$ig")
                 }
                 Spacer(modifier = Modifier.width(8.dp))
             }
             // Twitter (Construct URL)
             user.twitterUsername?.let { tw ->
-                SocialLinkButton(icon = painterResource(Res.drawable.ic_x_twitter), text = "") {
+                SocialLinkButton(
+                    icon = painterResource(Res.drawable.ic_x_twitter),
+                    text = ""
+                ) {
                     uriHandler.openUri("https://twitter.com/$tw")
                 }
             }
@@ -263,12 +281,13 @@ fun UserHeader(user: UserProfile) {
 
 @Composable
 fun UserStatItem(label: String, count: Long) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
         Text(
-            text = count.toString(),
+            text = count.toCompactDisplayString(),
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold
         )
+        Spacer(modifier = Modifier.width(4.dp))
         Text(
             text = label,
             style = MaterialTheme.typography.bodySmall,

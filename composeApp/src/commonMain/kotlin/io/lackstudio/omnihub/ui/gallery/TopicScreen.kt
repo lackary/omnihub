@@ -171,10 +171,7 @@ fun TopicHeader(
 
         // Description
         topic.description?.let { desc ->
-            ExpandableText(
-                text = desc,
-                style = MaterialTheme.typography.bodyMedium
-            )
+            ExpandableText(text = desc)
         }
     }
 }

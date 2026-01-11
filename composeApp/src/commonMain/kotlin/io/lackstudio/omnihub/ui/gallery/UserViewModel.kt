@@ -57,6 +57,7 @@ class UserViewModel(
                     totalPhotos = domainUser.totalPhotos,
                     totalCollections = domainUser.totalCollections,
                     totalLikes = domainUser.totalLikes,
+                    portfolioUrl = domainUser.portfolioUrl,
                     instagramUsername = domainUser.instagramUsername,
                     twitterUsername = domainUser.twitterUsername
                 )
