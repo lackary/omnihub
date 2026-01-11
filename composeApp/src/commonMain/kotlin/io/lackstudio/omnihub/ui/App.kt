@@ -201,9 +201,7 @@ fun App() {
                     UserDetailScreen(
                         username = route.username,
                         onBack = { navController.popBackStack() },
-                        onNavigateToPhoto = { photoId, url ->
-                            navController.navigate(Feature.Photo(photoId, url))
-                        },
+                        onNavigateToFeature = { feature -> navController.navigate(feature) },
                         sharedTransitionScope = this@SharedTransitionLayout,
                         animatedVisibilityScope = this@composable
                     )

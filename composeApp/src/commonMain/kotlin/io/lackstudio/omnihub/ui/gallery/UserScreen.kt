@@ -5,10 +5,8 @@ import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
-import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
-import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridItemSpan
-import androidx.compose.foundation.lazy.staggeredgrid.rememberLazyStaggeredGridState
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -30,8 +28,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import io.lackstudio.omnifeed.ui.state.AppUiState
 import io.lackstudio.omnihub.ui.components.ExpandableText
-import io.lackstudio.omnihub.ui.extensions.pagingStaggeredGridItems
+import io.lackstudio.omnihub.ui.navigation.Feature // Remember to import Feature
 import io.lackstudio.omnihub.utils.toCompactDisplayString
+import kotlinx.coroutines.launch
 import omnihub.composeapp.generated.resources.Res
 import omnihub.composeapp.generated.resources.ic_instagram
 import omnihub.composeapp.generated.resources.ic_x_twitter
@@ -43,7 +42,7 @@ import org.koin.compose.viewmodel.koinViewModel
 fun UserDetailScreen(
     username: String,
     onBack: () -> Unit,
-    onNavigateToPhoto: (String, String) -> Unit,
+    onNavigateToFeature: (Feature) -> Unit,
     viewModel: UserViewModel = koinViewModel(),
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope
@@ -58,7 +57,7 @@ fun UserDetailScreen(
         topBar = {
             @OptIn(ExperimentalMaterial3Api::class)
             TopAppBar(
-                title = { }, // Title is in the content header
+                title = { },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
@@ -70,8 +69,8 @@ fun UserDetailScreen(
         Box(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
             UserDetailContent(
                 state = state,
-                onNavigateToPhoto = onNavigateToPhoto,
-                onLoadMore = { viewModel.handleIntent(UserDetailIntent.LoadMorePhotos) },
+                onEvent = viewModel::handleIntent,
+                onNavigateToFeature = onNavigateToFeature, // Pass it down
                 sharedTransitionScope = sharedTransitionScope,
                 animatedVisibilityScope = animatedVisibilityScope
             )
@@ -83,14 +82,31 @@ fun UserDetailScreen(
 @Composable
 fun UserDetailContent(
     state: UserDetailUiState,
-    onNavigateToPhoto: (String, String) -> Unit,
-    onLoadMore: () -> Unit,
+    onEvent: (UserDetailIntent) -> Unit,
+    onNavigateToFeature: (Feature) -> Unit,
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope
 ) {
+    val tabs = UserTab.entries
+    val pagerState = rememberPagerState(pageCount = { tabs.size })
+    val coroutineScope = rememberCoroutineScope()
+
+    LaunchedEffect(state.currentTab) {
+        if (pagerState.currentPage != state.currentTab.ordinal) {
+            pagerState.animateScrollToPage(state.currentTab.ordinal)
+        }
+    }
+
+    LaunchedEffect(pagerState.currentPage) {
+        val targetTab = UserTab.getByIndex(pagerState.currentPage)
+        if (state.currentTab != targetTab) {
+            onEvent(UserDetailIntent.SelectTab(targetTab))
+        }
+    }
+
     Column(modifier = Modifier.fillMaxSize()) {
 
-        // --- Header Section (Fixed at top) ---
+        // --- Header Section ---
         when (val infoState = state.infoState) {
             is AppUiState.Loading, AppUiState.Idle -> {
                 Box(modifier = Modifier.fillMaxWidth().height(200.dp), contentAlignment = Alignment.Center) {
@@ -102,67 +118,155 @@ fun UserDetailContent(
             }
             is AppUiState.Success -> {
                 UserHeader(user = infoState.data)
-                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
             }
         }
 
-        // --- Photo List Section ---
-        val scrollState = rememberLazyStaggeredGridState()
-
-        LazyVerticalStaggeredGrid(
-            columns = StaggeredGridCells.Adaptive(minSize = 300.dp),
-            modifier = Modifier.weight(1f).fillMaxWidth(),
-            state = scrollState,
-            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalItemSpacing = 8.dp
+        // --- Tab Row ---
+        PrimaryTabRow(
+            selectedTabIndex = pagerState.currentPage,
+            containerColor = MaterialTheme.colorScheme.surface,
+            contentColor = MaterialTheme.colorScheme.primary,
+            divider = { HorizontalDivider() }
         ) {
-            when (val photosState = state.photosState) {
-                is AppUiState.Loading, AppUiState.Idle -> {
-                    item(span = StaggeredGridItemSpan.FullLine) {
-                        Box(modifier = Modifier.fillMaxWidth().height(200.dp), contentAlignment = Alignment.Center) {
-                            CircularProgressIndicator()
-                        }
-                    }
+            tabs.forEachIndexed { index, tab ->
+                Tab(
+                    selected = pagerState.currentPage == index,
+                    onClick = {
+                        coroutineScope.launch { pagerState.animateScrollToPage(index) }
+                    },
+                    text = { Text(tab.title) }
+                )
+            }
+        }
+
+        // --- Pager Content ---
+        HorizontalPager(
+            state = pagerState,
+            modifier = Modifier.fillMaxSize(),
+            verticalAlignment = Alignment.Top
+        ) { pageIndex ->
+            val tab = UserTab.getByIndex(pageIndex)
+            val isEndOfList = state.endOfListStatus[tab] ?: false
+
+            when (tab) {
+                UserTab.Photos -> {
+                    UserPhotosSection(
+                        state = state.photosState,
+                        isEndOfList = isEndOfList,
+                        onLoadMore = { onEvent(UserDetailIntent.LoadMore) },
+                        onNavigateToFeature = onNavigateToFeature,
+                        sharedTransitionScope = sharedTransitionScope,
+                        animatedVisibilityScope = animatedVisibilityScope,
+                    )
                 }
-                is AppUiState.Error -> {
-                    item(span = StaggeredGridItemSpan.FullLine) {
-                        Text("Failed to load photos", color = MaterialTheme.colorScheme.error)
-                    }
+                UserTab.Collections -> {
+                    UserCollectionsSection(
+                        state = state.collectionsState,
+                        isEndOfList = isEndOfList,
+                        onLoadMore = { onEvent(UserDetailIntent.LoadMore) },
+                        onNavigateToFeature = onNavigateToFeature
+                    )
                 }
-                is AppUiState.Success -> {
-                    val photos = photosState.data
-                    if (photos.isEmpty()) {
-                        item(span = StaggeredGridItemSpan.FullLine) {
-                            Box(modifier = Modifier.height(100.dp).fillMaxWidth(), contentAlignment = Alignment.Center) {
-                                Text("No photos uploaded", color = Color.Gray)
-                            }
-                        }
-                    } else {
-                        pagingStaggeredGridItems(
-                            items = photos,
-                            isEndOfList = state.isPhotosEndOfList,
-                            onLoadMore = onLoadMore,
-                            key = { it.id }
-                        ) { photo ->
-                            val displayItem = remember(photo) { photo.toGalleryDisplayable() }
-                            GalleryCard(
-                                item = displayItem,
-                                onClick = { onNavigateToPhoto(photo.id, photo.url) },
-                                sharedTransitionScope = sharedTransitionScope,
-                                animatedVisibilityScope = animatedVisibilityScope
-                            )
-                        }
-                    }
+
+                UserTab.Likes -> {
+                    UserPhotosSection(
+                        state = state.likesState,
+                        isEndOfList = isEndOfList,
+                        onLoadMore = { onEvent(UserDetailIntent.LoadMore) },
+                        onNavigateToFeature = onNavigateToFeature,
+                        sharedTransitionScope = sharedTransitionScope,
+                        animatedVisibilityScope = animatedVisibilityScope,
+                    )
                 }
             }
+        }
+    }
+}
 
-            if (state.isPhotosLoadingMore) {
-                item(span = StaggeredGridItemSpan.FullLine) {
-                    Box(modifier = Modifier.fillMaxWidth().padding(8.dp), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator(modifier = Modifier.size(24.dp))
-                    }
+@OptIn(ExperimentalSharedTransitionApi::class)
+@Composable
+fun UserPhotosSection(
+    state: AppUiState<List<UserPhoto>>,
+    isEndOfList: Boolean,
+    onLoadMore: () -> Unit,
+    onNavigateToFeature: (Feature) -> Unit,
+    sharedTransitionScope: SharedTransitionScope,
+    animatedVisibilityScope: AnimatedVisibilityScope,
+) {
+    when (state) {
+        is AppUiState.Loading, AppUiState.Idle -> {
+            Box(modifier = Modifier.fillMaxSize().height(200.dp), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator()
+            }
+        }
+        is AppUiState.Error -> {
+            Box(modifier = Modifier.fillMaxSize().padding(16.dp), contentAlignment = Alignment.Center) {
+                Text("Failed to load photos", color = MaterialTheme.colorScheme.error)
+            }
+        }
+        is AppUiState.Success -> {
+            val photos = state.data
+            if (photos.isEmpty()) {
+                Box(modifier = Modifier.fillMaxSize().height(100.dp), contentAlignment = Alignment.Center) {
+                    Text("No photos uploaded", color = Color.Gray)
                 }
+            } else {
+                val displayablePhotos = remember(photos) {
+                    photos.map { it.toGalleryDisplayable() }
+                }
+
+                PhotoList(
+                    photos = displayablePhotos,
+                    sharedTransitionScope = sharedTransitionScope,
+                    animatedVisibilityScope = animatedVisibilityScope,
+                    isEndOfList = isEndOfList,
+                    onLoadMore = onLoadMore,
+                    onPhotoClick = { id, url ->
+                        onNavigateToFeature(Feature.Photo(id, url))
+                    },
+                    onUserClick = { username ->
+                        onNavigateToFeature(Feature.User(username))
+                    }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun UserCollectionsSection(
+    state: AppUiState<List<GalleryCollection>>,
+    isEndOfList: Boolean,
+    onLoadMore: () -> Unit,
+    onNavigateToFeature: (Feature) -> Unit
+) {
+    when (state) {
+        is AppUiState.Loading, AppUiState.Idle -> {
+            Box(modifier = Modifier.fillMaxSize().height(200.dp), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator()
+            }
+        }
+        is AppUiState.Error -> {
+            Box(modifier = Modifier.fillMaxSize().padding(16.dp), contentAlignment = Alignment.Center) {
+                Text("Failed to load collections", color = MaterialTheme.colorScheme.error)
+            }
+        }
+        is AppUiState.Success -> {
+            val collections = state.data
+            if (collections.isEmpty()) {
+                Box(modifier = Modifier.fillMaxSize().height(100.dp), contentAlignment = Alignment.Center) {
+                    Text("No collections found", color = Color.Gray)
+                }
+            } else {
+                CollectionList(
+                    collections = collections,
+                    isEndOfList = isEndOfList,
+                    onLoadMore = onLoadMore,
+                    onCollectionClick = { id, title ->
+                        onNavigateToFeature(Feature.Collection(id, title))
+                    },
+                    onUserClick = {}
+                )
             }
         }
     }
@@ -175,7 +279,7 @@ fun UserHeader(user: UserProfile) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp)
+            .padding(horizontal = 16.dp, vertical = 8.dp)
     ) {
         // 1. Avatar & Basic Info
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -256,7 +360,7 @@ fun UserHeader(user: UserProfile) {
                 }
                 Spacer(modifier = Modifier.width(8.dp))
             }
-            // Instagram (Construct URL)
+            // Instagram
             user.instagramUsername?.let { ig ->
                 SocialLinkButton(
                     icon = painterResource(Res.drawable.ic_instagram),
@@ -266,7 +370,7 @@ fun UserHeader(user: UserProfile) {
                 }
                 Spacer(modifier = Modifier.width(8.dp))
             }
-            // Twitter (Construct URL)
+            // X/Twitter
             user.twitterUsername?.let { tw ->
                 SocialLinkButton(
                     icon = painterResource(Res.drawable.ic_x_twitter),
@@ -317,9 +421,9 @@ private fun UserPhoto.toGalleryDisplayable(): GalleryDisplayable {
         override val displayId: String = id
         override val displayImageUrl: String = url
         override val displayTitle: String = title ?: ""
-        override val displayUserAvatar: String? = null // Profile page doesn't show user avatar on each photo
-        override val displayUsername: String? = null
-        override val displayName: String? get() = null
+        override val displayUserAvatar: String? = userProfileImage
+        override val displayUsername: String? = username
+        override val displayName: String? = name
         override val displayLikes: Int = likes
         override val displayCount: Int = 0
         override val displayBlurHash: String? = blurhash

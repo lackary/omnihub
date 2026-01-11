@@ -27,21 +27,40 @@ data class UserPhoto(
     val likes: Int,
     val blurhash: String?,
     val width: Int,
-    val height: Int
+    val height: Int,
+    val userProfileImage: String? = null,
+    val username: String? = null,
+    val name: String? = null
 )
+
+enum class UserTab(val title: String) {
+    Photos("Photos"),
+    Collections("Collections"),
+    Likes("Likes");
+
+    companion object {
+        fun getByIndex(index: Int): UserTab = entries.getOrElse(index) { Photos }
+    }
+}
 
 // UI State
 data class UserDetailUiState(
+    val currentTab: UserTab = UserTab.Photos,
+
+    val loadingMoreStatus: Map<UserTab, Boolean> = emptyMap(),
+    val endOfListStatus: Map<UserTab, Boolean> = emptyMap(),
+    val pages: Map<UserTab, Int> = emptyMap(),
+
     val infoState: AppUiState<UserProfile> = AppUiState.Idle,
     val photosState: AppUiState<List<UserPhoto>> = AppUiState.Idle,
-    val isPhotosLoadingMore: Boolean = false,
-    val isPhotosEndOfList: Boolean = false,
-    val photosPage: Int = 1
+    val collectionsState: AppUiState<List<GalleryCollection>> = AppUiState.Idle,
+    val likesState: AppUiState<List<UserPhoto>> = AppUiState.Idle
 )
 
 // UI Intents
 sealed interface UserDetailIntent {
     data class LoadData(val username: String) : UserDetailIntent
-    data object LoadMorePhotos : UserDetailIntent
+    data class SelectTab(val tab: UserTab) : UserDetailIntent
+    data object LoadMore : UserDetailIntent
     data object Refresh : UserDetailIntent
 }
