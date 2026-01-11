@@ -1,3 +1,13 @@
+# [0.10.0](https://github.com/lackary/omnihub/compare/v0.9.0...v0.10.0) (2026-01-11)
+
+
+### Features
+
+* **gallery:** enhance photo attribution and metadata display ([bb6ea59](https://github.com/lackary/omnihub/commit/bb6ea59b47c16a9c3ef5f54ecbb90dab970ad3e3))
+* **gallery:** implement tabbed layout and paginated content for User Profile ([42f0d24](https://github.com/lackary/omnihub/commit/42f0d24e086c539ecd270f9dbd2e5b14c3a4daf4))
+* **gallery:** implement user profile navigation and display real names ([bf3eac9](https://github.com/lackary/omnihub/commit/bf3eac98df09a84c46aeb181363ec7f9ea36e0ed))
+* **gallery:** implement user profile screen and navigation ([78ad678](https://github.com/lackary/omnihub/commit/78ad678b449dba8fb5b855f96e98a9114c322376))
+
 # [0.9.0](https://github.com/lackary/omnihub/compare/v0.8.0...v0.9.0) (2026-01-09)
 
 
