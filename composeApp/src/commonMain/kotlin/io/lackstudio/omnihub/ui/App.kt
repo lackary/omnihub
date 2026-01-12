@@ -19,6 +19,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavDestination.Companion.hasRoute
+import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
@@ -152,7 +153,9 @@ fun App() {
                         id = route.id,
                         thumbUrl = route.url,
                         onBack = { navController.popBackStack() },
-                        onNavigateToFeature = { feature -> navController.navigate(feature) },
+                        onNavigateToFeature = { feature ->
+                            navController.navigateToFeatureSmart(feature)
+                        },
                         sharedTransitionScope = this@SharedTransitionLayout,
                         animatedVisibilityScope = this@composable
                     )
@@ -165,7 +168,9 @@ fun App() {
                         collectionId = route.id,
                         title = route.title,
                         onBack = { navController.popBackStack() },
-                        onNavigateToFeature = { feature -> navController.navigate(feature) },
+                        onNavigateToFeature = { feature ->
+                            navController.navigateToFeatureSmart(feature)
+                        },
                         sharedTransitionScope = this@SharedTransitionLayout,
                         animatedVisibilityScope = this@composable
                     )
@@ -178,7 +183,9 @@ fun App() {
                         topicId = route.idOrSlug,
                         title = route.title,
                         onBack = { navController.popBackStack() },
-                        onNavigateToFeature = { feature -> navController.navigate(feature) },
+                        onNavigateToFeature = { feature ->
+                            navController.navigateToFeatureSmart(feature)
+                        },
                         sharedTransitionScope = this@SharedTransitionLayout,
                         animatedVisibilityScope = this@composable
                     )
@@ -189,7 +196,9 @@ fun App() {
                     UserDetailScreen(
                         username = route.username,
                         onBack = { navController.popBackStack() },
-                        onNavigateToFeature = { feature -> navController.navigate(feature) },
+                        onNavigateToFeature = { feature ->
+                            navController.navigateToFeatureSmart(feature)
+                        },
                         sharedTransitionScope = this@SharedTransitionLayout,
                         animatedVisibilityScope = this@composable
                     )
@@ -209,5 +218,51 @@ fun App() {
             }
         }
 
+    }
+}
+
+/**
+ * Smart Navigation: Automatically check if we should "pop" to the previous page.
+ * Used to prevent infinite loops like User -> Photo -> User -> Photo.
+ */
+private fun NavHostController.navigateToFeatureSmart(feature: Feature) {
+    val previousEntry = this.previousBackStackEntry
+
+    val shouldPop = try {
+        when (feature) {
+            // 1. Check User loops
+            is Feature.User -> {
+                val prev = previousEntry?.toRoute<Feature.User>()
+                prev?.username == feature.username
+            }
+            // 2. Check Collection loops
+            is Feature.Collection -> {
+                val prev = previousEntry?.toRoute<Feature.Collection>()
+                prev?.id == feature.id
+            }
+            // 3. Check Photo loops
+            is Feature.Photo -> {
+                val prev = previousEntry?.toRoute<Feature.Photo>()
+                prev?.id == feature.id
+            }
+            // 4. Check Topic loops
+            is Feature.Topic -> {
+                val prev = previousEntry?.toRoute<Feature.Topic>()
+                prev?.idOrSlug == feature.idOrSlug
+            }
+            else -> false
+        }
+    } catch (e: Exception) {
+        // If the previous page's route type doesn't match the target (e.g., coming from Home),
+        // toRoute might throw an exception.
+        false
+    }
+
+    if (shouldPop) {
+        // If the destination is the same as the previous page, pop back to create a "return to page" feel.
+        this.popBackStack()
+    } else {
+        // Otherwise, navigate to the new page normally.
+        this.navigate(feature)
     }
 }

@@ -12,6 +12,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.Public
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -19,6 +20,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -26,6 +28,10 @@ import coil3.compose.AsyncImage
 import io.lackstudio.omnifeed.ui.state.AppUiState
 import io.lackstudio.omnihub.ui.components.ExpandableText
 import io.lackstudio.omnihub.ui.navigation.Feature
+import io.lackstudio.omnihub.utils.UnsplashLinks
+import omnihub.composeapp.generated.resources.Res
+import omnihub.composeapp.generated.resources.ic_unsplash
+import org.jetbrains.compose.resources.painterResource
 import org.koin.compose.viewmodel.koinViewModel
 
 @OptIn(ExperimentalSharedTransitionApi::class)
@@ -39,6 +45,8 @@ fun TopicDetailScreen(
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope
 ) {
+    val uriHandler = LocalUriHandler.current
+
     val state by viewModel.state.collectAsStateWithLifecycle()
 
     LaunchedEffect(topicId) {
@@ -59,6 +67,16 @@ fun TopicDetailScreen(
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                actions = {
+                    IconButton(onClick = {
+                        uriHandler.openUri(UnsplashLinks.topic(topicId))
+                    }) {
+                        Icon(
+                            painter = painterResource(Res.drawable.ic_unsplash),
+                            contentDescription = "View on Unsplash"
+                        )
                     }
                 }
             )

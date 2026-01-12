@@ -274,6 +274,8 @@ class GalleryViewModel(
                         id = it.id,
                         coverUrl = it.coverPhoto.urls.small,
                         title = it.title,
+                        username = it.coverPhoto.user.username,
+                        name = it.coverPhoto.user.name,
                         description = it.description,
                         totalPhotos = it.totalPhotos,
                         blurhash = it.coverPhoto.blurHash,

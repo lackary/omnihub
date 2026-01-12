@@ -89,6 +89,8 @@ data class GalleryTopic(
     val coverUrl: String?,
     val title: String,
     val description: String,
+    val username: String,
+    val name: String,
     val totalPhotos: Int,
     val blurhash: String? = null,
     val width: Int? = 0,
@@ -99,8 +101,8 @@ data class GalleryTopic(
     override val displayTitle: String get() = title
     override val displayCount: Int get() = totalPhotos
     override val displayUserAvatar: String? get() = null
-    override val displayUsername: String? get() = null
-    override val displayName: String? get() = null
+    override val displayUsername: String get() = username
+    override val displayName: String get() = name
     override val displayLikes: Int get() = 0
     override val displayBlurHash: String? get() = blurhash
     override val displayWidth: Int? get() = width
