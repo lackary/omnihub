@@ -26,12 +26,21 @@ import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import coil3.request.crossfade
 import androidx.compose.animation.SharedTransitionLayout
+import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.LinkAnnotation
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.withLink
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.Dp
 import coil3.compose.LocalPlatformContext
 import coil3.size.Size
 import io.lackstudio.omnifeed.ui.state.AppUiState
 import io.lackstudio.omnihub.ui.navigation.Feature
+import io.lackstudio.omnihub.utils.UnsplashLinks
 import kotlin.math.min
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import org.koin.compose.viewmodel.koinViewModel
@@ -322,7 +331,7 @@ fun PhotoDetailBottomBar(
                     .align(Alignment.BottomCenter)
                     .background(
                         Brush.verticalGradient(
-                            listOf(Color.Transparent, Color.Black.copy(gradientAlpha))
+                            listOf(Color.Transparent, Color.Black.copy(0.8f))
                         )
                     )
             )
@@ -365,7 +374,7 @@ fun PhotoDetailBottomBar(
                         modifier = Modifier.fillMaxWidth(), // Fill this small section
                         horizontalAlignment = alignment
                     ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
+                        Row(modifier = Modifier, verticalAlignment = Alignment.CenterVertically) {
                             IconButton(
                                 onClick = onInfoClick,
                                 colors = IconButtonDefaults.iconButtonColors(contentColor = Color.White)
@@ -374,12 +383,52 @@ fun PhotoDetailBottomBar(
                             }
 
                             if (photoDetail != null) {
+                                val annotatedString = buildAnnotatedString {
+                                    append("Photo by ")
+
+                                    // 1. 攝影師名字連結
+                                    // 使用 withLink 搭配 LinkAnnotation.Url
+                                    withLink(LinkAnnotation.Url(UnsplashLinks.userProfile(photoDetail.username))) {
+                                        withStyle(
+                                            style = SpanStyle(
+                                                textDecoration = TextDecoration.Underline,
+                                                fontWeight = FontWeight.Bold,
+                                                shadow = Shadow(
+                                                    color = Color.Black,
+                                                    blurRadius = 4f
+                                                )
+                                            )
+                                        ) {
+                                            append(photoDetail.name)
+                                        }
+                                    }
+
+                                    append(" on ")
+
+                                    // 2. Unsplash 首頁連結
+                                    withLink(LinkAnnotation.Url(UnsplashLinks.home())) {
+                                        withStyle(
+                                            style = SpanStyle(
+                                                textDecoration = TextDecoration.Underline,
+                                                fontWeight = FontWeight.Bold,
+                                                shadow = Shadow(
+                                                    color = Color.Black,
+                                                    blurRadius = 4f
+                                                )
+                                            )
+                                        ) {
+                                            append("Unsplash")
+                                        }
+                                    }
+                                }
+                                // Photo by [name] on Unsplash
                                 Text(
-                                    text = "Photo by ${photoDetail.name} on Unsplash",
+                                    text = annotatedString,
                                     style = MaterialTheme.typography.labelSmall,
                                     color = Color.White,
                                     maxLines = 1,
-                                    modifier = Modifier.width(IntrinsicSize.Max)
+                                    modifier = Modifier
+                                        .width(IntrinsicSize.Max),
                                 )
                             }
                         }

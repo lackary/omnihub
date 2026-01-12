@@ -29,10 +29,12 @@ import coil3.compose.AsyncImage
 import io.lackstudio.omnifeed.ui.state.AppUiState
 import io.lackstudio.omnihub.ui.components.ExpandableText
 import io.lackstudio.omnihub.ui.navigation.Feature // Remember to import Feature
+import io.lackstudio.omnihub.utils.UnsplashLinks
 import io.lackstudio.omnihub.utils.toCompactDisplayString
 import kotlinx.coroutines.launch
 import omnihub.composeapp.generated.resources.Res
 import omnihub.composeapp.generated.resources.ic_instagram
+import omnihub.composeapp.generated.resources.ic_unsplash
 import omnihub.composeapp.generated.resources.ic_x_twitter
 import org.jetbrains.compose.resources.painterResource
 import org.koin.compose.viewmodel.koinViewModel
@@ -347,6 +349,15 @@ fun UserHeader(user: UserProfile) {
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.Start
         ) {
+            // Unsplash
+            SocialLinkButton(
+                icon = painterResource(Res.drawable.ic_unsplash),
+                text = "Unsplash"
+            ) {
+                uriHandler.openUri(UnsplashLinks.userProfile(user.username))
+            }
+            Spacer(modifier = Modifier.width(8.dp))
+            // public web
             user.portfolioUrl?.let { portfolioUrl ->
                 SocialLinkButton(
                     icon = rememberVectorPainter(Icons.Filled.Public),

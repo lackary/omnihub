@@ -65,6 +65,7 @@ import com.brys.compose.blurhash.BlurHashImage
 import io.lackstudio.omnihub.platform.isPullToRefreshSupported // Variable defined recently
 import io.lackstudio.omnihub.ui.extensions.pagingGridItems
 import io.lackstudio.omnihub.ui.extensions.pagingStaggeredGridItems
+import io.lackstudio.omnihub.utils.UnsplashLinks
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
@@ -553,7 +554,7 @@ private fun GalleryPagerNavigation(
                         username?.let {
                             // Construct the URL according to Unsplash API guidelines for attribution
                             val url = "https://unsplash.com/@$it?utm_source=OmniHub&utm_medium=referral"
-                            uriHandler.openUri(url)
+                            uriHandler.openUri(UnsplashLinks.userProfile(username))
                         }
                     }
             )
