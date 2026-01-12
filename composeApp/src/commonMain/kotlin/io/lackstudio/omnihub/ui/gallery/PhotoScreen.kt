@@ -309,20 +309,19 @@ fun PhotoDetailBottomBar(
     layoutInfo: DetailLayoutInfo,
     modifier: Modifier = Modifier
 ) {
-    val gap = 12.dp
+    val contentGap = 8.dp // Safety gap between left and right blocks
+    val edgePadding = 8.dp // Distance from content to image edge
 
     AnimatedVisibility(
         visible = isVisible,
         modifier = modifier
             // First apply system safe area padding (this automatically becomes about 34dp on iOS)
-            .windowInsetsPadding(WindowInsets.navigationBars)
-            .padding(bottom = 16.dp),
+            .windowInsetsPadding(WindowInsets.navigationBars),
         enter = fadeIn(),
         exit = fadeOut()
     ) {
         // Outer Box
         Box(modifier = Modifier.fillMaxWidth()) {
-            val gradientAlpha = if (layoutInfo.isOutsideHorizontal || layoutInfo.isOutsideVertical) 0.0f else 0.6f
             // Background Layer (Gradient)
             Box(
                 modifier = Modifier
@@ -336,136 +335,99 @@ fun PhotoDetailBottomBar(
                     )
             )
 
-            // --- Left Area (Info + Date) ---
-            Box(
+            // 2. Content Layout Layer (Uses Row to manage left-right arrangement)
+            Row(
                 modifier = Modifier
-                    .align(Alignment.BottomStart) // Default anchor: BottomStart
-                    .padding(bottom = 8.dp)
+                    .fillMaxWidth()
+                    .align(Alignment.BottomCenter)
+                    // start/end: Add blackBarWidth to ensure content is always "flush with the image edge", not on the black bars
+                    // bottom: Unified bottom padding
+                    .padding(
+                        start = layoutInfo.blackBarWidth + edgePadding,
+                        end = layoutInfo.blackBarWidth + edgePadding,
+                        bottom = edgePadding
+                    ),
+                horizontalArrangement = Arrangement.SpaceBetween, // Spread out left and right
+                verticalAlignment = Alignment.Bottom // Bottom aligned
             ) {
-                // Determine content position based on mode
-                val contentModifier = if (layoutInfo.isOutsideHorizontal) {
-                    // [Mode A: Place inside black bar]
-                    // Width limited to black bar width, content aligned to End (Right) -> Sticks to the left edge of the image
-                    Modifier
-                        .width(layoutInfo.blackBarWidth)
-                        .padding(end = gap)
-                        .align(Alignment.CenterStart) // Box itself positioned on the left
-                } else {
-                    // [Mode B: Overlay on image]
-                    // Content starts from left (black bar width + gap) -> Overlays inside the image
-                    Modifier
-                        .padding(start = layoutInfo.blackBarWidth + gap)
-                        .align(Alignment.CenterStart)
-                }
 
-                // Inner container
+                // --- Left side：(Info icon + attribution text) ---
                 Column(
-                    modifier = contentModifier, // Apply Modifier from above
-                    horizontalAlignment = Alignment.CenterHorizontally
+                    modifier = Modifier
+                        .weight(1f) // Occupy all remaining space to allow long text to wrap automatically
+                        .padding(end = contentGap), // Avoid being too close to the right side
+                    horizontalAlignment = Alignment.Start
                 ) {
-                    // If this Column is in Outside mode, since parent width is restricted,
-                    // to make it align right (close to image), we need to set Column's self alignment to End
-                    // But since Modifier already handled padding/width, here we just need to ensure content is centered
-
-                    // To be safe, if in Outside mode, force it to align End (Right)
-                    val alignment = if (layoutInfo.isOutsideHorizontal) Alignment.End else Alignment.Start
-
-                    Column(
-                        modifier = Modifier.fillMaxWidth(), // Fill this small section
-                        horizontalAlignment = alignment
-                    ) {
-                        Row(modifier = Modifier, verticalAlignment = Alignment.CenterVertically) {
-                            IconButton(
-                                onClick = onInfoClick,
-                                colors = IconButtonDefaults.iconButtonColors(contentColor = Color.White)
-                            ) {
-                                Icon(Icons.Filled.Info, contentDescription = "Info")
-                            }
-
-                            if (photoDetail != null) {
-                                val annotatedString = buildAnnotatedString {
-                                    append("Photo by ")
-
-                                    // 1. 攝影師名字連結
-                                    // 使用 withLink 搭配 LinkAnnotation.Url
-                                    withLink(LinkAnnotation.Url(UnsplashLinks.userProfile(photoDetail.username))) {
-                                        withStyle(
-                                            style = SpanStyle(
-                                                textDecoration = TextDecoration.Underline,
-                                                fontWeight = FontWeight.Bold,
-                                                shadow = Shadow(
-                                                    color = Color.Black,
-                                                    blurRadius = 4f
-                                                )
-                                            )
-                                        ) {
-                                            append(photoDetail.name)
-                                        }
-                                    }
-
-                                    append(" on ")
-
-                                    // 2. Unsplash 首頁連結
-                                    withLink(LinkAnnotation.Url(UnsplashLinks.home())) {
-                                        withStyle(
-                                            style = SpanStyle(
-                                                textDecoration = TextDecoration.Underline,
-                                                fontWeight = FontWeight.Bold,
-                                                shadow = Shadow(
-                                                    color = Color.Black,
-                                                    blurRadius = 4f
-                                                )
-                                            )
-                                        ) {
-                                            append("Unsplash")
-                                        }
-                                    }
-                                }
-                                // Photo by [name] on Unsplash
-                                Text(
-                                    text = annotatedString,
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = Color.White,
-                                    maxLines = 1,
-                                    modifier = Modifier
-                                        .width(IntrinsicSize.Max),
-                                )
-                            }
+                    // Info Icon
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        IconButton(
+                            onClick = onInfoClick,
+                            colors = IconButtonDefaults.iconButtonColors(contentColor = Color.White),
+                            modifier = Modifier.size(24.dp) // Adjust button size to align with text
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Info,
+                                contentDescription = "Info",
+                                modifier = Modifier.size(20.dp)
+                            )
                         }
                     }
-                }
-            }
 
-            // --- Right Area (Metadata Overlay) ---
-            photoDetail?.let { photo ->
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.BottomEnd) // Default anchor: BottomEnd
-                        .padding(bottom = 8.dp)
-                ) {
-                    val contentModifier = if (layoutInfo.isOutsideHorizontal) {
-                        // [Mode A: Place inside black bar]
-                        // Width limited to black bar width, content aligned to Start (Left) -> Sticks to the right edge of the image
-                        Modifier
-                            .width(layoutInfo.blackBarWidth)
-                            .padding(start = gap)
-                            .align(Alignment.CenterEnd)
-                    } else {
-                        // [Mode B: Overlay on image]
-                        Modifier
-                            .padding(end = layoutInfo.blackBarWidth + gap)
-                            .align(Alignment.CenterEnd)
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    // Attribution Link
+                    if (photoDetail != null) {
+                        val annotatedString = buildAnnotatedString {
+                            append("Photo by ")
+                            // User Profile -> Unsplash
+                            withLink(LinkAnnotation.Url(UnsplashLinks.userProfile(photoDetail.username))) {
+                                withStyle(
+                                    SpanStyle(
+                                        color = Color.White,
+                                        textDecoration = TextDecoration.Underline,
+                                        fontWeight = FontWeight.Bold,
+                                        shadow = Shadow(color = Color.Black, blurRadius = 4f)
+                                    )
+                                ) {
+                                    append(photoDetail.name)
+                                }
+                            }
+                            append(" on ")
+                            // Unsplash Home -> Unsplash
+                            withLink(LinkAnnotation.Url(UnsplashLinks.home())) {
+                                withStyle(
+                                    SpanStyle(
+                                        color = Color.White,
+                                        textDecoration = TextDecoration.Underline,
+                                        fontWeight = FontWeight.Bold,
+                                        shadow = Shadow(color = Color.Black, blurRadius = 4f)
+                                    )
+                                ) {
+                                    append("Unsplash")
+                                }
+                            }
+                        }
+
+                        // attribution text
+                        Text(
+                            text = annotatedString,
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                shadow = Shadow(color = Color.Black, blurRadius = 4f)
+                            ),
+                            color = Color.White,
+                            modifier = Modifier.fillMaxWidth() 
+                        )
                     }
+                }
 
-                    Box(modifier = contentModifier) {
-                        // Ensure internal alignment here as well
-                        val alignment = if (layoutInfo.isOutsideHorizontal) Alignment.BottomStart else Alignment.BottomEnd
-
+                // --- Right side (avatar + views + likes + downloads + created ) ---
+                if (photoDetail != null) {
+                    // Box to wrap the right-side content, ensuring it only occupies the required width
+                    Box(modifier = Modifier.wrapContentWidth()) {
                         PhotoMetadataOverlay(
-                            photo = photo,
-                            isLayoutOutside = layoutInfo.isOutsideHorizontal,
-                            onUserClick = onUserClick,
-                            modifier = Modifier.align(alignment)
+                            photo = photoDetail,
+                            isLayoutOutside = false,
+                            onUserClick = onUserClick
                         )
                     }
                 }
