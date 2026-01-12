@@ -1,3 +1,14 @@
+# [0.11.0](https://github.com/lackary/omnihub/compare/v0.10.0...v0.11.0) (2026-01-12)
+
+
+### Features
+
+* **gallery:** add Unsplash external linking and cover attribution for Topics ([1ff49bc](https://github.com/lackary/omnihub/commit/1ff49bc5123b5421a5c94dd73fa14f0c06562558))
+* **gallery:** implement clickable user attribution in Gallery screen ([e5d718b](https://github.com/lackary/omnihub/commit/e5d718b55d7a106cab657d418e61aa3076089feb))
+* **gallery:** implement Unsplash attribution and external links ([ffd1814](https://github.com/lackary/omnihub/commit/ffd1814fa877ac735f162b796eded732a247d766))
+* **gallery:** implement Unsplash attribution links and centralized utility ([b029a72](https://github.com/lackary/omnihub/commit/b029a72c641879e0d1544084e11ab2ae614a4228))
+* **navigation:** implement smart navigation to prevent backstack loops ([b75afe2](https://github.com/lackary/omnihub/commit/b75afe2e4a2b1fc273f0dd49098bcba353c6e018))
+
 # [0.10.0](https://github.com/lackary/omnihub/compare/v0.9.0...v0.10.0) (2026-01-11)
 
 
