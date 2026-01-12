@@ -53,7 +53,6 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalInspectionMode
-import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.LinkAnnotation
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -457,20 +456,31 @@ private fun GalleryCardAttribution(
             )
 
         } else {
-            val uriHandler = LocalUriHandler.current
-            // [Photo Mode]: Maintain original display (Name Only)
-            Text(
-                text = name ?: "",
-                style = MaterialTheme.typography.bodyMedium,
-                color = Color.Black,
-                fontWeight = FontWeight.SemiBold,
-                modifier = Modifier
-                    .clickable {
-                        username?.let {
-                            // Construct the URL according to Unsplash API guidelines for attribution
-                            uriHandler.openUri(UnsplashLinks.userProfile(username))
+            val annotatedString = buildAnnotatedString {
+                if (username != null) {
+                    withLink(LinkAnnotation.Url(UnsplashLinks.userProfile(username))) {
+                        withStyle(
+                            SpanStyle(
+                                fontWeight = FontWeight.SemiBold,
+                                textDecoration = TextDecoration.Underline
+                            )
+                        ) {
+                            append(name ?: username)
                         }
                     }
+                } else {
+                    // display name if there is no username
+                    withStyle(SpanStyle(color = Color.Black, fontWeight = FontWeight.SemiBold)) {
+                        append(name ?: "")
+                    }
+                }
+            }
+            // [Photo Mode]: Maintain original display (Name Only)
+            Text(
+                text = annotatedString,
+                style = MaterialTheme.typography.bodyMedium,
+                color = Color.Black,
+                fontWeight = FontWeight.SemiBold
             )
         }
     }

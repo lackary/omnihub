@@ -54,7 +54,6 @@ import omnihub.composeapp.generated.resources.Res
 import omnihub.composeapp.generated.resources.back
 import omnihub.composeapp.generated.resources.ic_unsplash
 import org.jetbrains.compose.resources.painterResource
-import org.jetbrains.compose.resources.rememberResourceEnvironment
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 
