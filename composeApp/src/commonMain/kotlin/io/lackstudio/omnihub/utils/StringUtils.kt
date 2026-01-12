@@ -20,6 +20,11 @@ object UnsplashLinks {
         return "https://unsplash.com/collections/$id$UTM_PARAMS"
     }
 
+    // Generates a topics page link with UTM parameters
+    fun topic(slugOrId: String): String {
+        return "https://unsplash.com/t/$slugOrId$UTM_PARAMS"
+    }
+
     // Generates a user profile link with UTM parameters
     fun userProfile(username: String): String {
         return "https://unsplash.com/@$username$UTM_PARAMS"

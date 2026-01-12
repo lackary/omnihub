@@ -746,6 +746,17 @@ fun TopicCard(
                 fontWeight = FontWeight.Bold, // 4. Bold text
                 style = MaterialTheme.typography.titleMedium
             )
+
+            topic.coverUrl?.let {
+                Text(
+                    text = "Cover by ${topic.name} on Unsplash",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = Color.White.copy(alpha = 0.7f),
+                    modifier = Modifier
+                        .align(Alignment.BottomStart)
+                        .padding(8.dp)
+                )
+            }
         }
     }
 }
