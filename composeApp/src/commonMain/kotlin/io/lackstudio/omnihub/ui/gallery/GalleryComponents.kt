@@ -54,7 +54,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.text.LinkAnnotation
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.withLink
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import coil3.compose.LocalPlatformContext
@@ -270,6 +276,10 @@ fun GalleryCard(
                 .fillMaxWidth()
                 .clickable(onClick = onClick)
         ) {
+            // totalPhotos for collections and topics/:idOrSlug
+            // but topics has another container
+            val isCollection = item.displayCount > 0
+
             // --- Top section: Image area ---
             Card(
                 modifier = Modifier
@@ -288,7 +298,7 @@ fun GalleryCard(
                     )
 
                     // Image count
-                    if (item.displayCount > 0) {
+                    if (isCollection) {
                         GalleryCountBadge(
                             count = item.displayCount,
                             modifier = Modifier.align(Alignment.TopEnd).padding(8.dp)
@@ -311,40 +321,55 @@ fun GalleryCard(
             // --- Bottom section: Info row (Username and Likes) ---
             Spacer(modifier = Modifier.height(8.dp))
 
-            Row(
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 4.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
+                    .padding(horizontal = 4.dp)
             ) {
-
-                // Bottom Left: User info (Black text)
-                // Don't need display avatar and username for user screen
-                if (item.displayUserAvatar != null && item.displayUsername != null ) {
-                    GalleryUserInfo(
-                        avatarUrl = item.displayUserAvatar,
-                        username = item.displayUsername,
-                        name = item.displayName,
-                        modifier = Modifier.weight(1f),
-                        onAvatarClick = {
-                            item.displayUsername?.let { onUserClick(it) }
-                        }
+                if (isCollection) {
+                    Text(
+                        text = item.displayTitle,
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.Black,
+                        maxLines = 1,
+                        modifier = Modifier.padding(bottom = 4.dp)
                     )
-                } else {
-                    // [User Page] Hide User Info, but need Spacer to keep layout consistent
-                    // This ensures the LikeBadge on the right is pushed to the edge
-                    Spacer(modifier = Modifier.weight(1f))
                 }
 
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 4.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
 
-                // Bottom Right: Likes (Black text + Red heart)
-                if (item.displayLikes > 0) {
-                    GalleryLikeBadge(
-                        likes = item.displayLikes,
-                        modifier = Modifier
-                            .padding(start = 8.dp)
-                    )
+                    // Bottom Left: User info (Black text)
+                    // Don't need display avatar and username for user screen
+                    if (item.displayUserAvatar != null && item.displayUsername != null ) {
+                        GalleryCardAttribution(
+                            isCollection = isCollection,
+                            avatarUrl = item.displayUserAvatar,
+                            username = item.displayUsername,
+                            name = item.displayName,
+                            onAvatarClick = { item.displayUsername?.let { onUserClick(it) } }
+                        )
+                    } else {
+                        // [User Page] Hide User Info, but need Spacer to keep layout consistent
+                        // This ensures the LikeBadge on the right is pushed to the edge
+                        Spacer(modifier = Modifier.weight(1f))
+                    }
+
+
+                    // Bottom Right: Likes (Black text + Red heart)
+                    if (item.displayLikes > 0) {
+                        GalleryLikeBadge(
+                            likes = item.displayLikes,
+                            modifier = Modifier
+                                .padding(start = 8.dp)
+                        )
+                    }
                 }
             }
 
@@ -355,7 +380,105 @@ fun GalleryCard(
 }
 
 /**
- * Handles image display logic: Automatically determines whether to use Pager for carousel or single image
+ * Handles attribution display at the card bottom
+ * For collections: Display "Created by [Name] on Unsplash"
+ * For photos: Display Avatar + Name
+ */
+@Composable
+private fun GalleryCardAttribution(
+    isCollection: Boolean,
+    avatarUrl: String?,
+    username: String?,
+    name: String?,
+    onAvatarClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        // only photos
+        if (!isCollection) {
+            if (LocalInspectionMode.current) {
+                Box(modifier = Modifier.size(24.dp).clip(CircleShape).background(Color.Gray))
+            } else {
+                AsyncImage(
+                    model = avatarUrl,
+                    contentDescription = "Avatar",
+                    modifier = Modifier
+                        .size(24.dp) // Slightly smaller Avatar to accommodate multi-line text
+                        .clip(CircleShape)
+                        .clickable(onClick = onAvatarClick)
+                        .background(Color.LightGray),
+                    contentScale = ContentScale.Crop
+                )
+            }
+            Spacer(modifier = Modifier.width(8.dp))
+        }
+
+        if (isCollection) {
+            // [Collection Mode]: Display "Created by Name on Unsplash"
+            val annotatedString = buildAnnotatedString {
+                append("Curated by ")
+                username?.let {
+                    // Name Link
+                    withLink(LinkAnnotation.Url(UnsplashLinks.userProfile(username))) {
+                        withStyle(
+                            SpanStyle(
+                                fontWeight = FontWeight.Bold,
+                                textDecoration = TextDecoration.Underline
+                            )
+                        ) {
+                            append(name ?: username)
+                        }
+                    }
+                }
+
+                append(" on ")
+
+                // Unsplash Link
+                withLink(LinkAnnotation.Url(UnsplashLinks.home())) {
+                    withStyle(
+                        SpanStyle(
+                            fontWeight = FontWeight.Bold,
+                            textDecoration = TextDecoration.Underline
+                        )
+                    ) {
+                        append("Unsplash")
+                    }
+                }
+            }
+
+            Text(
+                text = annotatedString,
+                style = MaterialTheme.typography.labelSmall, // Use a smaller font
+                color = Color.Gray, // Use gray to keep visual hierarchy lower than the title
+                maxLines = 2
+            )
+
+        } else {
+            val uriHandler = LocalUriHandler.current
+            // [Photo Mode]: Maintain original display (Name Only)
+            Text(
+                text = name ?: "",
+                style = MaterialTheme.typography.bodyMedium,
+                color = Color.Black,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier
+                    .clickable {
+                        username?.let {
+                            // Construct the URL according to Unsplash API guidelines for attribution
+                            uriHandler.openUri(UnsplashLinks.userProfile(username))
+                        }
+                    }
+            )
+        }
+    }
+}
+
+/**
+ * Handles image display logic:
+ * Automatically determines whether to use Pager for carousel or single image
  */
 @Composable
 private fun GalleryCardImageContent(
@@ -511,57 +634,6 @@ private fun GalleryPagerNavigation(
 }
 
 /**
- * User info row (Avatar + Name)
- */
-    @Composable
-    private fun GalleryUserInfo(
-        avatarUrl: String?,
-        username: String?,
-        name: String?,
-        onAvatarClick: () -> Unit,
-        modifier: Modifier = Modifier,
-    ) {
-        val uriHandler = LocalUriHandler.current
-
-        Row(
-            modifier = modifier,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            if (LocalInspectionMode.current) {
-                Box(modifier = Modifier.size(32.dp).clip(CircleShape).background(Color.Gray))
-            } else {
-                AsyncImage(
-                    model = avatarUrl,
-                    contentDescription = "Avatar",
-                    modifier = Modifier
-                        .size(32.dp)
-                        .clip(CircleShape)
-                        .clickable(onClick = onAvatarClick)
-                        .background(Color.LightGray),
-                    contentScale = ContentScale.Crop
-                )
-            }
-
-            Spacer(modifier = Modifier.width(8.dp))
-
-            Text(
-                text = name ?: "",
-                style = MaterialTheme.typography.bodyMedium,
-                color = Color.Black,
-                fontWeight = FontWeight.SemiBold,
-                modifier = Modifier
-                    .clickable {
-                        username?.let {
-                            // Construct the URL according to Unsplash API guidelines for attribution
-                            val url = "https://unsplash.com/@$it?utm_source=OmniHub&utm_medium=referral"
-                            uriHandler.openUri(UnsplashLinks.userProfile(username))
-                        }
-                    }
-            )
-        }
-    }
-
-/**
  * Top right count badge (Collections)
  */
 @Composable
@@ -672,7 +744,8 @@ fun TopicCard(
 @Composable
 fun PreviewGalleryUserInfo() {
     MaterialTheme {
-        GalleryUserInfo(
+        GalleryCardAttribution(
+            isCollection = false,
             avatarUrl = null,
             username = "OmniHubDesigner",
             name = "OmniHub Designer",

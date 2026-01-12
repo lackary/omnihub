@@ -35,15 +35,26 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.text.LinkAnnotation
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.withLink
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import io.lackstudio.omnifeed.ui.state.AppUiState
 import io.lackstudio.omnihub.ui.components.ExpandableText
 import io.lackstudio.omnihub.ui.navigation.Feature
+import io.lackstudio.omnihub.utils.UnsplashLinks
 import omnihub.composeapp.generated.resources.Res
 import omnihub.composeapp.generated.resources.back
+import omnihub.composeapp.generated.resources.ic_unsplash
+import org.jetbrains.compose.resources.painterResource
+import org.jetbrains.compose.resources.rememberResourceEnvironment
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -59,6 +70,7 @@ fun CollectionDetailScreen(
     animatedVisibilityScope: AnimatedVisibilityScope
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val uiHandler = LocalUriHandler.current
 
     LaunchedEffect(collectionId) {
          viewModel.handleIntent(CollectionDetailIntent.LoadData(collectionId)) // temp id = 8961198
@@ -80,6 +92,16 @@ fun CollectionDetailScreen(
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = stringResource(Res.string.back)
+                        )
+                    }
+                },
+                actions = {
+                    IconButton(onClick = {
+                        uiHandler.openUri(UnsplashLinks.collection(collectionId))
+                    }) {
+                        Icon(
+                            painter = painterResource(Res.drawable.ic_unsplash),
+                            contentDescription = "View on Unsplash",
                         )
                     }
                 }
@@ -198,6 +220,7 @@ fun CollectionHeader(
         Row(verticalAlignment = Alignment.CenterVertically) {
             Row(
                 modifier = Modifier
+                    .weight(1f)
                     .clip(MaterialTheme.shapes.small)
                     .clickable { onUserClick(info.username) }
                     .padding(4.dp),
@@ -212,15 +235,34 @@ fun CollectionHeader(
                         .background(Color.LightGray),
                     contentScale = ContentScale.Crop
                 )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = info.name,
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Bold
-                )
-            }
 
-            Spacer(modifier = Modifier.weight(1f))
+                Spacer(modifier = Modifier.width(8.dp))
+
+                Column(
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text(
+                        text = info.name,
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+
+                    val attributionString = buildAnnotatedString {
+                        append("on ")
+                        withLink(LinkAnnotation.Url(UnsplashLinks.userProfile(info.username))) {
+                            withStyle(SpanStyle(textDecoration = TextDecoration.Underline)) {
+                                append("Unsplash")
+                            }
+                        }
+                    }
+
+                    Text(
+                        text = attributionString,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
 
             // Total Photos count (Optional)
             Text(
