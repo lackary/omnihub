@@ -1,3 +1,12 @@
+# [0.12.0](https://github.com/lackary/omnihub/compare/v0.11.0...v0.12.0) (2026-01-13)
+
+
+### Features
+
+* **gallery:** unify data models and add comprehensive Compose previews ([5ba6488](https://github.com/lackary/omnihub/commit/5ba648852c857ec93cdac06d1e5149b84a0b5359))
+* **ui:** implement custom navigation transitions for features ([3f681eb](https://github.com/lackary/omnihub/commit/3f681ebeae2e3a2d7d6419b28df06c98e57af118))
+* **ui:** implement Snackbar support and centralized navigation handling ([ab593ec](https://github.com/lackary/omnihub/commit/ab593ecd479611b45c5662393f4233b8156e2f59))
+
 # [0.11.0](https://github.com/lackary/omnihub/compare/v0.10.0...v0.11.0) (2026-01-12)
 
 
