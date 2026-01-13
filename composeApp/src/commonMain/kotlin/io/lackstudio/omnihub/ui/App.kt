@@ -13,12 +13,17 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.Icon
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
 import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffold
 import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffoldDefaults
 import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteType
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -38,6 +43,7 @@ import io.lackstudio.omnihub.ui.gallery.UserDetailScreen
 import io.lackstudio.omnihub.ui.home.HomeScreen
 import io.lackstudio.omnihub.ui.navigation.Feature
 import io.lackstudio.omnihub.ui.navigation.Screen
+import kotlinx.coroutines.launch
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
 // Helper data class (place at bottom of file or in a separate file)
@@ -77,8 +83,12 @@ private fun fadeExit() = fadeOut(tween(ANIM_DURATION))
 @Composable
 fun App() {
     val navController = rememberNavController()
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+
     val navBackStackEntry = navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry.value?.destination
+
 
     // Get current layout info (Is it Rail or BottomBar?)
     val adaptiveInfo = currentWindowAdaptiveInfo()
@@ -140,136 +150,137 @@ fun App() {
         }
     ) {
         SharedTransitionLayout {
-            // Main content goes here (NavHost)
-            // Note: No need to handle innerPadding like in standard Scaffold,
-            // NavigationSuiteScaffold automatically handles the layout
-            NavHost(
-                navController = navController,
-                startDestination = Screen.Home,
-                modifier = Modifier
-                    .fillMaxSize()
-            ) {
-                // Home Screen
-                composable<Screen.Home> {
-                    HomeScreen(
-                        onNavigateToFeature = { feature -> navController.navigate(feature) }
-                    )
+            Scaffold(
+                snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
+                // Set to transparent to avoid obscuring the background
+                containerColor = androidx.compose.ui.graphics.Color.Transparent
+            ) { innerPadding ->
+                val onNavigate: (Feature) -> Unit = { feature ->
+                    handleAppNavigation(feature, navController, scope, snackbarHostState)
                 }
 
-                // Account Screen
-                composable<Screen.Account> {
-                    AccountScreen(
-                        onNavigateToFeature = { feature -> navController.navigate(feature) }
-                    )
-                }
-
-                // Features
-                composable<Feature.Gallery>(
-                    enterTransition = { slideIn() },
-                    exitTransition = { slideOut() },
-                    popEnterTransition = { slidePopIn() },
-                    popExitTransition = { slidePopOut() }
+                // Main content goes here (NavHost)
+                // Note: No need to handle innerPadding like in standard Scaffold,
+                // NavigationSuiteScaffold automatically handles the layout
+                NavHost(
+                    navController = navController,
+                    startDestination = Screen.Home,
+                    modifier = Modifier
+                        .fillMaxSize()
                 ) {
-                    GalleryScreen(
-                        onNavigateToFeature = { feature -> navController.navigate(feature) },
-                        onBack = { navController.popBackStack() },
-                        sharedTransitionScope = this@SharedTransitionLayout,
-                        animatedVisibilityScope = this@composable
-                    )
-                }
-
-                composable<Feature.Photo>(
-                    enterTransition = { fadeEnter() },
-                    exitTransition = { fadeExit() },
-                    popEnterTransition = { fadeEnter() },
-                    popExitTransition = { fadeExit() }
-                ) { backStackEntry ->
-                    val route: Feature.Photo = backStackEntry.toRoute()
-
-                    PhotoDetailScreen(
-                        id = route.id,
-                        thumbUrl = route.url,
-                        onBack = { navController.popBackStack() },
-                        onNavigateToFeature = { feature ->
-                            navController.navigateToFeatureSmart(feature)
-                        },
-                        sharedTransitionScope = this@SharedTransitionLayout,
-                        animatedVisibilityScope = this@composable
-                    )
-                }
-
-                composable<Feature.Collection>(
-                    enterTransition = { slideIn() },
-                    exitTransition = { slideOut() },
-                    popEnterTransition = { slidePopIn() },
-                    popExitTransition = { slidePopOut() }
-                ) { backStackEntry ->
-                    val route: Feature.Collection = backStackEntry.toRoute()
-
-                    CollectionDetailScreen(
-                        collectionId = route.id,
-                        title = route.title,
-                        onBack = { navController.popBackStack() },
-                        onNavigateToFeature = { feature ->
-                            navController.navigateToFeatureSmart(feature)
-                        },
-                        sharedTransitionScope = this@SharedTransitionLayout,
-                        animatedVisibilityScope = this@composable
-                    )
-                }
-
-                composable<Feature.Topic>(
-                    enterTransition = { slideIn() },
-                    exitTransition = { slideOut() },
-                    popEnterTransition = { slidePopIn() },
-                    popExitTransition = { slidePopOut() }
-                ) { backStackEntry ->
-                    val route: Feature.Topic = backStackEntry.toRoute()
-
-                    TopicDetailScreen(
-                        topicId = route.idOrSlug,
-                        title = route.title,
-                        onBack = { navController.popBackStack() },
-                        onNavigateToFeature = { feature ->
-                            navController.navigateToFeatureSmart(feature)
-                        },
-                        sharedTransitionScope = this@SharedTransitionLayout,
-                        animatedVisibilityScope = this@composable
-                    )
-                }
-
-                composable<Feature.User>(
-                    enterTransition = { slideIn() },
-                    exitTransition = { slideOut() },
-                    popEnterTransition = { slidePopIn() },
-                    popExitTransition = { slidePopOut() }
-                ) { backStackEntry ->
-                    val route: Feature.User = backStackEntry.toRoute()
-                    UserDetailScreen(
-                        username = route.username,
-                        onBack = { navController.popBackStack() },
-                        onNavigateToFeature = { feature ->
-                            navController.navigateToFeatureSmart(feature)
-                        },
-                        sharedTransitionScope = this@SharedTransitionLayout,
-                        animatedVisibilityScope = this@composable
-                    )
-                }
-
-                composable<Feature.News> {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Text("News API Page")
+                    // Home Screen
+                    composable<Screen.Home> {
+                        HomeScreen(
+                            onNavigateToFeature = onNavigate
+                        )
                     }
-                }
 
-                composable<Feature.Stocks> {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Text("Stocks API Page")
+                    // Account Screen
+                    composable<Screen.Account> {
+                        AccountScreen(
+                            onNavigateToFeature = onNavigate
+                        )
+                    }
+
+                    // Features
+                    composable<Feature.Gallery>(
+                        enterTransition = { slideIn() },
+                        exitTransition = { slideOut() },
+                        popEnterTransition = { slidePopIn() },
+                        popExitTransition = { slidePopOut() }
+                    ) {
+                        GalleryScreen(
+                            onNavigateToFeature = onNavigate,
+                            onBack = { navController.popBackStack() },
+                            sharedTransitionScope = this@SharedTransitionLayout,
+                            animatedVisibilityScope = this@composable
+                        )
+                    }
+
+                    composable<Feature.Photo>(
+                        enterTransition = { fadeEnter() },
+                        exitTransition = { fadeExit() },
+                        popEnterTransition = { fadeEnter() },
+                        popExitTransition = { fadeExit() }
+                    ) { backStackEntry ->
+                        val route: Feature.Photo = backStackEntry.toRoute()
+
+                        PhotoDetailScreen(
+                            id = route.id,
+                            thumbUrl = route.url,
+                            onBack = { navController.popBackStack() },
+                            onNavigateToFeature = onNavigate,
+                            sharedTransitionScope = this@SharedTransitionLayout,
+                            animatedVisibilityScope = this@composable
+                        )
+                    }
+
+                    composable<Feature.Collection>(
+                        enterTransition = { slideIn() },
+                        exitTransition = { slideOut() },
+                        popEnterTransition = { slidePopIn() },
+                        popExitTransition = { slidePopOut() }
+                    ) { backStackEntry ->
+                        val route: Feature.Collection = backStackEntry.toRoute()
+
+                        CollectionDetailScreen(
+                            collectionId = route.id,
+                            title = route.title,
+                            onBack = { navController.popBackStack() },
+                            onNavigateToFeature = onNavigate,
+                            sharedTransitionScope = this@SharedTransitionLayout,
+                            animatedVisibilityScope = this@composable
+                        )
+                    }
+
+                    composable<Feature.Topic>(
+                        enterTransition = { slideIn() },
+                        exitTransition = { slideOut() },
+                        popEnterTransition = { slidePopIn() },
+                        popExitTransition = { slidePopOut() }
+                    ) { backStackEntry ->
+                        val route: Feature.Topic = backStackEntry.toRoute()
+
+                        TopicDetailScreen(
+                            topicId = route.idOrSlug,
+                            title = route.title,
+                            onBack = { navController.popBackStack() },
+                            onNavigateToFeature = onNavigate,
+                            sharedTransitionScope = this@SharedTransitionLayout,
+                            animatedVisibilityScope = this@composable
+                        )
+                    }
+
+                    composable<Feature.User>(
+                        enterTransition = { slideIn() },
+                        exitTransition = { slideOut() },
+                        popEnterTransition = { slidePopIn() },
+                        popExitTransition = { slidePopOut() }
+                    ) { backStackEntry ->
+                        val route: Feature.User = backStackEntry.toRoute()
+                        UserDetailScreen(
+                            username = route.username,
+                            onBack = { navController.popBackStack() },
+                            onNavigateToFeature = onNavigate,
+                            sharedTransitionScope = this@SharedTransitionLayout,
+                            animatedVisibilityScope = this@composable
+                        )
+                    }
+
+                    composable<Feature.News> {
+                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            Text("News API Page")
+                        }
+                    }
+
+                    composable<Feature.Stocks> {
+                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            Text("Stocks API Page")
+                        }
                     }
                 }
             }
         }
-
     }
 }
 
@@ -316,5 +327,33 @@ private fun NavHostController.navigateToFeatureSmart(feature: Feature) {
     } else {
         // Otherwise, navigate to the new page normally.
         this.navigate(feature)
+    }
+}
+
+/**
+ * Centralized navigation logic:
+ * 1. Intercept unfinished features (News, Stocks) -> Show Snackbar
+ * 2. Finished features -> Perform smart navigation
+ */
+private fun handleAppNavigation(
+    feature: Feature,
+    navController: NavHostController,
+    scope: kotlinx.coroutines.CoroutineScope,
+    snackbarHostState: SnackbarHostState
+) {
+    when (feature) {
+        is Feature.News, is Feature.Stocks -> {
+            scope.launch {
+                // Clear old snackbar and show new one to prevent stacking
+                snackbarHostState.currentSnackbarData?.dismiss()
+                snackbarHostState.showSnackbar(
+                    message = "Coming Soon: ${feature::class.simpleName} is under development!",
+                    withDismissAction = true
+                )
+            }
+        }
+        else -> {
+            navController.navigateToFeatureSmart(feature)
+        }
     }
 }
