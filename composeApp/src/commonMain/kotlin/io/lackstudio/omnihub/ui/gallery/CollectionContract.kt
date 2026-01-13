@@ -7,22 +7,9 @@ data class Collection(
     val title: String,
     val username: String,
     val name: String,
-    val avatarUrl: String,
+    val avatarUrl: String?,
     val description: String?,
     val totalPhotos: Int
-)
-
-data class CollectionPhoto(
-    val id: String,
-    val url: String,
-    val title: String? = null,
-    val userProfileImage: String?,
-    val username: String,
-    val name: String,
-    val likes: Int,
-    val blurhash: String,
-    val width: Int,
-    val height: Int
 )
 
 // Define UI State
@@ -31,7 +18,7 @@ data class CollectionDetailUiState(
     val infoState: AppUiState<Collection> = AppUiState.Idle,
 
     // Section 2: List of photos in this Collection
-    val photosState: AppUiState<List<GalleryPhoto>> = AppUiState.Idle,
+    val photosState: AppUiState<List<GalleryDisplayable>> = AppUiState.Idle,
 
     // List pagination control
     val isPhotosLoadingMore: Boolean = false,

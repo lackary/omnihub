@@ -1,7 +1,9 @@
 package io.lackstudio.omnihub.ui.gallery
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -55,6 +57,7 @@ import omnihub.composeapp.generated.resources.back
 import omnihub.composeapp.generated.resources.ic_unsplash
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
+import org.jetbrains.compose.ui.tooling.preview.Preview
 import org.koin.compose.viewmodel.koinViewModel
 
 @OptIn(ExperimentalSharedTransitionApi::class)
@@ -282,6 +285,113 @@ fun CollectionHeader(
 
         info.description?.let { desc ->
             ExpandableText(text = desc)
+        }
+    }
+}
+
+// -----------------------------
+// Previews
+// -----------------------------
+private val mockCollectionInfo = Collection(
+    id = "c1",
+    title = "Minimalist Winter",
+    description = "A curated collection of minimalist winter photography. Snow, ice, and silence.",
+    totalPhotos = 42,
+    username = "mockuser",
+    name = "Mock Curator",
+    avatarUrl = null // Preview will show a light gray circle
+)
+
+@Preview(name = "Mobile", widthDp = 360, showBackground = true)
+@Preview(name = "Desktop", widthDp = 1024, showBackground = true)
+@Composable
+private fun CollectionHeaderPreview() {
+    MaterialTheme {
+        Box(modifier = Modifier.padding(16.dp)) {
+            CollectionHeader(
+                info = mockCollectionInfo,
+                onUserClick = {}
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalSharedTransitionApi::class, ExperimentalMaterial3Api::class)
+@Preview(name = "Content(Mobile) - Success", widthDp = 360, heightDp = 640, showBackground = true, backgroundColor = 0xFFFFFFFF)
+@Preview(name = "Content(Desktop) - Success", widthDp = 1024, heightDp = 768, showBackground = true, backgroundColor = 0xFFFFFFFF)
+@Composable
+private fun CollectionDetailContentPreview() {
+
+    val mockCollection = Collection(
+        id = "c1",
+        title = "Minimalist Winter",
+        description = "A curated collection of minimalist winter photography. Snow, ice, and silence.",
+        totalPhotos = 42,
+        username = "mock_curator",
+        name = "Mock Curator",
+        avatarUrl = null
+    )
+
+    val mockPhotos = List(6) { index ->
+        MockGalleryDisplayable(
+            displayId = "photo_$index",
+            displayTitle = "Winter Scene $index",
+            displayWidth = 1080,
+            displayHeight = 1350, // 4:5 ratio
+            displayLikes = index * 42,
+            displayUsername = "photographer_$index"
+        )
+    }
+
+    MaterialTheme {
+        SharedTransitionLayout {
+            AnimatedVisibility(visible = true) {
+                Scaffold(
+                    topBar = {
+                        TopAppBar(
+                            title = { Text(mockCollection.title) },
+                            navigationIcon = { Icon(Icons.AutoMirrored.Filled.ArrowBack, null) }
+                        )
+                    }
+                ) { padding ->
+                    Box(modifier = Modifier.padding(padding)) {
+                        CollectionDetailContent(
+                            state = CollectionDetailUiState(
+                                infoState = AppUiState.Success(mockCollection),
+                                photosState = AppUiState.Success(mockPhotos)
+                            ),
+                            onNavigateToPhoto = { _, _ -> },
+                            onNavigateToUser = {},
+                            onLoadMore = {},
+                            sharedTransitionScope = this@SharedTransitionLayout,
+                            animatedVisibilityScope = this@AnimatedVisibility
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalSharedTransitionApi::class)
+@Preview(name = "Content(Mobile) - Loading", widthDp = 360, heightDp = 640, showBackground = true, backgroundColor = 0xFFFFFFFF)
+@Composable
+private fun CollectionDetailLoadingPreview() {
+    MaterialTheme {
+        SharedTransitionLayout {
+            AnimatedVisibility(visible = true) {
+                CollectionDetailContent(
+                    state = CollectionDetailUiState(
+                        infoState = AppUiState.Loading,
+                        photosState = AppUiState.Loading
+                    ),
+                    onNavigateToPhoto = { _, _ -> },
+                    onNavigateToUser = {},
+                    onLoadMore = {},
+                    sharedTransitionScope = this@SharedTransitionLayout,
+                    animatedVisibilityScope = this@AnimatedVisibility
+                )
+            }
         }
     }
 }

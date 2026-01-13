@@ -1,7 +1,9 @@
 package io.lackstudio.omnihub.ui.gallery
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -37,6 +39,7 @@ import omnihub.composeapp.generated.resources.ic_instagram
 import omnihub.composeapp.generated.resources.ic_unsplash
 import omnihub.composeapp.generated.resources.ic_x_twitter
 import org.jetbrains.compose.resources.painterResource
+import org.jetbrains.compose.ui.tooling.preview.Preview
 import org.koin.compose.viewmodel.koinViewModel
 
 @OptIn(ExperimentalSharedTransitionApi::class)
@@ -188,7 +191,7 @@ fun UserDetailContent(
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 fun UserPhotosSection(
-    state: AppUiState<List<GalleryPhoto>>,
+    state: AppUiState<List<GalleryDisplayable>>,
     isEndOfList: Boolean,
     onLoadMore: () -> Unit,
     onNavigateToFeature: (Feature) -> Unit,
@@ -233,7 +236,7 @@ fun UserPhotosSection(
 
 @Composable
 fun UserCollectionsSection(
-    state: AppUiState<List<GalleryCollection>>,
+    state: AppUiState<List<GalleryDisplayable>>,
     isEndOfList: Boolean,
     onLoadMore: () -> Unit,
     onNavigateToFeature: (Feature) -> Unit
@@ -418,6 +421,72 @@ fun SocialLinkButton(icon: Painter, text: String, onClick: () -> Unit) {
         if (text.isNotBlank()) {
             Spacer(modifier = Modifier.width(6.dp))
             Text(text, style = MaterialTheme.typography.labelMedium)
+        }
+    }
+}
+
+// -----------------------------
+// Previews
+// -----------------------------
+private val mockUserProfile = UserProfile(
+    id = "u1",
+    username = "mock_user",
+    name = "Mock User",
+    avatarUrl = null,
+    bio = "Travel photographer & storyteller. Capturing moments from around the world.",
+    location = "Taipei, Taiwan",
+    totalLikes = 1204,
+    totalPhotos = 45,
+    totalCollections = 12,
+    instagramUsername = "mock_insta",
+    twitterUsername = "mock_tweets",
+    portfolioUrl = "https://example.com"
+)
+
+private val mockUserPhotos = List(6) { index ->
+    MockGalleryDisplayable(
+        displayId = "photo_$index",
+        displayTitle = "Photo $index",
+        displayUsername = "mock_user",
+        displayLikes = index * 15
+    )
+}
+
+private val mockUserCollections = List(6) { index ->
+    MockGalleryDisplayable(
+        displayId = "collection_$index",
+        displayTitle = "collection $index",
+        displayUsername = "mock_user",
+    )
+}
+
+@OptIn(ExperimentalSharedTransitionApi::class, ExperimentalMaterial3Api::class)
+@Preview(name = "User Content(Mobile) - Success", widthDp = 360, heightDp = 640, showBackground = true, backgroundColor = 0xFFFFFFFF)
+@Preview(name = "User Content(Desktop) - Success", widthDp = 1024, heightDp = 768, showBackground = true, backgroundColor = 0xFFFFFFFF)
+@Composable
+private fun UserDetailContentPreview() {
+    MaterialTheme {
+        SharedTransitionLayout {
+            AnimatedVisibility(visible = true) {
+                UserDetailContent(
+                    state = UserDetailUiState(
+                        infoState = AppUiState.Success(mockUserProfile),
+                        photosState = AppUiState.Success(mockUserPhotos),
+                        collectionsState = AppUiState.Success(mockUserCollections),
+                        likesState = AppUiState.Success(mockUserPhotos),
+                        currentTab = UserTab.Photos,
+                        endOfListStatus = mapOf(
+                            UserTab.Photos to false,
+                            UserTab.Collections to false,
+                            UserTab.Likes to false
+                        )
+                    ),
+                    onEvent = {},
+                    onNavigateToFeature = {},
+                    sharedTransitionScope = this@SharedTransitionLayout,
+                    animatedVisibilityScope = this@AnimatedVisibility
+                )
+            }
         }
     }
 }
