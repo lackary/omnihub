@@ -1,7 +1,9 @@
 package io.lackstudio.omnihub.ui.gallery
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -32,6 +34,7 @@ import io.lackstudio.omnihub.utils.UnsplashLinks
 import omnihub.composeapp.generated.resources.Res
 import omnihub.composeapp.generated.resources.ic_unsplash
 import org.jetbrains.compose.resources.painterResource
+import org.jetbrains.compose.ui.tooling.preview.Preview
 import org.koin.compose.viewmodel.koinViewModel
 
 @OptIn(ExperimentalSharedTransitionApi::class)
@@ -251,6 +254,108 @@ fun ContributorsDropdown(
                         expanded = false
                         onUserClick(user.username)
                     }
+                )
+            }
+        }
+    }
+}
+
+// -----------------------------
+// Previews
+// -----------------------------
+
+// Mock Data Helpers
+private val mockContributors = listOf(
+    TopicContributor(username = "alice_photo", name = "Alice Lens", avatarUrl = null),
+    TopicContributor(username = "bob_art", name = "Bob Artist", avatarUrl = null)
+)
+
+private val mockTopic = Topic(
+    id = "topic_1",
+    title = "Wallpapers",
+    description = "From epic drone shots to inspiring moments in nature.",
+    contributors = mockContributors,
+)
+
+@Preview(name = "Header", showBackground = true, backgroundColor = 0xFFFFFFFF)
+@Composable
+private fun TopicHeaderPreview() {
+    MaterialTheme {
+        Box(modifier = Modifier.padding(16.dp)) {
+            TopicHeader(
+                topic = mockTopic,
+                onUserClick = {}
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalSharedTransitionApi::class, ExperimentalMaterial3Api::class)
+@Preview(name = "Content(Mobile) - Success", widthDp = 360, heightDp = 640, showBackground = true, backgroundColor = 0xFFFFFFFF)
+@Preview(name = "Content(Desktop) - Success", widthDp = 1024, heightDp = 768, showBackground = true, backgroundColor = 0xFFFFFFFF)
+@Composable
+private fun TopicDetailContentPreview() {
+
+    val mockPhotos = List(6) { index ->
+        MockGalleryDisplayable(
+            displayId = "photo_$index",
+            displayTitle = "Wallpaper $index",
+            displayWidth = 1080,
+            displayHeight = 1920,
+            displayLikes = index * 88,
+            displayUsername = "creator_$index"
+        )
+    }
+
+    MaterialTheme {
+        SharedTransitionLayout {
+            AnimatedVisibility(visible = true) {
+                Scaffold(
+                    topBar = {
+                        TopAppBar(
+                            title = { Text(mockTopic.title) },
+                            navigationIcon = { Icon(Icons.AutoMirrored.Filled.ArrowBack, null) }
+                        )
+                    }
+                ) { padding ->
+                    Box(modifier = Modifier.padding(padding)) {
+                        TopicDetailContent(
+                            state = TopicDetailUiState(
+                                infoState = AppUiState.Success(mockTopic),
+                                photosState = AppUiState.Success(mockPhotos),
+                                isPhotosEndOfList = false
+                            ),
+                            onNavigateToPhoto = { _, _ -> },
+                            onNavigateToUser = {},
+                            onLoadMore = {},
+                            sharedTransitionScope = this@SharedTransitionLayout,
+                            animatedVisibilityScope = this@AnimatedVisibility
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalSharedTransitionApi::class)
+@Preview(name = "Content - Loading", widthDp = 360, heightDp = 640, showBackground = true, backgroundColor = 0xFFFFFFFF)
+@Composable
+private fun TopicDetailLoadingPreview() {
+    MaterialTheme {
+        SharedTransitionLayout {
+            AnimatedVisibility(visible = true) {
+                TopicDetailContent(
+                    state = TopicDetailUiState(
+                        infoState = AppUiState.Loading,
+                        photosState = AppUiState.Loading,
+                        isPhotosEndOfList = false
+                    ),
+                    onNavigateToPhoto = { _, _ -> },
+                    onNavigateToUser = {},
+                    onLoadMore = {},
+                    sharedTransitionScope = this@SharedTransitionLayout,
+                    animatedVisibilityScope = this@AnimatedVisibility
                 )
             }
         }

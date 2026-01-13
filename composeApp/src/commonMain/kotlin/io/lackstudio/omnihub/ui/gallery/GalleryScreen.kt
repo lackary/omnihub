@@ -436,7 +436,8 @@ fun TopicsContent(
 
 // Add this function specifically for preview
 @OptIn(ExperimentalSharedTransitionApi::class)
-@Preview
+@Preview(name = "Mobile", widthDp = 360, heightDp = 640)
+@Preview(name = "Desktop", widthDp = 1024, heightDp = 768)
 @Composable
 fun GalleryScreenPreview() {
     // Create dummy data

@@ -147,7 +147,7 @@ fun PhotoList(
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 fun CollectionList(
-    collections: List<GalleryCollection>,
+    collections: List<GalleryDisplayable>,
     isEndOfList: Boolean,
     onLoadMore: () -> Unit,
     onCollectionClick: (String, String) -> Unit,
@@ -168,12 +168,16 @@ fun CollectionList(
             items = collections,
             isEndOfList = isEndOfList,
             onLoadMore = onLoadMore,
-            key = { it.id }
+            key = { it.displayId }
         ) { collection ->
             GalleryCard(
                 item = collection,
-                onClick = { onCollectionClick(collection.id, collection.title) },
-                onUserClick = { onUserClick(collection.username) }
+                onClick = { onCollectionClick(collection.displayId, collection.displayTitle) },
+                onUserClick = {
+                    collection.displayUsername?.let {
+                        onUserClick(it)
+                    }
+                }
             )
         }
     }
@@ -761,6 +765,9 @@ fun TopicCard(
     }
 }
 
+// -----------------------------
+// Previews
+// -----------------------------
 @Preview(showBackground = true, backgroundColor = 0xFFFFFFFF)
 @Composable
 fun PreviewGalleryUserInfo() {
@@ -792,7 +799,7 @@ fun PreviewGalleryLikeBadge() {
 @Composable
 fun PreviewGalleryCard_SinglePhoto() {
     // Mock single photo
-    val mockItem = FakeGalleryItem(
+    val mockItem = MockGalleryDisplayable(
         displayUsername = "Alice Photographer",
         displayLikes = 340,
         displayCount = 0, // Single photo has no count badge
@@ -810,9 +817,9 @@ fun PreviewGalleryCard_SinglePhoto() {
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Preview(showBackground = true, widthDp = 300)
 @Composable
-fun PreviewGalleryCard_Collection() {
+fun PreviewGalleryCardCollection() {
     // Mock Collection (Multiple images + Top right badge)
-    val mockItem = FakeGalleryItem(
+    val mockItem = MockGalleryDisplayable(
         displayUsername = "Bob Curator",
         displayLikes = 88,
         displayCount = 12, // Display 12 items
@@ -833,19 +840,17 @@ fun PreviewGalleryCard_Collection() {
 }
 
 // --- Mock Data Helper for Previews ---
-// This is a fake data class to enable Preview
-// It implements the GalleryDisplayable interface (fields inferred from code)
-private data class FakeGalleryItem(
+internal data class MockGalleryDisplayable(
     override val displayId: String = "mock_id",
-    override val displayPreviewPhotos: List<GalleryPreview> = emptyList(),
-    override val displayWidth: Int? = 1080,
-    override val displayHeight: Int? = 1080,
-    override val displayUserAvatar: String? = null,
-    override val displayUsername: String? = "Mock User",
-    override val displayName: String? = "Mock Name",
-    override val displayLikes: Int = 0,
-    override val displayCount: Int = 0,
-    override val displayBlurHash: String? = null,
-    override val displayImageUrl: String? = null,
     override val displayTitle: String = "Mock Title",
+    override val displayWidth: Int = 1080,
+    override val displayHeight: Int = 1920,
+    override val displayLikes: Int = 100,
+    override val displayUsername: String = "mock_user",
+    override val displayName: String = "Mock User",
+    override val displayUserAvatar: String? = null,
+    override val displayImageUrl: String? = "https://source.unsplash.com/random/800x600?sig=${displayId}",
+    override val displayBlurHash: String? = "L6PZfSi_.AyE_3t7t7R**0o#DgR4",
+    override val displayCount: Int = 0,
+    override val displayPreviewPhotos: List<GalleryPreview> = emptyList()
 ) : GalleryDisplayable

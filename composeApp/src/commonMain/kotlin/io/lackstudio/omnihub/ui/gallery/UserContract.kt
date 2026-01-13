@@ -7,7 +7,7 @@ data class UserProfile(
     val id: String,
     val username: String,
     val name: String,
-    val avatarUrl: String,
+    val avatarUrl: String?,
     val bio: String?,
     val location: String?,
     // Statistics
@@ -17,20 +17,6 @@ data class UserProfile(
     val portfolioUrl: String? = null,
     val instagramUsername: String? = null,
     val twitterUsername: String? = null
-)
-
-// User photo list (for List)
-data class UserPhoto(
-    val id: String,
-    val url: String,
-    val title: String?,
-    val likes: Int,
-    val blurhash: String?,
-    val width: Int,
-    val height: Int,
-    val userProfileImage: String? = null,
-    val username: String? = null,
-    val name: String? = null
 )
 
 enum class UserTab(val title: String) {
@@ -52,9 +38,9 @@ data class UserDetailUiState(
     val pages: Map<UserTab, Int> = emptyMap(),
 
     val infoState: AppUiState<UserProfile> = AppUiState.Idle,
-    val photosState: AppUiState<List<GalleryPhoto>> = AppUiState.Idle,
-    val collectionsState: AppUiState<List<GalleryCollection>> = AppUiState.Idle,
-    val likesState: AppUiState<List<GalleryPhoto>> = AppUiState.Idle
+    val photosState: AppUiState<List<GalleryDisplayable>> = AppUiState.Idle,
+    val collectionsState: AppUiState<List<GalleryDisplayable>> = AppUiState.Idle,
+    val likesState: AppUiState<List<GalleryDisplayable>> = AppUiState.Idle
 )
 
 // UI Intents

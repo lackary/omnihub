@@ -436,12 +436,19 @@ fun PhotoDetailBottomBar(
     }
 }
 
-// ----------------------------------------------------------------
-// Preview Section
-// ----------------------------------------------------------------
+data class DetailLayoutInfo(
+    val blackBarWidth: Dp,
+    val bottomBlackBarHeight: Dp,
+    val isOutsideHorizontal: Boolean,
+    val isOutsideVertical: Boolean
+)
 
+// ----------------------------------------------------------------
+// Previews
+// ----------------------------------------------------------------
 @OptIn(ExperimentalSharedTransitionApi::class)
-@Preview
+@Preview(name = "Mobile", widthDp = 360, heightDp = 640)
+@Preview(name = "Desktop", widthDp = 1024, heightDp = 768)
 @Composable
 fun PhotoDetailScreenPreview() {
     // Prepare dummy data
@@ -483,10 +490,3 @@ fun PhotoDetailScreenPreview() {
         }
     }
 }
-
-data class DetailLayoutInfo(
-    val blackBarWidth: Dp,
-    val bottomBlackBarHeight: Dp,
-    val isOutsideHorizontal: Boolean,
-    val isOutsideVertical: Boolean
-)
