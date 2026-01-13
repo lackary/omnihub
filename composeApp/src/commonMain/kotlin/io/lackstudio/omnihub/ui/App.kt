@@ -1,7 +1,11 @@
 package io.lackstudio.omnihub.ui
 
+import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionLayout
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding // Manual padding is not needed, NavigationSuiteScaffold will handle it
@@ -43,6 +47,29 @@ data class NavItem(
     val route: Any, // Or use your custom Screen type
     val isSelected: Boolean
 )
+
+// --- Animation Constants ---
+private const val ANIM_DURATION = 300
+
+// [Standard Page] Slide in (enter from the right)
+private fun AnimatedContentTransitionScope<*>.slideIn() =
+    slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Start, tween(ANIM_DURATION))
+
+// [Standard Page] Slide out (exit to the left)
+private fun AnimatedContentTransitionScope<*>.slideOut() =
+    slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Start, tween(ANIM_DURATION))
+
+// [Standard Page] Pop in (return from the left)
+private fun AnimatedContentTransitionScope<*>.slidePopIn() =
+    slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.End, tween(ANIM_DURATION))
+
+// [Standard Page] Pop out (exit to the right - Back)
+private fun AnimatedContentTransitionScope<*>.slidePopOut() =
+    slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.End, tween(ANIM_DURATION))
+
+// [Photo Details] Fade in/out (Since fadeIn/fadeOut are global functions, variables or functions could be used here; keeping it as functions for consistency)
+private fun fadeEnter() = fadeIn(tween(ANIM_DURATION))
+private fun fadeExit() = fadeOut(tween(ANIM_DURATION))
 
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Preview(name = "Mobile", widthDp = 360, heightDp = 640)
@@ -137,7 +164,12 @@ fun App() {
                 }
 
                 // Features
-                composable<Feature.Gallery> {
+                composable<Feature.Gallery>(
+                    enterTransition = { slideIn() },
+                    exitTransition = { slideOut() },
+                    popEnterTransition = { slidePopIn() },
+                    popExitTransition = { slidePopOut() }
+                ) {
                     GalleryScreen(
                         onNavigateToFeature = { feature -> navController.navigate(feature) },
                         onBack = { navController.popBackStack() },
@@ -146,7 +178,12 @@ fun App() {
                     )
                 }
 
-                composable<Feature.Photo> { backStackEntry ->
+                composable<Feature.Photo>(
+                    enterTransition = { fadeEnter() },
+                    exitTransition = { fadeExit() },
+                    popEnterTransition = { fadeEnter() },
+                    popExitTransition = { fadeExit() }
+                ) { backStackEntry ->
                     val route: Feature.Photo = backStackEntry.toRoute()
 
                     PhotoDetailScreen(
@@ -161,7 +198,12 @@ fun App() {
                     )
                 }
 
-                composable<Feature.Collection> { backStackEntry ->
+                composable<Feature.Collection>(
+                    enterTransition = { slideIn() },
+                    exitTransition = { slideOut() },
+                    popEnterTransition = { slidePopIn() },
+                    popExitTransition = { slidePopOut() }
+                ) { backStackEntry ->
                     val route: Feature.Collection = backStackEntry.toRoute()
 
                     CollectionDetailScreen(
@@ -176,7 +218,12 @@ fun App() {
                     )
                 }
 
-                composable<Feature.Topic> { backStackEntry ->
+                composable<Feature.Topic>(
+                    enterTransition = { slideIn() },
+                    exitTransition = { slideOut() },
+                    popEnterTransition = { slidePopIn() },
+                    popExitTransition = { slidePopOut() }
+                ) { backStackEntry ->
                     val route: Feature.Topic = backStackEntry.toRoute()
 
                     TopicDetailScreen(
@@ -191,7 +238,12 @@ fun App() {
                     )
                 }
 
-                composable<Feature.User> { backStackEntry ->
+                composable<Feature.User>(
+                    enterTransition = { slideIn() },
+                    exitTransition = { slideOut() },
+                    popEnterTransition = { slidePopIn() },
+                    popExitTransition = { slidePopOut() }
+                ) { backStackEntry ->
                     val route: Feature.User = backStackEntry.toRoute()
                     UserDetailScreen(
                         username = route.username,
