@@ -1,0 +1,95 @@
+/* --- Material 3 Design Tokens --- */
+:root {
+    /* Background color (Surface) */
+    --md-sys-color-surface: #FEF7FF;
+    /* Text color (On Surface) */
+    --md-sys-color-on-surface: #1D1B20;
+    /* Progress bar track color (Surface Container Highest - usually light grey-purple) */
+    --md-sys-color-surface-container-highest: #E7E0EC;
+    /* Primary color (Primary - here we use a gradient instead of a single color) */
+    --md-sys-color-primary: #65558F;
+}
+
+body {
+    font-family: 'Roboto', sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    margin: 0;
+    background-color: var(--md-sys-color-surface);
+    color: var(--md-sys-color-on-surface);
+}
+
+.logo {
+    margin-bottom: 48px; /* Give some distance between the Logo and the progress bar */
+    filter: drop-shadow(0px 4px 8px rgba(0, 0, 0, 0.1));
+}
+
+#status {
+    margin-top: 24px;
+    font-size: 14px;      /* M3 Label Large / Body Medium */
+    line-height: 20px;
+    font-weight: 500;
+    letter-spacing: 0.1px;
+    color: var(--md-sys-color-on-surface);
+    opacity: 0.8;
+}
+
+/* --- M3 Linear Progress Indicator --- */
+
+.m3-linear-progress {
+    /* M3 Specification: Height 4dp */
+    height: 4px;
+    /* Width: can be fixed (e.g., 200px) or responsive */
+    width: 240px;
+
+    /* Track color */
+    background-color: var(--md-sys-color-surface-container-highest);
+
+    /* M3 Specification: Rounded corners (usually rounded if it's a standalone bar) */
+    border-radius: 4px;
+
+    overflow: hidden; /* Ensure the moving bar inside doesn't overflow the rounded corners */
+    position: relative;
+}
+
+.indeterminate-bar {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+
+    /* Gradient design:
+       To achieve the "moving from left to right" and "seamless loop" effect,
+       we set a background much wider than the container and then move its position.
+    */
+    background: linear-gradient(
+        90deg,
+        transparent 0%,
+        #5383EC 25%,
+        #7F52FF 50%,
+        #5383EC 75%,
+        transparent 100%
+    );
+    background-size: 200% 100%; /* Background is twice the width of the container */
+
+    /* Animation: Linear movement */
+    animation: m3-linear-indeterminate 1.5s linear infinite;
+
+    /* Give the gradient bar slight rounded corners for a softer look */
+    border-radius: 4px;
+}
+
+@keyframes m3-linear-indeterminate {
+    0% {
+        /* Start from outside on the left */
+        transform: translateX(-100%);
+    }
+    100% {
+        /* End outside on the right */
+        transform: translateX(100%);
+    }
+}
