@@ -72,10 +72,10 @@ fun CollectionDetailScreen(
     animatedVisibilityScope: AnimatedVisibilityScope
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    val uiHandler = LocalUriHandler.current
+    val uriHandler = LocalUriHandler.current
 
     LaunchedEffect(collectionId) {
-         viewModel.handleIntent(CollectionDetailIntent.LoadData(collectionId)) // temp id = 8961198
+         viewModel.handleIntent(CollectionDetailIntent.LoadData(collectionId))
     }
 
     Scaffold(
@@ -99,7 +99,7 @@ fun CollectionDetailScreen(
                 },
                 actions = {
                     IconButton(onClick = {
-                        uiHandler.openUri(UnsplashLinks.collection(collectionId))
+                        uriHandler.openUri(UnsplashLinks.collection(collectionId))
                     }) {
                         Icon(
                             painter = painterResource(Res.drawable.ic_unsplash),

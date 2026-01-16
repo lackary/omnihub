@@ -2,6 +2,7 @@ package io.lackstudio.omnihub.ui.gallery
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.AnimatedVisibilityScope
+import androidx.compose.animation.Crossfade
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.animation.SharedTransitionScope
@@ -15,8 +16,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
@@ -25,6 +28,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.input.key.Key
@@ -34,6 +38,8 @@ import androidx.compose.ui.input.key.isMetaPressed
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
@@ -41,6 +47,7 @@ import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.flowWithLifecycle
+import coil3.compose.AsyncImage
 import io.lackstudio.omnifeed.ui.state.AppUiState
 import io.lackstudio.omnihub.platform.isPullToRefreshSupported
 import io.lackstudio.omnihub.ui.navigation.Feature
@@ -70,6 +77,10 @@ fun GalleryScreen(
     // Triggered when the page becomes "Resume" (visible and interactive)
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
         println("App returned to foreground, you can perform desired actions")
+    }
+
+    LifecycleEventEffect(Lifecycle.Event.ON_START) {
+        viewModel.handleIntent(GalleryIntent.CheckAuth)
     }
 
     // Collect ViewModel state
@@ -109,6 +120,7 @@ fun GalleryScreenContent(
     var isSearching by remember { mutableStateOf(false) }
 
     val lifecycleOwner = LocalLifecycleOwner.current
+    val uriHandler = LocalUriHandler.current
     // Observe SideEffect and ensure Snackbar events are received only when in foreground
     // Use flowWithLifecycle to bind lifecycle
     // Safety: When the App goes to background (STOPPED), collection is automatically "paused" to avoid wasting resources on UI actions.
@@ -125,6 +137,10 @@ fun GalleryScreenContent(
                         message = effect.message,
                         duration = SnackbarDuration.Short
                     )
+                }
+                is GallerySideEffect.OpenUrl -> {
+                    println("login url: ${effect.url}")
+                    uriHandler.openUri(effect.url)
                 }
             }
         }
@@ -207,6 +223,15 @@ fun GalleryScreenContent(
                     }
                 },
                 actions = {
+                    IconButton(onClick = {
+                        // If search logic is needed here, it can also be passed out via onEvent
+                        isSearching = !isSearching
+                    }) {
+                        Icon(
+                            imageVector = Icons.Filled.Search,
+                            contentDescription = stringResource(Res.string.search)
+                        )
+                    }
                     if (!isPullToRefreshSupported) {
                         IconButton(
                             onClick = { onRefreshAction() },
@@ -228,15 +253,39 @@ fun GalleryScreenContent(
                             }
                         }
                     }
-
-                    IconButton(onClick = {
-                        // If search logic is needed here, it can also be passed out via onEvent
-                        isSearching = !isSearching
-                    }) {
-                        Icon(
-                            imageVector = Icons.Filled.Search,
-                            contentDescription = stringResource(Res.string.search)
-                        )
+                    IconButton(
+                        onClick = {
+                            state.meProfile?.let {
+                                onNavigateToFeature(Feature.User(it.username))
+                            }?: onEvent(GalleryIntent.Login)
+                        }
+                    ) {
+                        Crossfade(targetState = state.meProfile) { profile ->
+                            if (profile != null) {
+                                AsyncImage(
+                                    model = profile.profileImage.small,
+                                    contentDescription = "My Avatar",
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier
+                                        .size(32.dp)  // Set avatar display size
+                                        .clip(CircleShape) // Clip to circle
+                                )
+                            } else {
+                                if (state.isAuthenticating) {
+                                    // If authenticating, show progress indicator instead of an icon
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(24.dp), // Same size as the Icon
+                                        strokeWidth = 2.dp,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                } else {
+                                    Icon(
+                                        imageVector = Icons.Filled.AccountCircle,
+                                        contentDescription = "Login"
+                                    )
+                                }
+                            }
+                        }
                     }
                 },
             )

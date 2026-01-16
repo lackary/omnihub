@@ -7,6 +7,7 @@ import androidx.compose.material.icons.filled.Topic
 import androidx.compose.runtime.Immutable
 import androidx.compose.ui.graphics.vector.ImageVector
 import io.lackstudio.omnifeed.ui.state.AppUiState
+import io.lackstudio.omnifeed.unsplash.domain.model.Me
 
 // Define display interface
 // All objects that want to be displayed with GalleryCard must implement this interface
@@ -141,7 +142,10 @@ data class GalleryUiState(
     val collectionsEndOfList: Boolean = false,
 
     val topicsState: AppUiState<List<GalleryTopic>> = AppUiState.Idle,
-    val topicsEndOfList: Boolean = false
+    val topicsEndOfList: Boolean = false,
+
+    val meProfile: Me? = null,
+    val isAuthenticating: Boolean = false
 )
 
 // Define Intents (User intents)
@@ -149,9 +153,12 @@ sealed interface GalleryIntent {
     data class SelectTab(val tab: GalleryTab) : GalleryIntent
     data object Refresh : GalleryIntent
     data object LoadMore : GalleryIntent
+    data object Login : GalleryIntent
+    data object CheckAuth : GalleryIntent
 }
 
 // Define One-time Events (Side Effect)
 sealed interface GallerySideEffect {
     data class ShowSnackbar(val message: String) : GallerySideEffect
+    data class OpenUrl(val url: String) : GallerySideEffect
 }

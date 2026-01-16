@@ -1,24 +1,37 @@
 package io.lackstudio.omnihub.ui.gallery
 
+import androidx.lifecycle.viewModelScope
 import io.lackstudio.omnifeed.core.domain.usecase.UseCaseResult
+import io.lackstudio.omnifeed.core.network.oauth.AccessTokenProvider
 import io.lackstudio.omnifeed.ui.state.AppUiState
 import io.lackstudio.omnifeed.ui.viewmodel.BaseViewModel
+import io.lackstudio.omnifeed.unsplash.domain.usecase.ExchangeOAuthUseCase
+import io.lackstudio.omnifeed.unsplash.domain.model.OAuthCode as UnsplashOAuthCode
 import io.lackstudio.omnifeed.unsplash.domain.usecase.GetCollectionsParams
 import io.lackstudio.omnifeed.unsplash.domain.usecase.GetCollectionsUseCase
+import io.lackstudio.omnifeed.unsplash.domain.usecase.GetMeUseCase
 import io.lackstudio.omnifeed.unsplash.domain.usecase.GetPhotosParams
 import io.lackstudio.omnifeed.unsplash.domain.usecase.GetPhotosUseCase
 import io.lackstudio.omnifeed.unsplash.domain.usecase.GetTopicsParams
 import io.lackstudio.omnifeed.unsplash.domain.usecase.GetTopicsUseCase
+import io.lackstudio.omnihub.auth.DeepLinkBuffer
+import io.lackstudio.omnihub.platform.getUnsplashAccessKey
+import io.lackstudio.omnihub.platform.getUnsplashSecretKey
+import io.lackstudio.omnihub.utils.Environment
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 
 class GalleryViewModel(
     private val getPhotosUseCase: GetPhotosUseCase,
     private val getCollectionsUseCase: GetCollectionsUseCase,
-    private val getTopicsUseCase: GetTopicsUseCase
+    private val getTopicsUseCase: GetTopicsUseCase,
+    private val exchangeOAuthUseCase: ExchangeOAuthUseCase,
+    private val accessTokenProvider: AccessTokenProvider,
+    private val meUseCase: GetMeUseCase,
 ) : BaseViewModel() {
 
     private val _state = MutableStateFlow(GalleryUiState())
@@ -29,7 +42,6 @@ class GalleryViewModel(
     // Expose as Flow for UI observation
     val sideEffect = _sideEffect.receiveAsFlow()
 
-    // Page number trackers (defaults to page 1)
     private var photosPage = 1
     private var collectionsPage = 1
     private var topicsPage = 1
@@ -40,6 +52,18 @@ class GalleryViewModel(
 
     init {
         fetchPhotos(1)
+
+        viewModelScope.launch {
+            accessTokenProvider.authToken.collect { token ->
+                if (token.value.isNotEmpty()) {
+                    // If token exists -> fetch user profile
+                    fetchMeProfile()
+                } else {
+                    // If no token (e.g., just logged out) -> clear user profile
+                    _state.update { it.copy(meProfile = null) }
+                }
+            }
+        }
     }
 
     fun handleIntent(intent: GalleryIntent) {
@@ -65,7 +89,74 @@ class GalleryViewModel(
             is GalleryIntent.LoadMore -> {
                 loadNextPage()
             }
+            is GalleryIntent.Login ->  {
+                login()
+            }
+
+            is GalleryIntent.CheckAuth -> {
+                handleAuthCallback()
+            }
         }
+    }
+
+    private fun login() {
+        val loginUrl = getLoginUrl()
+        viewModelScope.launch {
+            _sideEffect.send(GallerySideEffect.OpenUrl(loginUrl))
+        }
+    }
+
+    private fun handleAuthCallback() {
+        val code = DeepLinkBuffer.consumeCode() ?: return
+        val unsplashOAuthCode = UnsplashOAuthCode(
+            clientId = getUnsplashAccessKey(),
+            clientSecret = getUnsplashSecretKey(),
+            redirectUri = Environment.AUTH_REDIRECT_URL,
+            code = code
+        )
+
+        handleUseCaseCall(
+            useCase = { exchangeOAuthUseCase(unsplashOAuthCode) },
+            onLoading = {
+                _state.update { it.copy(isAuthenticating = true) }
+            },
+            onSuccess = { data ->
+                // Handle successful login
+                viewModelScope.launch {
+                    accessTokenProvider.setOAuthToken(data.tokenType, data.accessToken)
+
+                    _state.update { it.copy(isAuthenticating = false) }
+                    _sideEffect.send(GallerySideEffect.ShowSnackbar("Login Successful!"))
+
+                    // Trigger refresh to update UI with logged-in state (e.g., User Profile, Likes)
+                    fetchMeProfile()
+                }
+            },
+            onError = { errorMessage ->
+                viewModelScope.launch {
+                    _state.update { it.copy(isAuthenticating = false) }
+                    _sideEffect.send(GallerySideEffect.ShowSnackbar("Login Failed: $errorMessage"))
+                }
+            }
+        )
+    }
+
+    private fun fetchMeProfile() {
+        if (_state.value.meProfile != null) return
+
+        handleUseCaseCall(
+            useCase = { meUseCase(Unit) },
+            onLoading = { },
+            onSuccess = { me ->
+                _state.update { it.copy(meProfile = me) }
+
+                refreshCurrentTab()
+            },
+            onError = { errorMessage ->
+                println("Fetch profile failed: $errorMessage")
+            }
+
+        )
     }
 
     private fun refreshCurrentTab() {
@@ -79,7 +170,7 @@ class GalleryViewModel(
     private fun loadNextPage() {
         val currentTab = _state.value.currentTab
         // Check if the Tab is currently loading
-        if (loadingStatus.getValue(currentTab)) return
+        if (loadingStatus[currentTab] == true) return
 
         // If refreshing, do not trigger load more to avoid data inconsistency
         val isRefreshing = _state.value.refreshingStatus[currentTab] ?: false
@@ -289,5 +380,13 @@ class GalleryViewModel(
             },
             onSuccessUpdatePage = { topicsPage = page }
         )
+    }
+
+    private fun getLoginUrl(): String {
+        return "https://unsplash.com/oauth/authorize" +
+                "?client_id=${getUnsplashAccessKey()}" +
+                "&redirect_uri=${Environment.AUTH_REDIRECT_URL}" +
+                "&response_type=code" +
+                "&scope=public"
     }
 }
