@@ -154,7 +154,6 @@ sealed interface GalleryIntent {
     data object Refresh : GalleryIntent
     data object LoadMore : GalleryIntent
     data object Login : GalleryIntent
-    data object CheckAuth : GalleryIntent
 }
 
 // Define One-time Events (Side Effect)

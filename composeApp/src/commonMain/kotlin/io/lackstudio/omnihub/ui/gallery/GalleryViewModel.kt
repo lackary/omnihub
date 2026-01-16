@@ -64,6 +64,22 @@ class GalleryViewModel(
                 }
             }
         }
+
+        viewModelScope.launch {
+            DeepLinkBuffer.deepLinkUrl.collect { url ->
+                if (url != null && url.contains("code=")) {
+                    val code = url.substringAfter("code=").substringBefore("&")
+
+                    println("✅ ViewModel detected code: $code")
+
+                    // Execute login logic
+                    handleAuthCallback(code)
+
+                    // Clear Buffer to avoid duplication
+                    DeepLinkBuffer.consumeDeepLink()
+                }
+            }
+        }
     }
 
     fun handleIntent(intent: GalleryIntent) {
@@ -92,10 +108,6 @@ class GalleryViewModel(
             is GalleryIntent.Login ->  {
                 login()
             }
-
-            is GalleryIntent.CheckAuth -> {
-                handleAuthCallback()
-            }
         }
     }
 
@@ -106,8 +118,7 @@ class GalleryViewModel(
         }
     }
 
-    private fun handleAuthCallback() {
-        val code = DeepLinkBuffer.consumeCode() ?: return
+    private fun handleAuthCallback(code: String) {
         val unsplashOAuthCode = UnsplashOAuthCode(
             clientId = getUnsplashAccessKey(),
             clientSecret = getUnsplashSecretKey(),

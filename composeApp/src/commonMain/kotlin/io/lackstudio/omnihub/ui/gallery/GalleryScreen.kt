@@ -79,10 +79,6 @@ fun GalleryScreen(
         println("App returned to foreground, you can perform desired actions")
     }
 
-    LifecycleEventEffect(Lifecycle.Event.ON_START) {
-        viewModel.handleIntent(GalleryIntent.CheckAuth)
-    }
-
     // Collect ViewModel state
     val state by viewModel.state.collectAsStateWithLifecycle()
 

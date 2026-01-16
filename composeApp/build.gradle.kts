@@ -6,6 +6,7 @@ import java.util.Properties
 
 val appPackageName = "io.lackstudio.omnihub"
 val unsplashAccessKeyName = "UNSPLASH_ACCESS_KEY"
+val unsplashSecretKeyName = "UNSPLASH_SECRET_KEY"
 
 // Read buildNumber, default to 1 if not provided (e.g. during development)
 val buildNumberProp = project.findProperty("buildNumber") as? String
@@ -40,11 +41,13 @@ buildkonfig {
     packageName = appPackageName
 
     val unsplashAccessKey = resolveConfigValue(unsplashAccessKeyName, project) ?: ""
+    val unsplashSecretKey = resolveConfigValue(unsplashSecretKeyName, project)
 
     defaultConfigs {
         buildConfigField(STRING, "APP_VERSION", project.version.toString()) // Automatically reads from gradle.properties)
         buildConfigField(STRING, "APP_BUILD_NUMBER", appBuildNumber.toString())
         buildConfigField(STRING, unsplashAccessKeyName, unsplashAccessKey)
+        buildConfigField(STRING, unsplashSecretKeyName, unsplashSecretKey)
     }
 }
 
@@ -208,6 +211,24 @@ compose.desktop {
                 // If the project version is already 1.0.0 or higher, use the project version directly
                 val verStr = project.version.toString()
                 dmgPackageVersion = if (verStr.startsWith("0.")) "1.0.0" else verStr
+
+                macOS {
+                    infoPlist {
+                        extraKeysRawXml = """
+                        <key>CFBundleURLTypes</key>
+                        <array>
+                            <dict>
+                                <key>CFBundleURLName</key>
+                                <string>io.lackstudio.omnihub</string>
+                                <key>CFBundleURLSchemes</key>
+                                <array>
+                                    <string>omnihub</string>
+                                </array>
+                            </dict>
+                        </array>
+                    """.trimIndent()
+                    }
+                }
             }
         }
     }
