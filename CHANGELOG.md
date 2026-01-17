@@ -1,3 +1,19 @@
+# [0.13.0](https://github.com/lackary/omnihub/compare/v0.12.0...v0.13.0) (2026-01-17)
+
+
+### Bug Fixes
+
+* **auth:** resolve race condition by using reactive deep link handling ([32637de](https://github.com/lackary/omnihub/commit/32637de62532fd25af63a9d95dfe679a96a10def))
+* **build:** add fallback for Unsplash secret key in BuildKonfig ([1166992](https://github.com/lackary/omnihub/commit/116699244d01abc304aa83ae7149b97f797fce97))
+
+
+### Features
+
+* **auth:** implement cross-platform OAuth2 login flow ([030484a](https://github.com/lackary/omnihub/commit/030484a53d1d71682b4157c23c6aecc342d3f06f))
+* **auth:** implement static OAuth callback page and deployment workflow ([202ff8e](https://github.com/lackary/omnihub/commit/202ff8e6167523a3f8f1a4468e77e5a8ea9bc577))
+* **auth:** implement Unsplash OAuth authentication and deep linking ([c3beb0d](https://github.com/lackary/omnihub/commit/c3beb0d223294629f92bef0601f9947bcb04c632))
+* **ios:** implement deep link handling ([8688d02](https://github.com/lackary/omnihub/commit/8688d025c203575af2f2825709dca66cc5ee4fdc))
+
 # [0.12.0](https://github.com/lackary/omnihub/compare/v0.11.0...v0.12.0) (2026-01-13)
 
 
