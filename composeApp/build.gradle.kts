@@ -41,7 +41,7 @@ buildkonfig {
     packageName = appPackageName
 
     val unsplashAccessKey = resolveConfigValue(unsplashAccessKeyName, project) ?: ""
-    val unsplashSecretKey = resolveConfigValue(unsplashSecretKeyName, project)
+    val unsplashSecretKey = resolveConfigValue(unsplashSecretKeyName, project) ?: ""
 
     defaultConfigs {
         buildConfigField(STRING, "APP_VERSION", project.version.toString()) // Automatically reads from gradle.properties)
