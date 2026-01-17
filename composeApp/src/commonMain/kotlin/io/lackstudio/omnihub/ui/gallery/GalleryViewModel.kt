@@ -1,24 +1,38 @@
 package io.lackstudio.omnihub.ui.gallery
 
+import androidx.lifecycle.viewModelScope
 import io.lackstudio.omnifeed.core.domain.usecase.UseCaseResult
+import io.lackstudio.omnifeed.core.network.oauth.AccessTokenProvider
 import io.lackstudio.omnifeed.ui.state.AppUiState
 import io.lackstudio.omnifeed.ui.viewmodel.BaseViewModel
+import io.lackstudio.omnifeed.unsplash.domain.usecase.ExchangeOAuthUseCase
+import io.lackstudio.omnifeed.unsplash.domain.model.OAuthCode as UnsplashOAuthCode
 import io.lackstudio.omnifeed.unsplash.domain.usecase.GetCollectionsParams
 import io.lackstudio.omnifeed.unsplash.domain.usecase.GetCollectionsUseCase
+import io.lackstudio.omnifeed.unsplash.domain.usecase.GetMeUseCase
 import io.lackstudio.omnifeed.unsplash.domain.usecase.GetPhotosParams
 import io.lackstudio.omnifeed.unsplash.domain.usecase.GetPhotosUseCase
 import io.lackstudio.omnifeed.unsplash.domain.usecase.GetTopicsParams
 import io.lackstudio.omnifeed.unsplash.domain.usecase.GetTopicsUseCase
+import io.lackstudio.omnihub.auth.AuthManager
+import io.lackstudio.omnihub.auth.DeepLinkBuffer
+import io.lackstudio.omnihub.platform.getUnsplashAccessKey
+import io.lackstudio.omnihub.platform.getUnsplashSecretKey
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 
 class GalleryViewModel(
+    private val authManager: AuthManager,
     private val getPhotosUseCase: GetPhotosUseCase,
     private val getCollectionsUseCase: GetCollectionsUseCase,
-    private val getTopicsUseCase: GetTopicsUseCase
+    private val getTopicsUseCase: GetTopicsUseCase,
+    private val exchangeOAuthUseCase: ExchangeOAuthUseCase,
+    private val accessTokenProvider: AccessTokenProvider,
+    private val meUseCase: GetMeUseCase,
 ) : BaseViewModel() {
 
     private val _state = MutableStateFlow(GalleryUiState())
@@ -29,10 +43,11 @@ class GalleryViewModel(
     // Expose as Flow for UI observation
     val sideEffect = _sideEffect.receiveAsFlow()
 
-    // Page number trackers (defaults to page 1)
     private var photosPage = 1
     private var collectionsPage = 1
     private var topicsPage = 1
+
+    private var lastUsedRedirectUri: String? = null
 
     // Flag to prevent duplicate loading (avoid triggering API multiple times on scroll)
     // Use Map to track loading status of each Tab
@@ -40,6 +55,36 @@ class GalleryViewModel(
 
     init {
         fetchPhotos(1)
+
+        viewModelScope.launch {
+            accessTokenProvider.authToken.collect { token ->
+                // public type is Client-ID
+                // OAuth2 type is Bearer
+                if (token.type == "Bearer") {
+                    // If token type is Bear -> fetch user profile
+                    fetchMeProfile()
+                } else {
+                    // If no token (e.g., just logged out) -> clear user profile
+                    _state.update { it.copy(meProfile = null) }
+                }
+            }
+        }
+
+        viewModelScope.launch {
+            DeepLinkBuffer.deepLinkUrl.collect { url ->
+                if (url != null && url.contains("code=")) {
+                    val code = url.substringAfter("code=").substringBefore("&")
+
+                    println("✅ ViewModel detected code: $code")
+
+                    // Execute login logic
+                    handleAuthCallback(code)
+
+                    // Clear Buffer to avoid duplication
+                    DeepLinkBuffer.consumeDeepLink()
+                }
+            }
+        }
     }
 
     fun handleIntent(intent: GalleryIntent) {
@@ -65,7 +110,73 @@ class GalleryViewModel(
             is GalleryIntent.LoadMore -> {
                 loadNextPage()
             }
+            is GalleryIntent.Login ->  {
+                login()
+            }
         }
+    }
+
+    private fun login() {
+        // Ask AuthManager which redirect URI to use
+        val redirectUri = authManager.getRedirectUrl()
+
+        // Store it for token exchange later
+        lastUsedRedirectUri = redirectUri
+
+        // Build the authorization URL
+        val authUrl = getAuthUrl(redirectUri)
+
+        authManager.startLogin(authUrl)
+    }
+
+    private fun handleAuthCallback(code: String) {
+        val redirectUriToUse = lastUsedRedirectUri ?: authManager.getRedirectUrl()
+        val unsplashOAuthCode = UnsplashOAuthCode(
+            clientId = getUnsplashAccessKey(),
+            clientSecret = getUnsplashSecretKey(),
+            redirectUri =  redirectUriToUse,
+            code = code
+        )
+
+        handleUseCaseCall(
+            useCase = { exchangeOAuthUseCase(unsplashOAuthCode) },
+            onLoading = {
+                _state.update { it.copy(isAuthenticating = true) }
+            },
+            onSuccess = { data ->
+                // Handle successful login
+                viewModelScope.launch {
+                    accessTokenProvider.setOAuthToken(data.tokenType, data.accessToken)
+
+                    _state.update { it.copy(isAuthenticating = false) }
+                    _sideEffect.send(GallerySideEffect.ShowSnackbar("Login Successful!"))
+                }
+            },
+            onError = { errorMessage ->
+                viewModelScope.launch {
+                    _state.update { it.copy(isAuthenticating = false) }
+                    _sideEffect.send(GallerySideEffect.ShowSnackbar("Login Failed: $errorMessage"))
+                }
+            }
+        )
+    }
+
+    private fun fetchMeProfile() {
+        if (_state.value.meProfile != null) return
+
+        handleUseCaseCall(
+            useCase = { meUseCase(Unit) },
+            onLoading = { },
+            onSuccess = { me ->
+                _state.update { it.copy(meProfile = me) }
+
+                refreshCurrentTab()
+            },
+            onError = { errorMessage ->
+                println("Fetch profile failed: $errorMessage")
+            }
+
+        )
     }
 
     private fun refreshCurrentTab() {
@@ -79,7 +190,7 @@ class GalleryViewModel(
     private fun loadNextPage() {
         val currentTab = _state.value.currentTab
         // Check if the Tab is currently loading
-        if (loadingStatus.getValue(currentTab)) return
+        if (loadingStatus[currentTab] == true) return
 
         // If refreshing, do not trigger load more to avoid data inconsistency
         val isRefreshing = _state.value.refreshingStatus[currentTab] ?: false
@@ -289,5 +400,13 @@ class GalleryViewModel(
             },
             onSuccessUpdatePage = { topicsPage = page }
         )
+    }
+
+    private fun getAuthUrl(redirectUrl: String): String {
+        return "https://unsplash.com/oauth/authorize" +
+                "?client_id=${getUnsplashAccessKey()}" +
+                "&response_type=code" +
+                "&scope=public" +
+                "&redirect_uri=$redirectUrl"
     }
 }

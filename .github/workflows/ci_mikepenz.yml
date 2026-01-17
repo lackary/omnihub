@@ -10,6 +10,8 @@ on:
       - 'run_act_safe.sh'
       - '.releaserc.yml'
       - '.github/workflows/release.yml'
+      - '.github/workflows/deploy_auth_web.yml'
+      - 'site/**'
   pull_request:
     branches: [ "main" ]
     paths-ignore:
@@ -19,6 +21,8 @@ on:
       - 'run_act_safe.sh'
       - '.releaserc.yml'
       - '.github/workflows/release.yml'
+      - '.github/workflows/deploy_auth_web.yml'
+      - 'site/**'
 
   workflow_dispatch:
     inputs:

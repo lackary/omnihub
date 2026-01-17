@@ -4,6 +4,7 @@ import io.lackstudio.omnifeed.core.common.util.appPlatformLogWriter
 import io.lackstudio.omnifeed.core.di.appLoggerModule
 import io.lackstudio.omnifeed.unsplash.di.unsplashModule
 import io.lackstudio.omnifeed.unsplash.utils.Environment.AUTH_SCHEME_PUBLIC
+import io.lackstudio.omnihub.platform.authModule
 import io.lackstudio.omnihub.platform.getUnsplashAccessKey
 import org.koin.core.context.startKoin
 import org.koin.dsl.KoinAppDeclaration
@@ -14,6 +15,7 @@ fun initKoin(config: KoinAppDeclaration? = null) {
         config?.invoke(this) // Allow platforms to pass extra configuration (e.g., Android Context)
         modules(
             appModule,
+            authModule,
             appLoggerModule(appPlatformLogWriter()),
             unsplashModule(
                 tokenType = AUTH_SCHEME_PUBLIC,

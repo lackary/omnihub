@@ -11,7 +11,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding // Manual padding is not needed, NavigationSuiteScaffold will handle it
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -34,7 +34,8 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
-import io.lackstudio.omnihub.ui.account.AccountScreen
+import io.lackstudio.omnihub.auth.DeepLinkBuffer
+import io.lackstudio.omnihub.ui.settings.SettingsScreen
 import io.lackstudio.omnihub.ui.gallery.CollectionDetailScreen
 import io.lackstudio.omnihub.ui.gallery.GalleryScreen
 import io.lackstudio.omnihub.ui.gallery.PhotoDetailScreen
@@ -108,17 +109,25 @@ fun App() {
     val navItems = listOf(
         NavItem(
             label = "Home",
-            icon = Icons.Default.Home,
+            icon = Icons.Filled.Home,
             route = Screen.Home,
             isSelected = currentDestination?.hasRoute<Screen.Home>() == true
         ),
         NavItem(
-            label = "Account",
-            icon = Icons.Default.Person,
-            route = Screen.Account,
-            isSelected = currentDestination?.hasRoute<Screen.Account>() == true
+            label = "Settings",
+            icon = Icons.Filled.Settings,
+            route = Screen.Settings,
+            isSelected = currentDestination?.hasRoute<Screen.Settings>() == true
         )
     )
+
+    // Resolve issue where web cannot redirect to Gallery page after successful OAuth2 login
+    val startDestination: Any = remember {
+        val hasAuthCode = DeepLinkBuffer.deepLinkUrl.value?.contains("code=") == true
+        // If an auth code is present, navigate directly to Gallery (letting ViewModel handle login);
+        // otherwise, go to the Home screen.
+        if (hasAuthCode)  Feature.Gallery else Screen.Home
+    }
 
     // Use NavigationSuiteScaffold instead of the original Scaffold
     NavigationSuiteScaffold(
@@ -164,7 +173,7 @@ fun App() {
                 // NavigationSuiteScaffold automatically handles the layout
                 NavHost(
                     navController = navController,
-                    startDestination = Screen.Home,
+                    startDestination = startDestination,
                     modifier = Modifier
                         .fillMaxSize()
                 ) {
@@ -176,8 +185,8 @@ fun App() {
                     }
 
                     // Account Screen
-                    composable<Screen.Account> {
-                        AccountScreen(
+                    composable<Screen.Settings> {
+                        SettingsScreen(
                             onNavigateToFeature = onNavigate
                         )
                     }
