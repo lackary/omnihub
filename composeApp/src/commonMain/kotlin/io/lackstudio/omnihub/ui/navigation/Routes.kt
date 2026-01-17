@@ -8,7 +8,7 @@ sealed interface Screen {
     data object Home : Screen
 
     @Serializable
-    data object Account : Screen
+    data object Settings : Screen
 
 }
 

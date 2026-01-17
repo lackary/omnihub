@@ -14,10 +14,10 @@ import io.lackstudio.omnifeed.unsplash.domain.usecase.GetPhotosParams
 import io.lackstudio.omnifeed.unsplash.domain.usecase.GetPhotosUseCase
 import io.lackstudio.omnifeed.unsplash.domain.usecase.GetTopicsParams
 import io.lackstudio.omnifeed.unsplash.domain.usecase.GetTopicsUseCase
+import io.lackstudio.omnihub.auth.AuthManager
 import io.lackstudio.omnihub.auth.DeepLinkBuffer
 import io.lackstudio.omnihub.platform.getUnsplashAccessKey
 import io.lackstudio.omnihub.platform.getUnsplashSecretKey
-import io.lackstudio.omnihub.utils.Environment
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -26,6 +26,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 class GalleryViewModel(
+    private val authManager: AuthManager,
     private val getPhotosUseCase: GetPhotosUseCase,
     private val getCollectionsUseCase: GetCollectionsUseCase,
     private val getTopicsUseCase: GetTopicsUseCase,
@@ -46,6 +47,8 @@ class GalleryViewModel(
     private var collectionsPage = 1
     private var topicsPage = 1
 
+    private var lastUsedRedirectUri: String? = null
+
     // Flag to prevent duplicate loading (avoid triggering API multiple times on scroll)
     // Use Map to track loading status of each Tab
     private val loadingStatus = mutableMapOf<GalleryTab, Boolean>().withDefault { false }
@@ -55,8 +58,10 @@ class GalleryViewModel(
 
         viewModelScope.launch {
             accessTokenProvider.authToken.collect { token ->
-                if (token.value.isNotEmpty()) {
-                    // If token exists -> fetch user profile
+                // public type is Client-ID
+                // OAuth2 type is Bearer
+                if (token.type == "Bearer") {
+                    // If token type is Bear -> fetch user profile
                     fetchMeProfile()
                 } else {
                     // If no token (e.g., just logged out) -> clear user profile
@@ -112,17 +117,24 @@ class GalleryViewModel(
     }
 
     private fun login() {
-        val loginUrl = getLoginUrl()
-        viewModelScope.launch {
-            _sideEffect.send(GallerySideEffect.OpenUrl(loginUrl))
-        }
+        // Ask AuthManager which redirect URI to use
+        val redirectUri = authManager.getRedirectUrl()
+
+        // Store it for token exchange later
+        lastUsedRedirectUri = redirectUri
+
+        // Build the authorization URL
+        val authUrl = getAuthUrl(redirectUri)
+
+        authManager.startLogin(authUrl)
     }
 
     private fun handleAuthCallback(code: String) {
+        val redirectUriToUse = lastUsedRedirectUri ?: authManager.getRedirectUrl()
         val unsplashOAuthCode = UnsplashOAuthCode(
             clientId = getUnsplashAccessKey(),
             clientSecret = getUnsplashSecretKey(),
-            redirectUri = Environment.AUTH_REDIRECT_URL,
+            redirectUri =  redirectUriToUse,
             code = code
         )
 
@@ -138,9 +150,6 @@ class GalleryViewModel(
 
                     _state.update { it.copy(isAuthenticating = false) }
                     _sideEffect.send(GallerySideEffect.ShowSnackbar("Login Successful!"))
-
-                    // Trigger refresh to update UI with logged-in state (e.g., User Profile, Likes)
-                    fetchMeProfile()
                 }
             },
             onError = { errorMessage ->
@@ -393,11 +402,11 @@ class GalleryViewModel(
         )
     }
 
-    private fun getLoginUrl(): String {
+    private fun getAuthUrl(redirectUrl: String): String {
         return "https://unsplash.com/oauth/authorize" +
                 "?client_id=${getUnsplashAccessKey()}" +
-                "&redirect_uri=${Environment.AUTH_REDIRECT_URL}" +
                 "&response_type=code" +
-                "&scope=public"
+                "&scope=public" +
+                "&redirect_uri=$redirectUrl"
     }
 }

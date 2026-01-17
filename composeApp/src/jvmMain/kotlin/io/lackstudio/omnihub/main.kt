@@ -12,6 +12,7 @@ import io.lackstudio.omnihub.ui.App
 fun main() = application {
 
     initKoin()
+
     val windowState = rememberWindowState(
         placement = WindowPlacement.Floating,
         position = WindowPosition.PlatformDefault,

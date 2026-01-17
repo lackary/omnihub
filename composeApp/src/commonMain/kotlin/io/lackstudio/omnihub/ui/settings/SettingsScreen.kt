@@ -1,4 +1,4 @@
-package io.lackstudio.omnihub.ui.account
+package io.lackstudio.omnihub.ui.settings
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
@@ -26,13 +26,13 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AccountScreen(
+fun SettingsScreen(
     onNavigateToFeature: (Feature) -> Unit
 ) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Account") } // "Account" title to indicate current screen
+                title = { Text("Settings") } // "Account" title to indicate current screen
             )
         }
     ) { innerPadding ->
@@ -44,7 +44,7 @@ fun AccountScreen(
             horizontalAlignment = Alignment.CenterHorizontally // Center content horizontally
         ) {
             // ... User profile information at the top ...
-            Text("User Profile", style = MaterialTheme.typography.titleLarge)
+            Text("About", style = MaterialTheme.typography.titleLarge)
 
             Spacer(modifier = Modifier.weight(1f)) // Push content to the bottom
 
@@ -103,7 +103,7 @@ fun VersionFooter(
 @Preview
 @Composable
 fun AccountScreenPreview() {
-    AccountScreen (
+    SettingsScreen (
         onNavigateToFeature = {} // Provide an empty lambda to satisfy parameter requirements
     )
 }
