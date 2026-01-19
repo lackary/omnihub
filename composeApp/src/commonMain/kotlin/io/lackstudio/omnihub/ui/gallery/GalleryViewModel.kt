@@ -307,18 +307,18 @@ class GalleryViewModel(
             getOldList = { state -> (state.photosState as? AppUiState.Success)?.data },
             useCase = { getPhotosUseCase(params) },
             mapper = { list ->
-                list.map {
+                list.map { photo ->
                     GalleryPhoto(
-                        it.id,
-                        url = it.urls.small,
-                        title = it.description ?: "",
-                        userProfileImage = it.user.profileImage.small,
-                        username = it.user.username,
-                        name = it.user.name,
-                        likes = it.likes,
-                        blurhash = it.blurHash,
-                        width = it.width,
-                        height = it.height
+                        id = photo.id,
+                        url = photo.urls.small,
+                        title = photo.description ?: "",
+                        userProfileImage = photo.user.profileImage.small,
+                        username = photo.user.username,
+                        name = photo.user.name,
+                        likes = photo.likes,
+                        blurhash = photo.blurHash,
+                        width = photo.width,
+                        height = photo.height
                     )
                 } },
             distinctBy = { it.id },
@@ -340,20 +340,20 @@ class GalleryViewModel(
             getOldList = { state -> (state.collectionsState as? AppUiState.Success)?.data },
             useCase = { getCollectionsUseCase(params) },
             mapper = { list ->
-                list.map {
+                list.map { collection ->
                     GalleryCollection(
-                        id = it.id,
-                        coverUrl = it.coverPhoto?.urls?.small,
-                        title = it.title,
-                        totalPhotos = it.totalPhotos,
-                        userProfileImage = it.user.profileImage.small,
-                        username = it.user.username,
-                        name = it.user.name,
-                        blurhash = it.coverPhoto?.blurHash,
-                        width = it.coverPhoto?.width,
-                        height = it.coverPhoto?.height,
+                        id = collection.id,
+                        coverUrl = collection.coverPhoto?.urls?.small,
+                        title = collection.title,
+                        totalPhotos = collection.totalPhotos,
+                        userProfileImage = collection.user.profileImage.small,
+                        username = collection.user.username,
+                        name = collection.user.name,
+                        blurhash = collection.coverPhoto?.blurHash,
+                        width = collection.coverPhoto?.width,
+                        height = collection.coverPhoto?.height,
                         previewPhotos =
-                            it.previewPhotos?.map { previewPhoto ->
+                            collection.previewPhotos?.map { previewPhoto ->
                                 GalleryPreview(
                                     url = previewPhoto.urls.small,
                                     blurHash = previewPhoto.blurHash
@@ -380,18 +380,18 @@ class GalleryViewModel(
             getOldList = { state -> (state.topicsState as? AppUiState.Success)?.data },
             useCase = { getTopicsUseCase(params) },
             mapper = { list ->
-                list.map {
+                list.map { topic ->
                     GalleryTopic(
-                        id = it.id,
-                        coverUrl = it.coverPhoto.urls.small,
-                        title = it.title,
-                        username = it.coverPhoto.user.username,
-                        name = it.coverPhoto.user.name,
-                        description = it.description,
-                        totalPhotos = it.totalPhotos,
-                        blurhash = it.coverPhoto.blurHash,
-                        width = it.coverPhoto.width,
-                        height = it.coverPhoto.height
+                        id = topic.id,
+                        coverUrl = topic.coverPhoto?.urls?.small,
+                        title = topic.title,
+                        username = topic.coverPhoto?.user?.username ?: "",
+                        name = topic.coverPhoto?.user?.name?: "",
+                        description = topic.description,
+                        totalPhotos = topic.totalPhotos,
+                        blurhash = topic.coverPhoto?.blurHash,
+                        width = topic.coverPhoto?.width,
+                        height = topic.coverPhoto?.height
                     )
                 } },
             distinctBy = { it.id },
