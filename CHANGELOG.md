@@ -1,3 +1,10 @@
+## [0.13.1](https://github.com/lackary/omnihub/compare/v0.13.0...v0.13.1) (2026-01-19)
+
+
+### Bug Fixes
+
+* **gallery:** update data models for null safety and improve mapping ([59dd598](https://github.com/lackary/omnihub/commit/59dd598dcf985e214041efa35dcab933cff45b77))
+
 # [0.13.0](https://github.com/lackary/omnihub/compare/v0.12.0...v0.13.0) (2026-01-17)
 
 
