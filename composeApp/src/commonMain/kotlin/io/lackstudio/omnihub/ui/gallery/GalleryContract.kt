@@ -39,7 +39,7 @@ data class GalleryPhoto(
     val username: String,
     val name: String,
     val likes: Int,
-    val blurhash: String,
+    val blurhash: String?,
     val width: Int,
     val height: Int
 ) : GalleryDisplayable {
@@ -52,7 +52,7 @@ data class GalleryPhoto(
     override val displayUsername: String get() = username
     override val displayName: String get() = name
     override val displayLikes: Int get() = likes
-    override val displayBlurHash: String get() = blurhash
+    override val displayBlurHash: String? get() = blurhash
     override val displayWidth: Int get() = width
     override val displayHeight: Int get() = height
     override val displayPreviewPhotos: List<GalleryPreview> get() = emptyList()
