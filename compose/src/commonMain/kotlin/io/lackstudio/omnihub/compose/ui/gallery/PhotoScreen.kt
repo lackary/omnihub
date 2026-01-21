@@ -35,6 +35,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withLink
 import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import coil3.compose.LocalPlatformContext
 import coil3.size.Size
@@ -42,7 +43,6 @@ import io.lackstudio.omnifeed.ui.state.AppUiState
 import io.lackstudio.omnihub.compose.ui.navigation.Feature
 import io.lackstudio.omnihub.compose.utils.UnsplashLinks
 import kotlin.math.min
-import org.jetbrains.compose.ui.tooling.preview.Preview
 import org.koin.compose.viewmodel.koinViewModel
 
 // Stateful Composable (Responsible for logic and data flow)

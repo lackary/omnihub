@@ -26,6 +26,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavHostController
@@ -45,7 +46,6 @@ import io.lackstudio.omnihub.compose.ui.home.HomeScreen
 import io.lackstudio.omnihub.compose.ui.navigation.Feature
 import io.lackstudio.omnihub.compose.ui.navigation.Screen
 import kotlinx.coroutines.launch
-import org.jetbrains.compose.ui.tooling.preview.Preview
 
 // Helper data class (place at bottom of file or in a separate file)
 data class NavItem(

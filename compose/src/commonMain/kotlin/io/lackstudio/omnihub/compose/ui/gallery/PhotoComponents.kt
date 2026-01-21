@@ -41,12 +41,12 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import io.lackstudio.omnihub.compose.utils.toCompactDisplayString
 import io.lackstudio.omnihub.compose.utils.toRelativeTime
-import org.jetbrains.compose.ui.tooling.preview.Preview
 
 @Composable
 fun PhotoDetailInfoContent(detail: Photo) {
