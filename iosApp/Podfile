@@ -6,6 +6,6 @@ target 'iosApp' do
   use_frameworks!
 
   # Pods for iosApp
-  pod 'ComposeApp', :path => '../composeApp'
+  pod 'Compose', :path => '../compose'
 
 end

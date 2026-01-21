@@ -1,16 +1,16 @@
 PODS:
-  - ComposeApp (0.13.1)
+  - Compose (0.13.1)
 
 DEPENDENCIES:
-  - ComposeApp (from `../composeApp`)
+  - Compose (from `../compose`)
 
 EXTERNAL SOURCES:
-  ComposeApp:
-    :path: "../composeApp"
+  Compose:
+    :path: "../compose"
 
 SPEC CHECKSUMS:
-  ComposeApp: 957e74e67abc95328bb15b71ec425f4b93cc7ea0
+  Compose: 21c53d75fc6a20aceac9e7cdf1ce85ba4c3019f9
 
-PODFILE CHECKSUM: d8eaded510037c1d763066ff16678126863b0748
+PODFILE CHECKSUM: fa282ecb6ef0ea9ca7646121a412c23ca8eb2663
 
 COCOAPODS: 1.16.2
