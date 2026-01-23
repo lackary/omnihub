@@ -15,12 +15,12 @@ echo "🧹 [1/4] Cleaning previous builds..."
 # We manually create an empty directory just so `pod install` won't error out when checking spec.resources.
 # This ensures the [CP] Copy Pods Resources script is correctly added to the Xcode project.
 echo "📁 [2/4] Creating dummy resource directory for CocoaPods..."
-mkdir -p composeApp/build/compose/cocoapods/compose-resources
+mkdir -p compose/build/compose/cocoapods/compose-resources
 
 # --- Step 3: Generate a dummy Framework ---
 # This is also to "trick" CocoaPods. The Podfile needs to see the .framework file exists to run.
 echo "⚙️ [3/4] Generating dummy framework for CocoaPods..."
-./gradlew :composeApp:generateDummyFramework
+./gradlew :compose:generateDummyFramework
 
 # --- Step 4: Run Pod Install ---
 # Now, because both the empty directory and the dummy Framework exist, pod install can finish successfully.

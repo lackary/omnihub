@@ -38,7 +38,8 @@ plugins {
     id("org.gradle.toolchains.foojay-resolver-convention") version "1.0.0"
 }
 
-include(":composeApp")
+include(":compose")
+include(":androidApp")
 
 // =========== Composite Build ===========
 
@@ -71,3 +72,4 @@ if (isOmniFeedLocalExists || forceCompositeBuild) {
 } else {
     println("⚠️ [Gradle] 'omnifeed-kmp' not found locally. Using binary dependencies from Maven.")
 }
+
