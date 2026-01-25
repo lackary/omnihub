@@ -370,7 +370,7 @@ class GalleryViewModel(
     }
 
     private fun fetchTopics(page: Int) {
-        val params = GetTopicsParams(page = page, perPage = 10)
+        val params = GetTopicsParams(page = page, perPage = 20)
 
         fetchCategory(
             tab = GalleryTab.Topics,

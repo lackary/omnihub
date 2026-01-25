@@ -191,7 +191,7 @@ fun TopicList(
     onTopicClick: (String, String) -> Unit
 ) {
     LazyVerticalGrid(
-        columns = GridCells.Fixed(2),
+        columns = GridCells.Adaptive(minSize = 200.dp),
         contentPadding = PaddingValues(8.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -384,7 +384,7 @@ fun GalleryCard(
 
 /**
  * Handles attribution display at the card bottom
- * For collections: Display "Created by [Name] on Unsplash"
+ * For collections: Display "Created by [name] on Unsplash"
  * For photos: Display Avatar + Name
  */
 @Composable

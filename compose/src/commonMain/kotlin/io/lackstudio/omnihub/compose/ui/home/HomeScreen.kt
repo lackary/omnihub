@@ -2,8 +2,9 @@ package io.lackstudio.omnihub.compose.ui.home
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material3.*
@@ -36,22 +37,15 @@ fun HomeScreen(
             )
         }
     ) { paddingValues ->
-        LazyColumn(
+        LazyVerticalGrid(
+            columns = GridCells.Adaptive(minSize = 250.dp),
+            contentPadding = paddingValues,
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues)
                 .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            item {
-                Text(
-                    text = "Available Services",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(bottom = 8.dp)
-                )
-            }
-
             items(omniServices) { service ->
                 ServiceCard(service = service, onClick = { onNavigateToFeature(service.route) })
             }
@@ -105,7 +99,8 @@ fun ServiceCard(
 }
 
 // Add this function specifically for preview
-@Preview
+@Preview(name = "Mobile", widthDp = 360, heightDp = 640)
+@Preview(name = "Desktop", widthDp = 1024, heightDp = 768)
 @Composable
 fun HomeScreenPreview() {
     HomeScreen(
