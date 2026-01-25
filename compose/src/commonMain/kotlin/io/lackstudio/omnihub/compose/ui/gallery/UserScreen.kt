@@ -274,120 +274,145 @@ fun UserCollectionsSection(
 }
 
 @Composable
-fun UserHeader(user: UserProfile) {
-    val uriHandler = LocalUriHandler.current
+fun UserHeader(
+    user: UserProfile,
+    modifier: Modifier = Modifier
+) {
+    BoxWithConstraints(modifier = modifier.fillMaxWidth()) {
+        val isLargeScreen = maxWidth > 600.dp
 
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp)
-    ) {
-        // 1. Avatar & Basic Info
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            AsyncImage(
-                model = user.avatarUrl,
-                contentDescription = "Avatar",
-                modifier = Modifier
-                    .size(80.dp)
-                    .clip(CircleShape)
-                    .background(Color.LightGray),
-                contentScale = ContentScale.Crop
-            )
-            Spacer(modifier = Modifier.width(16.dp))
-            Column {
-                Text(
-                    text = user.name,
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 8.dp)
+        ) {
+            // 1. Avatar & Basic Info
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                AsyncImage(
+                    model = user.avatarUrl,
+                    contentDescription = "Avatar",
+                    modifier = Modifier
+                        .size(80.dp)
+                        .clip(CircleShape)
+                        .background(Color.LightGray),
+                    contentScale = ContentScale.Crop
                 )
-                Text(
-                    text = "@${user.username}",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                Spacer(modifier = Modifier.width(16.dp))
+                Column {
+                    Text(
+                        text = user.name,
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = "@${user.username}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
 
-                // Location if available
-                user.location?.let { loc ->
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = Icons.Default.LocationOn,
-                            contentDescription = null,
-                            modifier = Modifier.size(14.dp),
-                            tint = MaterialTheme.colorScheme.secondary
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(
-                            text = loc,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.secondary
-                        )
+                    // Location if available
+                    user.location?.let { loc ->
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.Default.LocationOn,
+                                contentDescription = null,
+                                modifier = Modifier.size(14.dp),
+                                tint = MaterialTheme.colorScheme.secondary
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = loc,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.secondary
+                            )
+                        }
                     }
                 }
             }
-        }
 
-        Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
-        // 2. Stats Row
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            UserStatItem("Photos", user.totalPhotos)
-            UserStatItem("Collections", user.totalCollections)
-            UserStatItem("Likes", user.totalLikes)
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // 3. Bio
-        user.bio?.let { bio ->
-            ExpandableText(text = bio)
-            Spacer(modifier = Modifier.height(12.dp))
-        }
-
-        // 4. Social Links
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.Start
-        ) {
-            // Unsplash
-            SocialLinkButton(
-                icon = painterResource(Res.drawable.ic_unsplash),
-                text = "Unsplash"
+            // 2. Stats Row
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Start
             ) {
-                uriHandler.openUri(UnsplashLinks.userProfile(user.username))
+                UserStatItem("Photos", user.totalPhotos)
+                Spacer(modifier = Modifier.width(24.dp))
+                UserStatItem("Collections", user.totalCollections)
+                Spacer(modifier = Modifier.width(24.dp))
+                UserStatItem("Likes", user.totalLikes)
+
+                if (isLargeScreen) {
+                    Spacer(modifier = Modifier.weight(1f))
+                    SocialLinkItems(user = user, modifier = Modifier.wrapContentWidth())
+                }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // 3. Bio
+            user.bio?.let { bio ->
+                ExpandableText(text = bio)
+                Spacer(modifier = Modifier.height(8.dp))
+            }
+
+            // 4. Social Links
+            if (!isLargeScreen) {
+                SocialLinkItems(user = user, modifier = modifier)
+            }
+        }
+    }
+
+}
+
+@Composable
+fun SocialLinkItems(
+    user: UserProfile,
+    modifier: Modifier
+) {
+    val uriHandler = LocalUriHandler.current
+    Row(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.Start
+    ) {
+        // Unsplash
+        SocialLinkButton(
+            icon = painterResource(Res.drawable.ic_unsplash),
+            text = "Unsplash"
+        ) {
+            uriHandler.openUri(UnsplashLinks.userProfile(user.username))
+        }
+        Spacer(modifier = Modifier.width(8.dp))
+        // public web
+        user.portfolioUrl?.let { portfolioUrl ->
+            SocialLinkButton(
+                icon = rememberVectorPainter(Icons.Filled.Public),
+                text = ""
+            ) {
+                uriHandler.openUri(portfolioUrl)
             }
             Spacer(modifier = Modifier.width(8.dp))
-            // public web
-            user.portfolioUrl?.let { portfolioUrl ->
-                SocialLinkButton(
-                    icon = rememberVectorPainter(Icons.Filled.Public),
-                    text = ""
-                ) {
-                    uriHandler.openUri(portfolioUrl)
-                }
-                Spacer(modifier = Modifier.width(8.dp))
+        }
+        // Instagram
+        user.instagramUsername?.let { ig ->
+            SocialLinkButton(
+                icon = painterResource(Res.drawable.ic_instagram),
+                text = ""
+            ) {
+                uriHandler.openUri("https://instagram.com/$ig")
             }
-            // Instagram
-            user.instagramUsername?.let { ig ->
-                SocialLinkButton(
-                    icon = painterResource(Res.drawable.ic_instagram),
-                    text = ""
-                ) {
-                    uriHandler.openUri("https://instagram.com/$ig")
-                }
-                Spacer(modifier = Modifier.width(8.dp))
-            }
-            // X/Twitter
-            user.twitterUsername?.let { tw ->
-                SocialLinkButton(
-                    icon = painterResource(Res.drawable.ic_x_twitter),
-                    text = ""
-                ) {
-                    uriHandler.openUri("https://twitter.com/$tw")
-                }
+            Spacer(modifier = Modifier.width(8.dp))
+        }
+        // X/Twitter
+        user.twitterUsername?.let { tw ->
+            SocialLinkButton(
+                icon = painterResource(Res.drawable.ic_x_twitter),
+                text = ""
+            ) {
+                uriHandler.openUri("https://twitter.com/$tw")
             }
         }
     }
