@@ -22,6 +22,8 @@ import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffo
 import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffoldDefaults
 import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteType
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
@@ -45,6 +47,9 @@ import io.lackstudio.omnihub.compose.ui.gallery.UserDetailScreen
 import io.lackstudio.omnihub.compose.ui.home.HomeScreen
 import io.lackstudio.omnihub.compose.ui.navigation.Feature
 import io.lackstudio.omnihub.compose.ui.navigation.Screen
+import io.lackstudio.omnihub.compose.utils.logging.AppLog
+import io.lackstudio.omnihub.compose.utils.logging.LocalLogger
+import io.lackstudio.omnihub.compose.utils.logging.rememberLogger
 import kotlinx.coroutines.launch
 
 // Helper data class (place at bottom of file or in a separate file)
@@ -78,11 +83,25 @@ private fun AnimatedContentTransitionScope<*>.slidePopOut() =
 private fun fadeEnter() = fadeIn(tween(ANIM_DURATION))
 private fun fadeExit() = fadeOut(tween(ANIM_DURATION))
 
+
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Preview(name = "Mobile", widthDp = 360, heightDp = 640)
 @Preview(name = "Desktop", widthDp = 1024, heightDp = 768)
 @Composable
 fun App() {
+    val rootLogger = AppLog.withTag("App")
+    CompositionLocalProvider(
+        LocalLogger provides rootLogger
+    ) {
+        AppScreen()
+    }
+
+}
+
+@Composable
+fun AppScreen(){
+
+    val logger = rememberLogger("AppScreen")
     val navController = rememberNavController()
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
@@ -103,6 +122,10 @@ fun App() {
         NavigationSuiteType.None
     } else {
         defaultLayoutType
+    }
+
+    LaunchedEffect(Unit) {
+        logger.i { "App Screen Launched" }
     }
 
     // Define your navigation items

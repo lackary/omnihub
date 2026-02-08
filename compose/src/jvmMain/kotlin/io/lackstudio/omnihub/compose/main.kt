@@ -10,6 +10,7 @@ import io.lackstudio.omnihub.compose.di.initKoin
 import io.lackstudio.omnihub.compose.ui.App
 
 fun main() = application {
+    System.setProperty("PID", ProcessHandle.current().pid().toString())
 
     initKoin()
 
