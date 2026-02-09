@@ -18,13 +18,21 @@ class PhotoViewModel(
 
     fun handleIntent(intent: PhotoDetailIntent) {
         when (intent) {
-            is PhotoDetailIntent.LoadDetail -> fetchPhoto(intent.id)
-            is PhotoDetailIntent.Retry -> currentId?.let { fetchPhoto(it) }
+            is PhotoDetailIntent.LoadDetail -> {
+                logger.d { "handleIntent: LoadDetail id=${intent.id}" }
+                currentId = intent.id
+                fetchPhoto(intent.id)
+            }
+            is PhotoDetailIntent.Retry -> {
+                logger.d { "handleIntent: Retry" }
+                currentId?.let { fetchPhoto(it) }
+            }
         }
     }
 
     private fun fetchPhoto(id: String) {
         handleUseCaseCall(
+            name = "Photo",
             useCase = { getPhotoUseCase(id) },
             onLoading = {
                 _state.update { it.copy(detailState = AppUiState.Loading) }
@@ -63,7 +71,7 @@ class PhotoViewModel(
                 _state.update { it.copy(detailState = AppUiState.Success(detail)) }
             },
             onError = { msg ->
-//                println("Photo error: $msg")
+                logger.e { "Error fetching photo detail: $msg" }
                 _state.update { it.copy(detailState = AppUiState.Error(msg)) }
             }
         )

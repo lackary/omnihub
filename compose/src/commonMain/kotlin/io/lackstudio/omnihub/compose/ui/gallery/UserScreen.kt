@@ -33,6 +33,7 @@ import io.lackstudio.omnifeed.ui.state.AppUiState
 import io.lackstudio.omnihub.compose.ui.components.ExpandableText
 import io.lackstudio.omnihub.compose.ui.navigation.Feature // Remember to import Feature
 import io.lackstudio.omnihub.compose.utils.UnsplashLinks
+import io.lackstudio.omnihub.compose.utils.logging.rememberLogger
 import io.lackstudio.omnihub.compose.utils.toCompactDisplayString
 import kotlinx.coroutines.launch
 import omnihub.compose.generated.resources.Res
@@ -52,6 +53,7 @@ fun UserDetailScreen(
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope
 ) {
+    val logger = rememberLogger("UserDetailScreen")
     val state by viewModel.state.collectAsStateWithLifecycle()
 
     LaunchedEffect(username) {
@@ -74,7 +76,10 @@ fun UserDetailScreen(
         Box(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
             UserDetailContent(
                 state = state,
-                onEvent = viewModel::handleIntent,
+                onEvent = { event ->
+                    logger.d { "UserDetailScreen: onEvent: $event" }
+                    viewModel.handleIntent(event)
+                },
                 onNavigateToFeature = onNavigateToFeature, // Pass it down
                 sharedTransitionScope = sharedTransitionScope,
                 animatedVisibilityScope = animatedVisibilityScope

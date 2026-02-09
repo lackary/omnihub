@@ -22,6 +22,7 @@ class TopicViewModel(
     fun handleIntent(intent: TopicDetailIntent) {
         when (intent) {
             is TopicDetailIntent.LoadData -> {
+                logger.d { "handleIntent: LoadData id=${intent.topicId}" }
                 if (currentTopicId != intent.topicId) {
                     currentTopicId = intent.topicId
                     loadTopicInfo(intent.topicId)
@@ -29,12 +30,14 @@ class TopicViewModel(
                 }
             }
             is TopicDetailIntent.Refresh -> {
+                logger.d { "handleIntent: Refresh" }
                 currentTopicId?.let { id ->
                     loadTopicInfo(id)
                     loadTopicPhotos(id, isRefresh = true)
                 }
             }
             is TopicDetailIntent.LoadMorePhotos -> {
+                logger.d { "handleIntent: LoadMorePhotos" }
                 currentTopicId?.let { id ->
                     loadTopicPhotos(id, isRefresh = false)
                 }
@@ -44,6 +47,7 @@ class TopicViewModel(
 
     private fun loadTopicInfo(id: String) {
         handleUseCaseCall(
+            name = "Topic",
             useCase = { getTopicUseCase(id) },
             onLoading = { _state.update { it.copy(infoState = AppUiState.Loading) } },
             onSuccess = { domainTopic ->
@@ -63,7 +67,10 @@ class TopicViewModel(
                 )
                 _state.update { it.copy(infoState = AppUiState.Success(uiTopic)) }
             },
-            onError = { msg -> _state.update { it.copy(infoState = AppUiState.Error(msg)) } }
+            onError = { msg ->
+                logger.e { "Error loading topic info: $msg" }
+                _state.update { it.copy(infoState = AppUiState.Error(msg)) }
+            }
         )
     }
 
@@ -75,6 +82,7 @@ class TopicViewModel(
         val topicPhotoParams = GetTopicPhotosParams(id, page = page, perPage = 10)
 
         handleUseCaseCall(
+            name = "Topic Photos",
             useCase = { getTopicPhotosUseCase(topicPhotoParams) },
             onLoading = {
                 if (isRefresh) _state.update { it.copy(photosState = AppUiState.Loading) }
@@ -109,6 +117,7 @@ class TopicViewModel(
                 }
             },
             onError = { msg ->
+                logger.e { "Error loading topic photos: $msg" }
                 if (isRefresh) _state.update { it.copy(photosState = AppUiState.Error(msg)) }
                 else _state.update { it.copy(isPhotosLoadingMore = false) }
             }

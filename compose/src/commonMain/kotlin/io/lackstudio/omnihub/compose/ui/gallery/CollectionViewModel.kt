@@ -22,6 +22,7 @@ class CollectionViewModel(
     fun handleIntent(intent: CollectionDetailIntent) {
         when (intent) {
             is CollectionDetailIntent.LoadData -> {
+                logger.d { "handleIntent: LoadData id=${intent.collectionId}" }
                 // Only execute when ID is different or upon first load
                 if (currentCollectionId != intent.collectionId) {
                     currentCollectionId = intent.collectionId
@@ -31,12 +32,14 @@ class CollectionViewModel(
                 }
             }
             is CollectionDetailIntent.Refresh -> {
+                logger.d { "handleIntent: Refresh" }
                 currentCollectionId?.let { id ->
                     loadCollectionInfo(id)
                     loadCollectionPhotos(id, isRefresh = true)
                 }
             }
             is CollectionDetailIntent.LoadMorePhotos -> {
+                logger.d { "handleIntent: LoadMorePhotos" }
                 currentCollectionId?.let { id ->
                     loadCollectionPhotos(id, isRefresh = false)
                 }
@@ -47,6 +50,7 @@ class CollectionViewModel(
     // --- Part 1: Collection Info ---
     private fun loadCollectionInfo(id: String) {
         handleUseCaseCall(
+            name = "Collection",
             useCase = { getCollectionUseCase(id) },
             onLoading = {
                 // Set Info state to Loading
@@ -67,6 +71,7 @@ class CollectionViewModel(
                 _state.update { it.copy(infoState = AppUiState.Success(uiCollection)) }
             },
             onError = { msg ->
+                logger.e { "Error loading collection info: $msg" }
                 _state.update { it.copy(infoState = AppUiState.Error(msg)) }
             }
         )
@@ -78,12 +83,14 @@ class CollectionViewModel(
 
         // Guard: If LoadMore and currently loading or reached end of list, do not execute
         if (!isRefresh && (currentState.isPhotosLoadingMore || currentState.isPhotosEndOfList)) {
+            logger.d { "loadCollectionPhotos: Guard triggered" }
             return
         }
 
         val page = if (isRefresh) 1 else currentState.photosPage + 1
         val params = GetCollectionPhotosParams(id = id, page = page, perPage = 10)
         handleUseCaseCall(
+            name = "Collection Photos",
             useCase = { getCollectionPhotosUseCase(params) },
             onLoading = {
                 if (isRefresh) {
@@ -130,6 +137,7 @@ class CollectionViewModel(
                 }
             },
             onError = { msg ->
+                logger.e { "Error loading collection photos: $msg" }
                 if (isRefresh) {
                     _state.update { it.copy(photosState = AppUiState.Error(msg)) }
                 } else {

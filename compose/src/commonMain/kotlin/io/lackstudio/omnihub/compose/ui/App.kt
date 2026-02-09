@@ -227,7 +227,7 @@ fun AppScreen(){
                         GalleryScreen(
                             onNavigateToFeature = onNavigate,
                             onBack = {
-                                logger.d { "Back button pressed" }
+                                logger.d { "GalleryScreen Back button pressed" }
                                 navController.popBackStack()
                             },
                             sharedTransitionScope = this@SharedTransitionLayout,
@@ -246,7 +246,10 @@ fun AppScreen(){
                         PhotoDetailScreen(
                             id = route.id,
                             thumbUrl = route.url,
-                            onBack = { navController.popBackStack() },
+                            onBack = {
+                                logger.d { "PhotoDetailScreen Back button pressed" }
+                                navController.popBackStack()
+                            },
                             onNavigateToFeature = onNavigate,
                             sharedTransitionScope = this@SharedTransitionLayout,
                             animatedVisibilityScope = this@composable
@@ -264,7 +267,10 @@ fun AppScreen(){
                         CollectionDetailScreen(
                             collectionId = route.id,
                             title = route.title,
-                            onBack = { navController.popBackStack() },
+                            onBack = {
+                                logger.d { "CollectionDetailScreen Back button pressed" }
+                                navController.popBackStack()
+                            },
                             onNavigateToFeature = onNavigate,
                             sharedTransitionScope = this@SharedTransitionLayout,
                             animatedVisibilityScope = this@composable
@@ -282,7 +288,10 @@ fun AppScreen(){
                         TopicDetailScreen(
                             topicId = route.idOrSlug,
                             title = route.title,
-                            onBack = { navController.popBackStack() },
+                            onBack = {
+                                logger.d { "TopicDetailScreen Back button pressed" }
+                                navController.popBackStack()
+                            },
                             onNavigateToFeature = onNavigate,
                             sharedTransitionScope = this@SharedTransitionLayout,
                             animatedVisibilityScope = this@composable
@@ -298,7 +307,10 @@ fun AppScreen(){
                         val route: Feature.User = backStackEntry.toRoute()
                         UserDetailScreen(
                             username = route.username,
-                            onBack = { navController.popBackStack() },
+                            onBack = {
+                                logger.d { "UserDetailScreen Back button pressed" }
+                                navController.popBackStack()
+                            },
                             onNavigateToFeature = onNavigate,
                             sharedTransitionScope = this@SharedTransitionLayout,
                             animatedVisibilityScope = this@composable

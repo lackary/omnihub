@@ -32,6 +32,7 @@ class UserViewModel(
     fun handleIntent(intent: UserDetailIntent) {
         when (intent) {
             is UserDetailIntent.LoadData -> {
+                logger.d { "handleIntent: LoadData username=${intent.username}" }
                 if (currentUsername != intent.username) {
                     currentUsername = intent.username
                     loadUserInfo(intent.username)
@@ -40,6 +41,7 @@ class UserViewModel(
                 }
             }
             is UserDetailIntent.SelectTab -> {
+                logger.d { "handleIntent: SelectTab tab=${intent.tab}" }
                 _state.update { it.copy(currentTab = intent.tab) }
 
                 // Automatically load when switching tabs if in Idle state
@@ -54,10 +56,12 @@ class UserViewModel(
                 }
             }
             is UserDetailIntent.LoadMore -> {
+                logger.d { "handleIntent: LoadMore" }
                 // Unified handling of LoadMore
                 currentUsername?.let { loadNextPage(it) }
             }
             is UserDetailIntent.Refresh -> {
+                logger.d { "handleIntent: Refresh" }
                 currentUsername?.let { username ->
                     // Reload user information
                     loadUserInfo(username)
@@ -70,6 +74,7 @@ class UserViewModel(
 
     private fun loadUserInfo(username: String) {
         handleUseCaseCall(
+            name = "User",
             useCase = { getUserPublicProfileUseCase(username) },
             onLoading = { _state.update { it.copy(infoState = AppUiState.Loading) } },
             onSuccess = { domainUser ->
@@ -89,7 +94,10 @@ class UserViewModel(
                 )
                 _state.update { it.copy(infoState = AppUiState.Success(uiProfile)) }
             },
-            onError = { msg -> _state.update { it.copy(infoState = AppUiState.Error(msg)) } }
+            onError = { msg ->
+                logger.e { "Error loading user info: $msg" }
+                _state.update { it.copy(infoState = AppUiState.Error(msg)) }
+            }
         )
     }
 
@@ -138,6 +146,7 @@ class UserViewModel(
         internalLoadingMap[tab] = true
 
         handleUseCaseCall(
+            name = "User $tab",
             useCase = useCase,
             onLoading = {
                 // Logic: Show full-page loading only if it's page 1 and there is no data
@@ -180,6 +189,7 @@ class UserViewModel(
                 internalLoadingMap[tab] = false
             },
             onError = { msg ->
+                logger.e { "Error fetching user category ($tab): $msg" }
                 // If page 1 fails, show full-page error
                 // If Load More fails, only hide footer loading indicator
                 if (targetPage == 1) {
