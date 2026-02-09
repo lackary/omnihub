@@ -89,7 +89,8 @@ private fun fadeExit() = fadeOut(tween(ANIM_DURATION))
 @Preview(name = "Desktop", widthDp = 1024, heightDp = 768)
 @Composable
 fun App() {
-    val rootLogger = AppLog.withTag("App")
+
+    val rootLogger = remember { AppLog.withTag("App") }
     CompositionLocalProvider(
         LocalLogger provides rootLogger
     ) {
@@ -188,6 +189,8 @@ fun AppScreen(){
                 containerColor = androidx.compose.ui.graphics.Color.Transparent
             ) { innerPadding ->
                 val onNavigate: (Feature) -> Unit = { feature ->
+                    val currentRoute = navController.currentDestination?.route
+                    logger.d { "Navigation: $currentRoute -> $feature" }
                     handleAppNavigation(feature, navController, scope, snackbarHostState)
                 }
 
@@ -223,7 +226,10 @@ fun AppScreen(){
                     ) {
                         GalleryScreen(
                             onNavigateToFeature = onNavigate,
-                            onBack = { navController.popBackStack() },
+                            onBack = {
+                                logger.d { "Back button pressed" }
+                                navController.popBackStack()
+                            },
                             sharedTransitionScope = this@SharedTransitionLayout,
                             animatedVisibilityScope = this@composable
                         )

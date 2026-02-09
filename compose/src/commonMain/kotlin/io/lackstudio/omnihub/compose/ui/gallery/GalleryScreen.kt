@@ -51,7 +51,9 @@ import androidx.lifecycle.flowWithLifecycle
 import coil3.compose.AsyncImage
 import io.lackstudio.omnifeed.ui.state.AppUiState
 import io.lackstudio.omnihub.compose.platform.isPullToRefreshSupported
+import io.lackstudio.omnihub.compose.ui.components.MonitorErrorStates
 import io.lackstudio.omnihub.compose.ui.navigation.Feature
+import io.lackstudio.omnihub.compose.utils.logging.rememberLogger
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.launch
@@ -62,6 +64,8 @@ import omnihub.compose.generated.resources.refresh
 import omnihub.compose.generated.resources.search
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
+
+const val tag = "GalleryScreen"
 
 // Stateful Composable (Used for App navigation)
 // Responsible for communicating with Koin and ViewModel
@@ -74,20 +78,50 @@ fun GalleryScreen(
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope
 ) {
-    // Triggered when the page becomes "Resume" (visible and interactive)
-    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
-        println("App returned to foreground, you can perform desired actions")
-    }
-
+    val logger = rememberLogger(tag)
     // Collect ViewModel state
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val sideEffectFlow = viewModel.sideEffect
+
+    // Triggered when the page becomes "Resume" (visible and interactive)
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
+        logger.d { "App returned to foreground, you can perform desired actions" }
+    }
+
+    LaunchedEffect(Unit) {
+        logger.d { "Screen Launched" }
+    }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            logger.d { "Screen Disposed" }
+        }
+    }
+
+    MonitorErrorStates(
+        tag = tag,
+        "Photos" to state.photosState,
+        "Collections" to state.collectionsState,
+        "Topics" to state.topicsState,
+    )
+
+    // SideEffect Log
+    LaunchedEffect(sideEffectFlow) {
+        sideEffectFlow.collect { effect ->
+            logger.d { "SideEffect: $effect" }
+        }
+    }
 
     // Forward state and events to pure UI Composable
     GalleryScreenContent(
         state = state,
         // Pass SideEffect Flow (receive ViewModel one-time events)
-        sideEffectFlow = viewModel.sideEffect,
-        onEvent = viewModel::handleIntent, // Pass events back to ViewModel
+        sideEffectFlow = sideEffectFlow,
+        onEvent = { event ->
+            logger.d { "Event: $event" }
+            viewModel.handleIntent(event)
+
+        }, // Pass events back to ViewModel
         onNavigateToFeature = onNavigateToFeature,
         onBack = onBack,
         sharedTransitionScope = sharedTransitionScope,
@@ -127,37 +161,33 @@ fun GalleryScreenContent(
         sideEffectFlow
             .flowWithLifecycle(lifecycleOwner.lifecycle, Lifecycle.State.STARTED)
             .collect { effect ->
-            when (effect) {
-                is GallerySideEffect.ShowSnackbar -> {
-                    snackbarHostState.showSnackbar(
-                        message = effect.message,
-                        duration = SnackbarDuration.Short
-                    )
-                }
-                is GallerySideEffect.OpenUrl -> {
-                    println("login url: ${effect.url}")
-                    uriHandler.openUri(effect.url)
+                when (effect) {
+                    is GallerySideEffect.ShowSnackbar -> {
+                        snackbarHostState.showSnackbar(
+                            message = effect.message,
+                            duration = SnackbarDuration.Short
+                        )
+                    }
+                    is GallerySideEffect.OpenUrl -> {
+                        uriHandler.openUri(effect.url)
+                    }
                 }
             }
-        }
     }
-
-    // Init tab index
-    val initialPage = remember(state.currentTab) { state.currentTab.ordinal }
+    val currentTab by rememberUpdatedState(state.currentTab)
     // create pager state
     val pagerState = rememberPagerState(
-        initialPage = initialPage, // Initial position
+        initialPage = state.currentTab.ordinal, // Initial position
         pageCount = { GalleryTab.entries.size }
     )
-    // Detect if the user is "dragging" the Pager with their finger
-    val isDragged by pagerState.interactionSource.collectIsDraggedAsState()
+
     // Sync Pager state with ViewModel when user swipes
     LaunchedEffect(pagerState) {
         // We listen to both currentPage and isScrollInProgress
         snapshotFlow { pagerState.currentPage }
             .collect { page ->
                 val targetTab = GalleryTab.getByIndex(page)
-                if (state.currentTab != targetTab) {
+                if (currentTab != targetTab) {
                     onEvent(GalleryIntent.SelectTab(targetTab))
                 }
             }
@@ -305,7 +335,6 @@ fun GalleryScreenContent(
                     Tab(
                         selected = pagerState.currentPage == index,
                         onClick = {
-
                             coroutineScope.launch {
                                 pagerState.animateScrollToPage(index)
                             }

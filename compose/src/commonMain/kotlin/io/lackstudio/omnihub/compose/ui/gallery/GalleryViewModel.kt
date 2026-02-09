@@ -54,6 +54,7 @@ class GalleryViewModel(
     private val loadingStatus = mutableMapOf<GalleryTab, Boolean>().withDefault { false }
 
     init {
+        logger.d{"ViewModel init"}
         fetchPhotos(1)
 
         viewModelScope.launch {
@@ -75,7 +76,7 @@ class GalleryViewModel(
                 if (url != null && url.contains("code=")) {
                     val code = url.substringAfter("code=").substringBefore("&")
 
-                    println("✅ ViewModel detected code: $code")
+                    logger.d{"✅ ViewModel detected code: $code"}
 
                     // Execute login logic
                     handleAuthCallback(code)
@@ -90,7 +91,9 @@ class GalleryViewModel(
     fun handleIntent(intent: GalleryIntent) {
         when (intent) {
             is GalleryIntent.SelectTab -> {
+                logger.d { "handleIntent: SelectTab tab=${intent.tab}" }
                 _state.update { it.copy(currentTab = intent.tab) }
+                logger.d { "handleIntent: currentTab=${_state.value.currentTab}" }
                 when (intent.tab) {
                     // Check if Idle (means not loaded yet)
                     GalleryTab.Photos -> if (_state.value.photosState is AppUiState.Idle) fetchPhotos(1)
@@ -99,6 +102,7 @@ class GalleryViewModel(
                 }
             }
             is GalleryIntent.Refresh -> {
+                logger.d { "handleIntent: Refresh" }
                 // Enable Refresh indicator
                 val currentTab = _state.value.currentTab
                 _state.update {
@@ -108,23 +112,24 @@ class GalleryViewModel(
                 refreshCurrentTab()
             }
             is GalleryIntent.LoadMore -> {
+                logger.d { "handleIntent: LoadMore" }
                 loadNextPage()
             }
             is GalleryIntent.Login ->  {
-                login()
+                logger.d { "handleIntent: Login" }
+                login(authManager.getRedirectUrl())
             }
         }
     }
 
-    private fun login() {
-        // Ask AuthManager which redirect URI to use
-        val redirectUri = authManager.getRedirectUrl()
-
+    private fun login(redirectUri: String) {
+        logger.d { "login: $redirectUri" }
         // Store it for token exchange later
         lastUsedRedirectUri = redirectUri
 
         // Build the authorization URL
         val authUrl = getAuthUrl(redirectUri)
+        logger.d { "login: $authUrl" }
 
         authManager.startLogin(authUrl)
     }
@@ -139,6 +144,7 @@ class GalleryViewModel(
         )
 
         handleUseCaseCall(
+            name = "exchangeOAuth",
             useCase = { exchangeOAuthUseCase(unsplashOAuthCode) },
             onLoading = {
                 _state.update { it.copy(isAuthenticating = true) }
@@ -165,6 +171,7 @@ class GalleryViewModel(
         if (_state.value.meProfile != null) return
 
         handleUseCaseCall(
+            name = "me",
             useCase = { meUseCase(Unit) },
             onLoading = { },
             onSuccess = { me ->
@@ -173,7 +180,7 @@ class GalleryViewModel(
                 refreshCurrentTab()
             },
             onError = { errorMessage ->
-                println("Fetch profile failed: $errorMessage")
+                logger.e { "Fetch profile failed: $errorMessage" }
             }
 
         )
@@ -214,6 +221,7 @@ class GalleryViewModel(
 
     /**
      * Generic Helper function: Handle "Smart Loading" and "State Update" uniformly
+     * @name Optional name for the UseCase
      * @param targetPage Target page number
      * @param currentSubState Current state of the field (used for Loading check only)
      * @param getOldList Lambda to retrieve the *latest* list data at the moment of update
@@ -223,6 +231,7 @@ class GalleryViewModel(
      * @param onSuccessUpdatePage Update current page number
      */
     private fun <T, R> fetchCategory(
+        name: String = "fetchCategory",
         tab: GalleryTab,
         targetPage: Int,
         currentSubState: AppUiState<List<R>>,
@@ -242,6 +251,7 @@ class GalleryViewModel(
         if (targetPage > 1) loadingStatus[currentTab] = true
 
         handleUseCaseCall(
+            name = name,
             useCase = useCase,
             onLoading = {
                 // Show full page loading (AppUiState.Loading) only when "Page 1" and "no old data"
@@ -300,6 +310,7 @@ class GalleryViewModel(
         val params = GetPhotosParams(page = page, perPage = 10)
 
         fetchCategory(
+            name = "Photos",
             tab = GalleryTab.Photos,
             targetPage = page,
             currentSubState = _state.value.photosState,
@@ -333,6 +344,7 @@ class GalleryViewModel(
         val params = GetCollectionsParams(page = page, perPage = 10)
 
         fetchCategory(
+            name = "Collections",
             tab = GalleryTab.Collections,
             targetPage = page,
             currentSubState = _state.value.collectionsState,
@@ -373,6 +385,7 @@ class GalleryViewModel(
         val params = GetTopicsParams(page = page, perPage = 20)
 
         fetchCategory(
+            name = "Topics",
             tab = GalleryTab.Topics,
             targetPage = page,
             currentSubState = _state.value.topicsState,
