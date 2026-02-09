@@ -53,6 +53,7 @@ import io.lackstudio.omnifeed.ui.state.AppUiState
 import io.lackstudio.omnihub.compose.ui.components.ExpandableText
 import io.lackstudio.omnihub.compose.ui.navigation.Feature
 import io.lackstudio.omnihub.compose.utils.UnsplashLinks
+import io.lackstudio.omnihub.compose.utils.logging.rememberLogger
 import omnihub.compose.generated.resources.Res
 import omnihub.compose.generated.resources.back
 import omnihub.compose.generated.resources.ic_unsplash
@@ -71,6 +72,8 @@ fun CollectionDetailScreen(
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope
 ) {
+    val logger = rememberLogger("CollectionDetailScreen")
+
     val state by viewModel.state.collectAsStateWithLifecycle()
     val uriHandler = LocalUriHandler.current
 
@@ -99,6 +102,7 @@ fun CollectionDetailScreen(
                 },
                 actions = {
                     IconButton(onClick = {
+                        logger.d { "view on Unsplash" }
                         uriHandler.openUri(UnsplashLinks.collection(collectionId))
                     }) {
                         Icon(
@@ -124,6 +128,7 @@ fun CollectionDetailScreen(
                     onNavigateToFeature(Feature.User(username))
                 },
                 onLoadMore = {
+                    logger.d { "CollectionDetailScreen: onLoadMore" }
                     viewModel.handleIntent(CollectionDetailIntent.LoadMorePhotos)
                 },
                 sharedTransitionScope = sharedTransitionScope,

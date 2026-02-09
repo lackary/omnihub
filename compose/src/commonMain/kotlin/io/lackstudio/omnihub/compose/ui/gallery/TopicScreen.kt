@@ -31,6 +31,7 @@ import io.lackstudio.omnifeed.ui.state.AppUiState
 import io.lackstudio.omnihub.compose.ui.components.ExpandableText
 import io.lackstudio.omnihub.compose.ui.navigation.Feature
 import io.lackstudio.omnihub.compose.utils.UnsplashLinks
+import io.lackstudio.omnihub.compose.utils.logging.rememberLogger
 import omnihub.compose.generated.resources.Res
 import omnihub.compose.generated.resources.ic_unsplash
 import org.jetbrains.compose.resources.painterResource
@@ -47,6 +48,7 @@ fun TopicDetailScreen(
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope
 ) {
+    val logger = rememberLogger("TopicDetailScreen")
     val uriHandler = LocalUriHandler.current
 
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -73,6 +75,7 @@ fun TopicDetailScreen(
                 },
                 actions = {
                     IconButton(onClick = {
+                        logger.d { "View on Unsplash" }
                         uriHandler.openUri(UnsplashLinks.topic(topicId))
                     }) {
                         Icon(
@@ -93,7 +96,10 @@ fun TopicDetailScreen(
                 onNavigateToUser = { username ->
                     onNavigateToFeature(Feature.User(username))
                 },
-                onLoadMore = { viewModel.handleIntent(TopicDetailIntent.LoadMorePhotos) },
+                onLoadMore = {
+                    logger.d { "onLoadMore" }
+                    viewModel.handleIntent(TopicDetailIntent.LoadMorePhotos)
+                },
                 sharedTransitionScope = sharedTransitionScope,
                 animatedVisibilityScope = animatedVisibilityScope
             )

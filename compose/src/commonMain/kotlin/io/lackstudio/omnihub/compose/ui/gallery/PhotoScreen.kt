@@ -42,6 +42,7 @@ import coil3.size.Size
 import io.lackstudio.omnifeed.ui.state.AppUiState
 import io.lackstudio.omnihub.compose.ui.navigation.Feature
 import io.lackstudio.omnihub.compose.utils.UnsplashLinks
+import io.lackstudio.omnihub.compose.utils.logging.rememberLogger
 import kotlin.math.min
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -57,6 +58,7 @@ fun PhotoDetailScreen(
     animatedVisibilityScope: AnimatedVisibilityScope,
     viewModel: PhotoViewModel = koinViewModel()
 ) {
+    val logger = rememberLogger("PhotoDetailScreen")
     val state by viewModel.state.collectAsStateWithLifecycle()
 
     LaunchedEffect(id) {
@@ -68,7 +70,10 @@ fun PhotoDetailScreen(
         thumbUrl = thumbUrl,
         state = state,
         onBack = onBack,
-        onRetry = { viewModel.handleIntent(PhotoDetailIntent.Retry) },
+        onRetry = {
+            logger.d { "PhotoDetailScreen: onRetry" }
+            viewModel.handleIntent(PhotoDetailIntent.Retry)
+        },
         onNavigateToUser = { username ->
             onNavigateToFeature(Feature.User(username))
         },

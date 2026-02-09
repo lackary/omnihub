@@ -57,16 +57,19 @@ if (isOmniFeedLocalExists || forceCompositeBuild) {
     includeBuild(omnifeedProjectDir) {
         dependencySubstitution {
             // Substitute Core module
+            substitute(module("io.lackstudio.omnifeed:omnifeed"))
+                .using(project(":omnifeed"))
+            // Substitute Core module
             substitute(module("io.lackstudio.omnifeed:omnifeed-core"))
-                .using(project(":core"))
+                .using(project(":omnifeed-core"))
 
             // Substitute Unsplash integration module
             substitute(module("io.lackstudio.omnifeed:omnifeed-unsplash"))
-                .using(project(":integrations:unsplash"))
+                .using(project(":omnifeed-unsplash"))
 
             // Substitute UI module
             substitute(module("io.lackstudio.omnifeed:omnifeed-ui"))
-                .using(project(":ui"))
+                .using(project(":omnifeed-ui"))
         }
     }
 } else {
