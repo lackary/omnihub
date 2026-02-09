@@ -1,7 +1,10 @@
 package io.lackstudio.omnihub.compose.utils
 
+import io.lackstudio.omnihub.compose.utils.logging.AppLog
 import kotlin.time.Clock
 import kotlin.time.Instant
+
+private val logger = AppLog.withTag("DataExtensions")
 
 /**
  * Simple date formatting
@@ -21,6 +24,7 @@ fun String.toSimpleDateStr(): String {
 fun String.toRelativeTime(): String {
     try {
         // Parse ISO 8601 string (e.g. "2023-10-05T14:48:00Z")
+        logger.d { "the original time string: $this"  }
         val instant = Instant.parse(this)
 
         // Get current time
@@ -47,6 +51,7 @@ fun String.toRelativeTime(): String {
         }
     } catch (e: Exception) {
         // Fallback to simple string processing if parsing fails (e.g., empty string or format error)
+        logger.d(e) { "Failed to parse date: $this" }
         return this.toSimpleDateStr()
     }
 }
