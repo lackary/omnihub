@@ -1,3 +1,17 @@
+# [0.14.0](https://github.com/lackary/omnihub/compare/v0.13.1...v0.14.0) (2026-02-10)
+
+
+### Bug Fixes
+
+* **android:** set MainActivity launchMode to singleTask ([bd3263c](https://github.com/lackary/omnihub/commit/bd3263c86e36a4ff87c91bb6d9d7ff3a17830b95))
+
+
+### Features
+
+* **gallery:** implement error monitoring and enhanced debug logging ([1fb8b15](https://github.com/lackary/omnihub/commit/1fb8b15f47edb8de78f656b2ead5380d0c1be203))
+* **logging:** implement centralized logging system and refactor DI initialization ([1c8b12e](https://github.com/lackary/omnihub/commit/1c8b12eaf41013a83d3da7f99295bcaabc336857))
+* **utils:** refactor `UnsplashLinks` to use dynamic environment constants and add logging ([0785838](https://github.com/lackary/omnihub/commit/07858384bf94e5997d9aba24d7650b37eb39dcd5))
+
 ## [0.13.1](https://github.com/lackary/omnihub/compare/v0.13.0...v0.13.1) (2026-01-19)
 
 
