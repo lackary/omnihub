@@ -1,16 +1,74 @@
-This is a Kotlin Multiplatform project targeting Android, iOS, Web, Desktop (JVM).
+# OmniHub 
 
-* [/composeApp](./composeApp/src) is for code that will be shared across your Compose Multiplatform applications.
-  It contains several subfolders:
-  - [commonMain](./composeApp/src/commonMain/kotlin) is for code that’s common for all targets.
-  - Other folders are for Kotlin code that will be compiled for only the platform indicated in the folder name.
-    For example, if you want to use Apple’s CoreCrypto for the iOS part of your Kotlin app,
-    the [iosMain](./composeApp/src/iosMain/kotlin) folder would be the right place for such calls.
-    Similarly, if you want to edit the Desktop (JVM) specific part, the [jvmMain](./composeApp/src/jvmMain/kotlin)
-    folder is the appropriate location.
+[![Continuous Integration (mikepenz)](https://github.com/lackary/omnihub/actions/workflows/ci_mikepenz.yml/badge.svg)](https://github.com/lackary/omnihub/actions/workflows/ci_mikepenz.yml)
+![Version](https://img.shields.io/github/v/release/lackary/omnihub)
+![Platform](https://img.shields.io/badge/platform-Android%20|%20iOS%20|%20Desktop|%20Web-blue)
+![License](https://img.shields.io/github/license/lackary/omnihub)
+![Kotlin](https://img.shields.io/badge/kotlin-2.3.0-purple?logo=kotlin)
+![Compose Multiplatform](https://img.shields.io/badge/Compose%20Multiplatform-v1.10.0-blue)
 
-* [/iosApp](./iosApp/iosApp) contains iOS applications. Even if you’re sharing your UI with Compose Multiplatform,
-  you need this entry point for your iOS app. This is also where you should add SwiftUI code for your project.
+> **A Production-Ready Kotlin Multiplatform (KMP) Application featuring MVI Architecture, Modular Design, and Automated CI/CD.**
+
+<table>
+  <tr>
+    <td text-align="center"><b>Mobile</b></td>
+    <td text-align="center"><b>Web</b></td>
+    <td text-align="center"><b>Desktop</b></td>
+  </tr>
+  <tr>
+    <td><img src="docs/images/gallery/Mobile_photos.png" width="2148" alt=""></td>
+    <td><img src="docs/images/gallery/Web_photos.png" width="3022" alt=""></td>
+    <td><img src="docs/images/gallery/Desktop_photos.png" width="2302" alt=""></td>
+  </tr>
+</table>
+
+## Project Overview
+OmniHub serves as the **client-side implementation** of a modern multiplatform ecosystem. It is built strictly as a **UI & Presentation Layer** application, consuming core business logic from its companion library, **[OmniFeed](https://github.com/lackary/omnifeed-kmp)**.
+
+This project demonstrates how to decouple UI from logic in a Cross-Platform environment, ensuring that the Android, iOS, Desktop, and Web clients remain thin, reactive, and consistent.
+
+## Technical Architecture
+The project adopts a **Modular Clean Architecture** with **MVI (Model-View-Intent)** pattern:
+
+- **Presentation Layer (OmniHub)**:
+    - Built with **Compose Multiplatform**.
+    - Implements **MVI** pattern: UI observes a single `UiState` and dispatches `Intents` (Events).
+    - **Platform Specifics**: Handles platform-unique entry points (Activities, ViewControllers) and Deep Link redirection.
+- **Domain & Data Layers (Encapsulated in [OmniFeed Library])**:
+    - All business rules, Use Cases, and Repository implementations are strictly isolated in the external `OmniFeed` library.
+    - This separation allows the core logic to be versioned, tested, and reused independently of the UI.
+
+### Key Technologies
+- **State Management**: Kotlin Flows & Coroutines (StateFlow/SharedFlow).
+- **Dependency Injection**: [Koin](https://insert-koin.io) for centralized dependency management across all platforms.
+- **Navigation**: Type-safe navigation handling across platforms.
+- **CI/CD**: GitHub Actions with [Semantic Release](https://github.com/semantic-release/semantic-release) for automated versioning.
+
+## Key Features & Highlights
+
+### 1. Deep Link Based OAuth 2.0 Flow
+Instead of relying on heavy, platform-specific SDKs, OmniHub implements a lightweight **Deep Link Coordination** system for authentication:
+- **Universal Redirect Handling**: The app utilizes a shared `DeepLinkBuffer` to capture OAuth callbacks from the system browser.
+- **Platform Agnostic**: Whether on Android (Intent Filter), iOS (Universal Links), or Desktop, the authentication flow remains consistent and testable.
+
+### 2. Strict UI/Logic Separation
+A key architectural decision was to forbid any direct data manipulation in the UI layer.
+- **OmniHub** (this repo) contains **zero** business logic. It only renders State and passes User Intents.
+- **OmniFeed** (core lib) handles all API interactions (Unsplash API), token management, and data persistence.
+
+### 3. Automated Release Pipeline
+The project adheres to **Conventional Commits** to drive a fully automated release cycle:
+- **Semantic Release**: Automatically analyzes commits to determine the next version number (Patch/Minor/Major).
+- **Changelog Generation**: Automatically generates release notes based on the commit history.
+
+## Project Structure
+- `compose`
+    - `commonMain`: Shared UI components, Screens, and ViewModels (MVI).
+    - `androidMain` / `iosMain`: Platform entry points and `DeepLink` interception logic.
+- `.github/workflows`: CI/CD definitions for automated testing and releasing.
+- `gradle/libs.versions.toml`: Centralized dependency management.
+
+---
 
 ### Build and Run Android Application
 
@@ -18,11 +76,11 @@ To build and run the development version of the Android app, use the run configu
 in your IDE’s toolbar or build it directly from the terminal:
 - on macOS/Linux
   ```shell
-  ./gradlew :composeApp:assembleDebug
+  ./gradlew :compose:assembleDebug
   ```
 - on Windows
   ```shell
-  .\gradlew.bat :composeApp:assembleDebug
+  .\gradlew.bat :compose:assembleDebug
   ```
 
 ### Build and Run Desktop (JVM) Application
@@ -31,11 +89,11 @@ To build and run the development version of the desktop app, use the run configu
 in your IDE’s toolbar or run it directly from the terminal:
 - on macOS/Linux
   ```shell
-  ./gradlew :composeApp:run
+  ./gradlew :compose:run
   ```
 - on Windows
   ```shell
-  .\gradlew.bat :composeApp:run
+  .\gradlew.bat :compose:run
   ```
 
 ### Build and Run Web Application
@@ -45,20 +103,20 @@ in your IDE's toolbar or run it directly from the terminal:
 - for the Wasm target (faster, modern browsers):
   - on macOS/Linux
     ```shell
-    ./gradlew :composeApp:wasmJsBrowserDevelopmentRun
+    ./gradlew :compose:wasmJsBrowserDevelopmentRun
     ```
   - on Windows
     ```shell
-    .\gradlew.bat :composeApp:wasmJsBrowserDevelopmentRun
+    .\gradlew.bat :compose:wasmJsBrowserDevelopmentRun
     ```
 - for the JS target (slower, supports older browsers):
   - on macOS/Linux
     ```shell
-    ./gradlew :composeApp:jsBrowserDevelopmentRun
+    ./gradlew :compose:jsBrowserDevelopmentRun
     ```
   - on Windows
     ```shell
-    .\gradlew.bat :composeApp:jsBrowserDevelopmentRun
+    .\gradlew.bat :compose:jsBrowserDevelopmentRun
     ```
 
 ### Configure CocoaPods Integration
@@ -89,7 +147,7 @@ This project uses the Kotlin Multiplatform CocoaPods plugin to handle iOS depend
    ```kotlin
    alias(libs.plugins.kotlinNativeCocoapods) apply false
    ```
-4. Open the module where you want to integrate CocoaPods (e.g., the `composeApp` module), and add the following alias to the `plugins {}` block of the `build.gradle.kts` file:
+4. Open the module where you want to integrate CocoaPods (e.g., the `compose` module), and add the following alias to the `plugins {}` block of the `build.gradle.kts` file:
 
    ```kotlin
    alias(libs.plugins.kotlinNativeCocoapods)
@@ -110,7 +168,7 @@ Follow these steps for initial setup or after modifying dependencies:
    ```
    This generates the `Podfile`.
 
-3. In `composeApp/build.gradle.kts`, configure the version, summary, homepage, and baseName of the Podspec file in the `cocoapods` block within the `kotlin` block:
+3. In `compose/build.gradle.kts`, configure the version, summary, homepage, and baseName of the Podspec file in the `cocoapods` block within the `kotlin` block:
    
    ```kotlin
    iosArm64()
@@ -126,12 +184,12 @@ Follow these steps for initial setup or after modifying dependencies:
 
         // Optional properties
         // Configure the Pod name here instead of changing the Gradle project name
-        name = "ComposeApp"
+        name = "Compose"
 
         framework {
             // Required properties
             // Framework name configuration. Use this property instead of deprecated 'frameworkName'
-            baseName = "ComposeApp"
+            baseName = "Compose"
 
             // Optional properties
             // Specify the framework linking type. It's dynamic by default.
@@ -153,15 +211,15 @@ Follow these steps for initial setup or after modifying dependencies:
 4. Update the `Podfile` by adding the following line below `# Pods for iosApp`:
 
    ```ruby
-   pod 'ComposeApp', :path => '../composeApp'
+   pod 'Compose', :path => '../compose'
    ```
 
 5. Run the helper script setup_ios.sh. This script automates the following tasks:
 
    - `./gradlew clean`
-   - Create the directory `composeApp/build/compose/cocoapods/compose-resources`
-   - `./gradlew :composeApp:generateDummyFramework` (generates a dummy framework in `build/cocoapods/framework/ComposeApp.framework`).
-   - Move to `iosApp` and run `pod install --repo-update --clean-install`. This generates the `iosApp.xcworkspace` file, which includes the `ComposeApp` module.
+   - Create the directory `compose/build/compose/cocoapods/compose-resources`
+   - `./gradlew :compose:generateDummyFramework` (generates a dummy framework in `build/cocoapods/framework/Compose.framework`).
+   - Move to `iosApp` and run `pod install --repo-update --clean-install`. This generates the `iosApp.xcworkspace` file, which includes the `Compose` module.
 
 6. You will see a notification to **reload project as workspace**. This is **important**; the iOS application build will fail if you do not reload.
 
