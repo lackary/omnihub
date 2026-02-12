@@ -1,9 +1,9 @@
 # OmniHub 
 
 [![Continuous Integration (mikepenz)](https://github.com/lackary/omnihub/actions/workflows/ci_mikepenz.yml/badge.svg)](https://github.com/lackary/omnihub/actions/workflows/ci_mikepenz.yml)
-![Version](https://img.shields.io/github/v/release/lackary/omnihub)
+[![Release](https://img.shields.io/github/v/release/lackary/omnihub?include_prereleases&label=latest)](https://github.com/lackary/omnihub/releases)
+[![License](https://img.shields.io/github/license/lackary/omnihub)](https://github.com/lackary/omnihub/blob/main/LICENSE)
 ![Platform](https://img.shields.io/badge/platform-Android%20|%20iOS%20|%20Desktop|%20Web-blue)
-![License](https://img.shields.io/github/license/lackary/omnihub)
 ![Kotlin](https://img.shields.io/badge/kotlin-2.3.0-purple?logo=kotlin)
 ![Compose Multiplatform](https://img.shields.io/badge/Compose%20Multiplatform-v1.10.0-blue)
 
