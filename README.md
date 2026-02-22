@@ -7,7 +7,7 @@
 ![Kotlin](https://img.shields.io/badge/kotlin-2.3.0-purple?logo=kotlin)
 ![Compose Multiplatform](https://img.shields.io/badge/Compose%20Multiplatform-v1.10.0-blue)
 
-> **A Production-Ready Kotlin Multiplatform (KMP) Application featuring MVI Architecture, Modular Design, and Automated CI/CD.**
+> **A Kotlin Multiplatform (KMP) Application featuring MVI Architecture, Modular Design, and Automated CI/CD.**
 
 <table>
   <tr>
@@ -214,7 +214,7 @@ Follow these steps for initial setup or after modifying dependencies:
    pod 'Compose', :path => '../compose'
    ```
 
-5. Run the helper script setup_ios.sh. This script automates the following tasks:
+5. Run the helper script **setup_ios.sh**. This script automates the following tasks:
 
    - `./gradlew clean`
    - Create the directory `compose/build/compose/cocoapods/compose-resources`
@@ -255,7 +255,3 @@ This script provides an interactive menu to choose between:
 
 Learn more about [Kotlin Multiplatform](https://www.jetbrains.com/help/kotlin-multiplatform-dev/get-started.html),
 [Compose Multiplatform](https://github.com/JetBrains/compose-multiplatform/#compose-multiplatform),
-[Kotlin/Wasm](https://kotl.in/wasm/)…
-
-We would appreciate your feedback on Compose/Web and Kotlin/Wasm in the public Slack channel [#compose-web](https://slack-chats.kotlinlang.org/c/compose-web).
-If you face any issues, please report them on [YouTrack](https://youtrack.jetbrains.com/newIssue?project=CMP).
