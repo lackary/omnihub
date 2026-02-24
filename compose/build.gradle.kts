@@ -136,9 +136,13 @@ kotlin {
     sourceSets {
         androidMain.dependencies {
             implementation(libs.androidx.activity.compose)
+            implementation(libs.androidx.compose.ui.tooling)
+            implementation(libs.androidx.xr.runtime)
+            implementation(libs.androidx.xr.scenecore)
+            implementation(libs.androidx.xr.compose)
+            implementation(libs.androidx.xr.material3)
             implementation(libs.ktor.client.android)
             implementation(project.dependencies.platform(libs.androidx.compose.bom))
-            implementation(libs.androidx.compose.ui.tooling)
         }
         commonMain.dependencies {
             implementation(libs.compose.runtime)
