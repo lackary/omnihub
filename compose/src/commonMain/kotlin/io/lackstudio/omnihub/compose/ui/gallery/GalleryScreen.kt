@@ -7,7 +7,6 @@ import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.foundation.focusable
-import androidx.compose.foundation.interaction.collectIsDraggedAsState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -53,6 +52,7 @@ import io.lackstudio.omnifeed.ui.state.AppUiState
 import io.lackstudio.omnihub.compose.platform.isPullToRefreshSupported
 import io.lackstudio.omnihub.compose.ui.components.MonitorErrorStates
 import io.lackstudio.omnihub.compose.ui.navigation.Feature
+import io.lackstudio.omnihub.compose.utils.LocalXrNavigation
 import io.lackstudio.omnihub.compose.utils.logging.rememberLogger
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
@@ -399,6 +399,7 @@ fun PhotosContent(
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope
 ) {
+    val xrNavigationOverride = LocalXrNavigation.current
     SafePullToRefreshBox(
         isRefreshing = isRefreshing,
         onRefresh = onRefresh,
@@ -420,8 +421,12 @@ fun PhotosContent(
                         animatedVisibilityScope = animatedVisibilityScope,
                         isEndOfList = isEndOfList,
                         onLoadMore = onLoadMore,
-                        onPhotoClick = { id, url ->
-                            onNavigateToFeature(Feature.Photo(id, url))
+                        onPhotoClick = { id, url, ratio ->
+                            if (xrNavigationOverride != null) {
+                                xrNavigationOverride(id, url,ratio )
+                            } else {
+                                onNavigateToFeature(Feature.Photo(id, url))
+                            }
                         },
                         onUserClick = { id ->
                             onNavigateToFeature(Feature.User(id))

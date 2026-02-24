@@ -21,8 +21,8 @@ interface GalleryDisplayable {
     val displayCount: Int
     val displayLikes: Int
     val displayBlurHash: String?
-    val displayWidth: Int?
-    val displayHeight: Int?
+    val displayWidth: Int
+    val displayHeight: Int
     val displayPreviewPhotos: List<GalleryPreview>
 }
 
@@ -67,8 +67,8 @@ data class GalleryCollection(
     val username: String,
     val name: String,
     val blurhash: String? = null,
-    val width: Int? = 0,
-    val height: Int? = 0,
+    val width: Int,
+    val height: Int,
     val previewPhotos: List<GalleryPreview> = emptyList()
 ) : GalleryDisplayable {
     override val displayId: String get() = id
@@ -80,8 +80,8 @@ data class GalleryCollection(
     override val displayName: String get() = name
     override val displayLikes: Int get() = 0
     override val displayBlurHash: String? get() = blurhash
-    override val displayWidth: Int? get() = width
-    override val displayHeight: Int? get() = height
+    override val displayWidth: Int get() = width
+    override val displayHeight: Int get() = height
     override val displayPreviewPhotos: List<GalleryPreview> get() = previewPhotos
 }
 
@@ -94,8 +94,8 @@ data class GalleryTopic(
     val name: String,
     val totalPhotos: Int,
     val blurhash: String? = null,
-    val width: Int? = 0,
-    val height: Int? = 0
+    val width: Int,
+    val height: Int
 ) : GalleryDisplayable {
     override val displayId: String get() = id
     override val displayImageUrl: String? get() = coverUrl
@@ -106,8 +106,8 @@ data class GalleryTopic(
     override val displayName: String get() = name
     override val displayLikes: Int get() = 0
     override val displayBlurHash: String? get() = blurhash
-    override val displayWidth: Int? get() = width
-    override val displayHeight: Int? get() = height
+    override val displayWidth: Int get() = width
+    override val displayHeight: Int get() = height
     override val displayPreviewPhotos: List<GalleryPreview> = emptyList()
 }
 

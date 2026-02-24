@@ -121,7 +121,7 @@ fun CollectionDetailScreen(
         ) {
             CollectionDetailContent(
                 state = state,
-                onNavigateToPhoto = { id, url ->
+                onNavigateToPhoto = { id, url, ratio ->
                     onNavigateToFeature(Feature.Photo(id, url))
                 },
                 onNavigateToUser = { username ->
@@ -142,7 +142,7 @@ fun CollectionDetailScreen(
 @Composable
 fun CollectionDetailContent(
     state: CollectionDetailUiState,
-    onNavigateToPhoto: (String, String) -> Unit,
+    onNavigateToPhoto: (String, String, Float) -> Unit,
     onNavigateToUser: (String) -> Unit,
     onLoadMore: () -> Unit,
     sharedTransitionScope: SharedTransitionScope,
@@ -365,7 +365,7 @@ private fun CollectionDetailContentPreview() {
                                 infoState = AppUiState.Success(mockCollection),
                                 photosState = AppUiState.Success(mockPhotos)
                             ),
-                            onNavigateToPhoto = { _, _ -> },
+                            onNavigateToPhoto = { _, _, _-> },
                             onNavigateToUser = {},
                             onLoadMore = {},
                             sharedTransitionScope = this@SharedTransitionLayout,
@@ -390,7 +390,7 @@ private fun CollectionDetailLoadingPreview() {
                         infoState = AppUiState.Loading,
                         photosState = AppUiState.Loading
                     ),
-                    onNavigateToPhoto = { _, _ -> },
+                    onNavigateToPhoto = { _, _, _ -> },
                     onNavigateToUser = {},
                     onLoadMore = {},
                     sharedTransitionScope = this@SharedTransitionLayout,

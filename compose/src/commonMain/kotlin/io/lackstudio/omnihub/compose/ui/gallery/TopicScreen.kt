@@ -90,7 +90,7 @@ fun TopicDetailScreen(
         Box(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
             TopicDetailContent(
                 state = state,
-                onNavigateToPhoto = { id, url ->
+                onNavigateToPhoto = { id, url, ratio ->
                     onNavigateToFeature(Feature.Photo(id, url))
                 },
                 onNavigateToUser = { username ->
@@ -111,7 +111,7 @@ fun TopicDetailScreen(
 @Composable
 fun TopicDetailContent(
     state: TopicDetailUiState,
-    onNavigateToPhoto: (String, String) -> Unit,
+    onNavigateToPhoto: (String, String, Float) -> Unit,
     onNavigateToUser: (String) -> Unit,
     onLoadMore: () -> Unit,
     sharedTransitionScope: SharedTransitionScope,
@@ -330,7 +330,7 @@ private fun TopicDetailContentPreview() {
                                 photosState = AppUiState.Success(mockPhotos),
                                 isPhotosEndOfList = false
                             ),
-                            onNavigateToPhoto = { _, _ -> },
+                            onNavigateToPhoto = { _, _, _-> },
                             onNavigateToUser = {},
                             onLoadMore = {},
                             sharedTransitionScope = this@SharedTransitionLayout,
@@ -356,7 +356,7 @@ private fun TopicDetailLoadingPreview() {
                         photosState = AppUiState.Loading,
                         isPhotosEndOfList = false
                     ),
-                    onNavigateToPhoto = { _, _ -> },
+                    onNavigateToPhoto = { _, _, _ -> },
                     onNavigateToUser = {},
                     onLoadMore = {},
                     sharedTransitionScope = this@SharedTransitionLayout,

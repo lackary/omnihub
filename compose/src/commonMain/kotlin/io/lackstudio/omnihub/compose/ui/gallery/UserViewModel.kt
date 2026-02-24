@@ -259,8 +259,8 @@ class UserViewModel(
                         username = if (isSameUser) "" else collection.user.username,
                         name = if (isSameUser) "" else collection.user.name,
                         blurhash = collection.coverPhoto?.blurHash,
-                        width = collection.coverPhoto?.width,
-                        height = collection.coverPhoto?.height,
+                        width = collection.coverPhoto?.width ?: 0,
+                        height = collection.coverPhoto?.height ?: 0,
                         previewPhotos = collection.previewPhotos?.map {
                             GalleryPreview(it.urls.small, it.blurHash)
                         } ?: emptyList()

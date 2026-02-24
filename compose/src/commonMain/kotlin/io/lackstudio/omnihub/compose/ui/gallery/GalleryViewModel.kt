@@ -362,8 +362,8 @@ class GalleryViewModel(
                         username = collection.user.username,
                         name = collection.user.name,
                         blurhash = collection.coverPhoto?.blurHash,
-                        width = collection.coverPhoto?.width,
-                        height = collection.coverPhoto?.height,
+                        width = collection.coverPhoto?.width ?: 0,
+                        height = collection.coverPhoto?.height ?: 0,
                         previewPhotos =
                             collection.previewPhotos?.map { previewPhoto ->
                                 GalleryPreview(
@@ -403,8 +403,8 @@ class GalleryViewModel(
                         description = topic.description,
                         totalPhotos = topic.totalPhotos,
                         blurhash = topic.coverPhoto?.blurHash,
-                        width = topic.coverPhoto?.width,
-                        height = topic.coverPhoto?.height
+                        width = topic.coverPhoto?.width ?: 0,
+                        height = topic.coverPhoto?.height ?: 0
                     )
                 } },
             distinctBy = { it.id },

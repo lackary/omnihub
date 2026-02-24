@@ -227,7 +227,7 @@ fun UserPhotosSection(
                     animatedVisibilityScope = animatedVisibilityScope,
                     isEndOfList = isEndOfList,
                     onLoadMore = onLoadMore,
-                    onPhotoClick = { id, url ->
+                    onPhotoClick = { id, url, ratio ->
                         onNavigateToFeature(Feature.Photo(id, url))
                     },
                     onUserClick = { username ->
