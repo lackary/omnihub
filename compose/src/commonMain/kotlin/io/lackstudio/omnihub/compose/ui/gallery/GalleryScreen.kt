@@ -429,8 +429,12 @@ fun PhotosContent(
                                 onNavigateToFeature(Feature.Photo(id, url))
                             }
                         },
-                        onUserClick = { id ->
-                            onNavigateToFeature(Feature.User(id))
+                        onUserClick = { username ->
+                            if (xrNav != null) {
+                                xrNav(XrNavEvent.NavigateToUser(username))
+                            } else {
+                                onNavigateToFeature(Feature.User(username))
+                            }
                         }
                     )
                 }
@@ -448,6 +452,7 @@ fun CollectionsContent(
     onLoadMore: () -> Unit,
     onNavigateToFeature: (Feature) -> Unit,
 ) {
+    val xrNav = LocalXrNavigation.current
     SafePullToRefreshBox(
         isRefreshing = isRefreshing,
         onRefresh = onRefresh,
@@ -466,8 +471,13 @@ fun CollectionsContent(
                         onCollectionClick = { id, title ->
                             onNavigateToFeature(Feature.Collection(id, title))
                         },
-                        onUserClick = { id ->
-                            onNavigateToFeature(Feature.User(id))
+                        onUserClick = { username ->
+                            if (xrNav != null) {
+                                xrNav(XrNavEvent.NavigateToUser(username))
+                            } else {
+                                onNavigateToFeature(Feature.User(username))
+                            }
+
                         }
                     )
                 }
