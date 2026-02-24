@@ -52,6 +52,7 @@ import io.lackstudio.omnifeed.ui.state.AppUiState
 import io.lackstudio.omnihub.compose.platform.isPullToRefreshSupported
 import io.lackstudio.omnihub.compose.ui.components.MonitorErrorStates
 import io.lackstudio.omnihub.compose.ui.navigation.Feature
+import io.lackstudio.omnihub.compose.ui.navigation.XrNavEvent
 import io.lackstudio.omnihub.compose.utils.LocalXrNavigation
 import io.lackstudio.omnihub.compose.utils.logging.rememberLogger
 import kotlinx.coroutines.flow.Flow
@@ -399,7 +400,7 @@ fun PhotosContent(
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope
 ) {
-    val xrNavigationOverride = LocalXrNavigation.current
+    val xrNav = LocalXrNavigation.current
     SafePullToRefreshBox(
         isRefreshing = isRefreshing,
         onRefresh = onRefresh,
@@ -422,8 +423,8 @@ fun PhotosContent(
                         isEndOfList = isEndOfList,
                         onLoadMore = onLoadMore,
                         onPhotoClick = { id, url, ratio ->
-                            if (xrNavigationOverride != null) {
-                                xrNavigationOverride(id, url,ratio )
+                            if (xrNav != null) {
+                                xrNav(XrNavEvent.NavigateToPhoto(id, url, ratio))
                             } else {
                                 onNavigateToFeature(Feature.Photo(id, url))
                             }

@@ -52,6 +52,7 @@ import coil3.compose.AsyncImage
 import io.lackstudio.omnifeed.ui.state.AppUiState
 import io.lackstudio.omnihub.compose.ui.components.ExpandableText
 import io.lackstudio.omnihub.compose.ui.navigation.Feature
+import io.lackstudio.omnihub.compose.ui.navigation.XrNavEvent
 import io.lackstudio.omnihub.compose.utils.LocalXrNavigation
 import io.lackstudio.omnihub.compose.utils.UnsplashLinks
 import io.lackstudio.omnihub.compose.utils.logging.rememberLogger
@@ -77,7 +78,7 @@ fun CollectionDetailScreen(
 
     val state by viewModel.state.collectAsStateWithLifecycle()
     val uriHandler = LocalUriHandler.current
-    val xrNavigationOverride = LocalXrNavigation.current
+    val xrNav = LocalXrNavigation.current
 
     LaunchedEffect(collectionId) {
          viewModel.handleIntent(CollectionDetailIntent.LoadData(collectionId))
@@ -124,14 +125,18 @@ fun CollectionDetailScreen(
             CollectionDetailContent(
                 state = state,
                 onNavigateToPhoto = { id, url, ratio ->
-                    if (xrNavigationOverride != null) {
-                        xrNavigationOverride(id, url, ratio)
+                    if (xrNav != null) {
+                        xrNav(XrNavEvent.NavigateToPhoto(id, url, ratio))
                     } else {
                         onNavigateToFeature(Feature.Photo(id, url))
                     }
                 },
                 onNavigateToUser = { username ->
-                    onNavigateToFeature(Feature.User(username))
+                    if (xrNav != null) {
+                        xrNav(XrNavEvent.NavigateToUser(username))
+                    } else {
+                        onNavigateToFeature(Feature.User(username))
+                    }
                 },
                 onLoadMore = {
                     logger.d { "CollectionDetailScreen: onLoadMore" }

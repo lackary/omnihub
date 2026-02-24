@@ -1,6 +1,7 @@
 package io.lackstudio.omnihub.compose.utils
 
 import androidx.compose.runtime.staticCompositionLocalOf
+import io.lackstudio.omnihub.compose.ui.navigation.XrNavEvent
 import io.lackstudio.omnihub.compose.utils.logging.AppLog
 
 // Define a global LocalLogger
@@ -12,6 +13,6 @@ val LocalLogger = staticCompositionLocalOf {
 
 // Define an "XR Navigation Interceptor"
 // Its type is: a function that receives (photoId, url, ratio). If null, it means it's not currently in XR mode
-val LocalXrNavigation = staticCompositionLocalOf<((String, String, Float) -> Unit)?> {
+val LocalXrNavigation = staticCompositionLocalOf<((XrNavEvent) -> Unit)?> {
     null
 }

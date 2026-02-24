@@ -36,3 +36,8 @@ sealed interface Feature {
     @Serializable
     data class User(val username: String) : Feature
 }
+
+sealed interface XrNavEvent {
+    data class NavigateToPhoto(val id: String, val thumbUrl: String, val ratio: Float) : XrNavEvent
+    data class NavigateToUser(val username: String) : XrNavEvent
+}
