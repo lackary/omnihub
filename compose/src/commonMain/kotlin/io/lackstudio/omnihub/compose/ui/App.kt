@@ -8,7 +8,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding // Manual padding is not needed, NavigationSuiteScaffold will handle it
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Settings
@@ -38,6 +38,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import io.lackstudio.omnihub.compose.auth.DeepLinkBuffer
+import io.lackstudio.omnihub.compose.ui.extensions.navigateToFeatureSmart
 import io.lackstudio.omnihub.compose.ui.settings.SettingsScreen
 import io.lackstudio.omnihub.compose.ui.gallery.CollectionDetailScreen
 import io.lackstudio.omnihub.compose.ui.gallery.GalleryScreen
@@ -159,7 +160,7 @@ fun AppScreen(){
         navigationSuiteItems = {
             navItems.forEachIndexed { index, item ->
 
-                // Logic: If in Rail mode and it is the first item (Home), add 16dp top padding
+                // Logic: If in Rail mode, it is the first item (Home), add 16dp top padding
                 val itemModifier = if (layoutType == NavigationSuiteType.NavigationRail && index == 0) {
                     Modifier.padding(top = 16.dp)
                 } else {
@@ -185,7 +186,7 @@ fun AppScreen(){
         SharedTransitionLayout {
             Scaffold(
                 snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
-                // Set to transparent to avoid obscuring the background
+                // Use a transparent background to avoid obscuring the content behind
                 containerColor = androidx.compose.ui.graphics.Color.Transparent
             ) { innerPadding ->
                 val onNavigate: (Feature) -> Unit = { feature ->
@@ -331,52 +332,6 @@ fun AppScreen(){
                 }
             }
         }
-    }
-}
-
-/**
- * Smart Navigation: Automatically check if we should "pop" to the previous page.
- * Used to prevent infinite loops like User -> Photo -> User -> Photo.
- */
-private fun NavHostController.navigateToFeatureSmart(feature: Feature) {
-    val previousEntry = this.previousBackStackEntry
-
-    val shouldPop = try {
-        when (feature) {
-            // 1. Check User loops
-            is Feature.User -> {
-                val prev = previousEntry?.toRoute<Feature.User>()
-                prev?.username == feature.username
-            }
-            // 2. Check Collection loops
-            is Feature.Collection -> {
-                val prev = previousEntry?.toRoute<Feature.Collection>()
-                prev?.id == feature.id
-            }
-            // 3. Check Photo loops
-            is Feature.Photo -> {
-                val prev = previousEntry?.toRoute<Feature.Photo>()
-                prev?.id == feature.id
-            }
-            // 4. Check Topic loops
-            is Feature.Topic -> {
-                val prev = previousEntry?.toRoute<Feature.Topic>()
-                prev?.idOrSlug == feature.idOrSlug
-            }
-            else -> false
-        }
-    } catch (e: Exception) {
-        // If the previous page's route type doesn't match the target (e.g., coming from Home),
-        // toRoute might throw an exception.
-        false
-    }
-
-    if (shouldPop) {
-        // If the destination is the same as the previous page, pop back to create a "return to page" feel.
-        this.popBackStack()
-    } else {
-        // Otherwise, navigate to the new page normally.
-        this.navigate(feature)
     }
 }
 
