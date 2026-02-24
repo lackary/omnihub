@@ -3,6 +3,7 @@ package io.lackstudio.omnihub.compose.utils.logging
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import co.touchlab.kermit.Logger
+import io.lackstudio.omnihub.compose.utils.LocalLogger
 
 
 @Composable

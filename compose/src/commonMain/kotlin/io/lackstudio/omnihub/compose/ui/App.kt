@@ -48,7 +48,7 @@ import io.lackstudio.omnihub.compose.ui.home.HomeScreen
 import io.lackstudio.omnihub.compose.ui.navigation.Feature
 import io.lackstudio.omnihub.compose.ui.navigation.Screen
 import io.lackstudio.omnihub.compose.utils.logging.AppLog
-import io.lackstudio.omnihub.compose.utils.logging.LocalLogger
+import io.lackstudio.omnihub.compose.utils.LocalLogger
 import io.lackstudio.omnihub.compose.utils.logging.rememberLogger
 import kotlinx.coroutines.launch
 
