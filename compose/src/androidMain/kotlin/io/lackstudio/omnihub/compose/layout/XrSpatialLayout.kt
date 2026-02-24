@@ -59,26 +59,37 @@ fun XrSpatialLayout() {
     ) {
         Subspace {
             SpatialBox {
-                val mainPanelWidth = 1280.dp
-                val mainPanelHeight = 800.dp
-                val gap = 48.dp // Increase the gap slightly for a more comfortable look
-
                 val hasPhoto = selectedPhotoId != null
                 val hasUser = selectedUsername != null
+
+                val mainPanelWidth = 1280.dp
+                val mainPanelHeight = 800.dp
 
                 val photoPanelWidth = if (hasPhoto) {
                     (mainPanelHeight.value * selectedPhotoRatio).dp.coerceIn(400.dp, 1200.dp)
                 } else 0.dp
+                // Since Photo width changes, calculate gap dynamically before computing relative coordinates:
+                // Base gap of 48.dp, plus 5% of the right panel width as perspective compensation
+                val dynamicGap = 48.dp + (if (hasUser) (photoPanelWidth * 0.05f) else 0.dp)
 
                 val userPanelWidth = 1280.dp
+                val userGap = 120.dp
 
                 // --- 1. Calculate relative coordinates (Assume main screen at 0, others queue to the right) ---
                 val relativeMainX = 0.dp
                 val relativePhotoX = if (hasPhoto) {
-                    relativeMainX + (mainPanelWidth / 2) + gap + (photoPanelWidth / 2)
+                    relativeMainX + (mainPanelWidth / 2) + dynamicGap + (photoPanelWidth / 2)
                 } else 0.dp
+
+                // If the user opens the User panel directly (without Photo), coordinates would overlap with Main.
                 val relativeUserX = if (hasUser) {
-                    relativePhotoX + (photoPanelWidth / 2) + gap + (userPanelWidth / 2)
+                    if (hasPhoto) {
+                        // If photo panel is present, User follows to the right of Photo
+                        relativePhotoX + (photoPanelWidth / 2) + userGap + (userPanelWidth / 2)
+                    } else {
+                        // If no photo panel, User follows directly to the right of Main
+                        relativeMainX + (mainPanelWidth / 2) + userGap + (userPanelWidth / 2)
+                    }
                 } else 0.dp
 
                 // --- 2. Determine visual focus (which one to move to x = 0) ---
@@ -91,10 +102,20 @@ fun XrSpatialLayout() {
                 // Global smooth animation: push the entire spatial track
                 val globalShiftX by animateDpAsState(targetValue = targetShiftX, label = "globalShiftX")
 
-                // Dynamic Z-axis animation: make the focused panel pop out slightly by 50.dp
-                val mainZ by animateDpAsState(targetValue = if (!hasPhoto && !hasUser) 50.dp else 0.dp, label = "mainZ")
-                val photoZ by animateDpAsState(targetValue = if (hasPhoto && !hasUser) 50.dp else 0.dp, label = "photoZ")
-                val userZ by animateDpAsState(targetValue = if (hasUser) 50.dp else 0.dp, label = "userZ")
+                // ★ 3D Perspective Fix: Main focus stays at Z=0, while background panels move back to Z=-50.dp
+                // This preserves depth perception and causes background panels to visually converge, solving overlap issues perfectly!
+                val mainZ by animateDpAsState(
+                    targetValue = if (!hasPhoto && !hasUser) 0.dp else (-50).dp,
+                    label = "mainZ"
+                )
+                val photoZ by animateDpAsState(
+                    targetValue = if (hasPhoto && !hasUser) 0.dp else if (hasPhoto) (-50).dp else 0.dp,
+                    label = "photoZ"
+                )
+                val userZ by animateDpAsState(
+                    targetValue = if (hasUser) 0.dp else 0.dp, // If User is open, it is always the focus
+                    label = "userZ"
+                )
 
                 // --- Left side: Main application ---
                 SpatialPanel(
