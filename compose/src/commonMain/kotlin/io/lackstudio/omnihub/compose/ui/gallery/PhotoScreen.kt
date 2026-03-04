@@ -58,7 +58,9 @@ fun PhotoDetailScreen(
     onNavigateToFeature: (Feature) -> Unit,
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope,
-    viewModel: PhotoViewModel = koinViewModel()
+    // Add key = id
+    // This forces Koin to create and retain a separate ViewModel instance for each unique photo ID.
+    viewModel: PhotoViewModel = koinViewModel(key = id)
 ) {
     val logger = rememberLogger("PhotoDetailScreen")
     val state by viewModel.state.collectAsStateWithLifecycle()
