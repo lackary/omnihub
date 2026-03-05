@@ -9,9 +9,6 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -48,18 +45,11 @@ import io.lackstudio.omnihub.compose.ui.gallery.UserDetailScreen
 import io.lackstudio.omnihub.compose.ui.home.HomeScreen
 import io.lackstudio.omnihub.compose.ui.navigation.Feature
 import io.lackstudio.omnihub.compose.ui.navigation.Screen
+import io.lackstudio.omnihub.compose.ui.navigation.getAppNavItems
 import io.lackstudio.omnihub.compose.utils.logging.AppLog
 import io.lackstudio.omnihub.compose.utils.LocalLogger
 import io.lackstudio.omnihub.compose.utils.logging.rememberLogger
 import kotlinx.coroutines.launch
-
-// Helper data class (place at bottom of file or in a separate file)
-data class NavItem(
-    val label: String,
-    val icon: androidx.compose.ui.graphics.vector.ImageVector,
-    val route: Any, // Or use your custom Screen type
-    val isSelected: Boolean
-)
 
 // --- Animation Constants ---
 private const val ANIM_DURATION = 300
@@ -89,22 +79,28 @@ private fun fadeExit() = fadeOut(tween(ANIM_DURATION))
 @Preview(name = "Mobile", widthDp = 360, heightDp = 640)
 @Preview(name = "Desktop", widthDp = 1024, heightDp = 768)
 @Composable
-fun App() {
+fun App(
+    navController: NavHostController = rememberNavController(),
+    showNavigationBar: Boolean = true
+) {
 
     val rootLogger = remember { AppLog.withTag("App") }
     CompositionLocalProvider(
         LocalLogger provides rootLogger
     ) {
-        AppScreen()
+        AppScreen(navController = navController, showNavigationBar = showNavigationBar)
     }
 
 }
 
 @Composable
-fun AppScreen(){
-
+fun AppScreen(
+    navController: NavHostController ,
+    showNavigationBar: Boolean
+){
     val logger = rememberLogger("AppScreen")
-    val navController = rememberNavController()
+//    val navController = rememberNavController()
+
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
 
@@ -120,7 +116,7 @@ fun AppScreen(){
     // Check if the current destination is the PhotoDetail screen
     val isPhotoDetail = currentDestination?.hasRoute<Feature.Photo>() == true
     // Determine Layout Type: If it's PhotoDetail, force hide the navigation bar (None)
-    val layoutType = if (isPhotoDetail) {
+    val layoutType = if (!showNavigationBar || isPhotoDetail) {
         NavigationSuiteType.None
     } else {
         defaultLayoutType
@@ -131,20 +127,7 @@ fun AppScreen(){
     }
 
     // Define your navigation items
-    val navItems = listOf(
-        NavItem(
-            label = "Home",
-            icon = Icons.Filled.Home,
-            route = Screen.Home,
-            isSelected = currentDestination?.hasRoute<Screen.Home>() == true
-        ),
-        NavItem(
-            label = "Settings",
-            icon = Icons.Filled.Settings,
-            route = Screen.Settings,
-            isSelected = currentDestination?.hasRoute<Screen.Settings>() == true
-        )
-    )
+    val navItems = getAppNavItems(currentDestination)
 
     // Resolve issue where web cannot redirect to Gallery page after successful OAuth2 login
     val startDestination: Any = remember {

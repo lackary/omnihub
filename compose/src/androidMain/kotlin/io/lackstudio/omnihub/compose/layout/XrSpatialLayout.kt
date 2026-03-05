@@ -4,6 +4,13 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
@@ -13,13 +20,20 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
+import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.navigation.compose.rememberNavController
+import androidx.xr.compose.spatial.ContentEdge
+import androidx.xr.compose.spatial.Orbiter
 import androidx.xr.compose.spatial.Subspace
 import androidx.xr.compose.subspace.MovePolicy
 import androidx.xr.compose.subspace.ResizePolicy
 import androidx.xr.compose.subspace.SpatialCurvedRow
 import androidx.xr.compose.subspace.SpatialPanel
+import androidx.xr.compose.subspace.SpatialSpacer
 import androidx.xr.compose.subspace.layout.SubspaceModifier
 import androidx.xr.compose.subspace.layout.height
 import androidx.xr.compose.subspace.layout.width
@@ -28,6 +42,7 @@ import io.lackstudio.omnihub.compose.ui.gallery.PhotoStackScreen
 import io.lackstudio.omnihub.compose.ui.gallery.StackedPhoto
 import io.lackstudio.omnihub.compose.ui.gallery.UserDetailScreen
 import io.lackstudio.omnihub.compose.ui.navigation.XrNavEvent
+import io.lackstudio.omnihub.compose.ui.navigation.getAppNavItems
 import io.lackstudio.omnihub.compose.utils.LocalXrNavigation
 
 @Composable
@@ -36,48 +51,44 @@ fun XrSpatialLayout() {
     var currentPhotoIndex by remember { mutableIntStateOf(0) }
     var selectedUsername by remember { mutableStateOf<String?>(null) }
 
+    // Declare NavController at the top level so the Orbiter can use it
+    val navController = rememberNavController()
+    val navBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentDestination = navBackStackEntry?.destination
+
+    val navItems = getAppNavItems(currentDestination)
+
     CompositionLocalProvider(
         LocalXrNavigation provides { event ->
             when(event) {
                 is XrNavEvent.NavigateToPhoto -> {
-                    // Force close the left User panel when opening the right photo panel!
                     selectedUsername = null
-
                     val newPhoto = StackedPhoto(event.id, event.thumbUrl, event.ratio)
                     if (!photoStack.any { it.id == event.id }) photoStack.add(newPhoto)
                     currentPhotoIndex = photoStack.indexOfFirst { it.id == event.id }
                 }
                 is XrNavEvent.NavigateToUser -> {
-
                     selectedUsername = event.username
                 }
             }
         }
     ) {
         Subspace {
-            SpatialCurvedRow(
-                curveRadius = 825.dp
-            ) {
+            // Significantly widen the curve radius to 2000.dp to flatten the curve
+            SpatialCurvedRow(curveRadius = 2000.dp) {
                 val hasUser = selectedUsername != null
                 val hasStack = photoStack.isNotEmpty() && !hasUser
 
                 val panelWidth = 848.dp
                 val panelHeight = 800.dp
 
-//                val mainPanelWidth = 560.dp
-//                val userPanelWidth = 1000.dp
-//                val stackPanelWidth = 1000.dp
+                val gap = 8.dp
 
-//                val gap = 8.dp // Scale down the panel gap proportionally
-
-                // --- Left: User Detail Screen ---
+                // --- Left (User Panel) ---
                 if (hasUser) {
                     SpatialPanel(
-                        modifier = SubspaceModifier
-                            .width(panelWidth)
-                            .height(panelHeight),
-                        dragPolicy = MovePolicy(),
-                        resizePolicy = ResizePolicy()
+                        modifier = SubspaceModifier.width(panelWidth).height(panelHeight),
+                        dragPolicy = MovePolicy(), resizePolicy = ResizePolicy()
                     ) {
                         SharedTransitionLayout {
                             AnimatedVisibility(visible = true) {
@@ -95,27 +106,67 @@ fun XrSpatialLayout() {
                             }
                         }
                     }
+                    SpatialSpacer(modifier = SubspaceModifier.width(gap))
                 }
 
                 // --- Center: Main Application ---
                 SpatialPanel(
-                    modifier = SubspaceModifier
-                        .width(panelWidth)
-                        .height(panelHeight),
-                    dragPolicy = MovePolicy(),
-                    resizePolicy = ResizePolicy()
+                    modifier = SubspaceModifier.width(panelWidth).height(panelHeight),
+                    dragPolicy = MovePolicy(), resizePolicy = ResizePolicy()
                 ) {
-                    App()
+
+                    // 100% manually controlled bottom floating Orbiter.
+                    // In alpha14, although EnableXrComponentOverrides can automatically adapt the
+                    // NavigationSuiteScaffold's navigationRail / navigationBar inside the App,
+                    // it completely fails to control the SpatialPanel's dimensions.
+                    // The SpatialPanel will be automatically forced to its maximum size.
+                    Orbiter(
+                        position = ContentEdge.Bottom,
+                        offset = 80.dp, // Floating gap. Setting it to 48.dp still covers the main panel
+                        alignment = Alignment.CenterHorizontally
+                    ) {
+                        // Define a comfortable touch target width for each navigation bar button
+                        val singleItemWidth = 90.dp
+                        // Dynamically calculate the total width of the capsule
+                        val capsuleWidth = singleItemWidth * navItems.size
+
+                        NavigationBar(
+                            modifier = Modifier
+                                .width(capsuleWidth) // Tech-inspired capsule shape
+                                .clip(RoundedCornerShape(32.dp)),
+                            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
+                        ) {
+
+                            navItems.forEach { item ->
+                                NavigationBarItem(
+                                    icon = { Icon(item.icon, contentDescription = item.label) },
+                                    label = { Text(item.label) },
+                                    selected = item.isSelected,
+                                    onClick = {
+                                        // Navigate to the corresponding route on click
+                                        navController.navigate(item.route) {
+                                            popUpTo(navController.graph.startDestinationId) { saveState = true }
+                                            launchSingleTop = true
+                                            restoreState = true
+                                        }
+                                    }
+                                )
+                            }
+                        }
+                    }
+                    // Call the App and forcefully hide the internal 2D navigation bar
+                    App(
+                        navController = navController,
+                        showNavigationBar = false
+                    )
                 }
 
-                // --- Right: Photo Stack Panel ---
+                // --- Right (Photo Panel) ---
                 if (hasStack) {
+                    SpatialSpacer(modifier = SubspaceModifier.width(gap))
                     SpatialPanel(
-                        modifier = SubspaceModifier
-                            .width(panelWidth)
-                            .height(panelHeight),
-                        dragPolicy = MovePolicy(),
-                        resizePolicy = ResizePolicy()
+                        modifier = SubspaceModifier.width(panelWidth).height(panelHeight),
+                        dragPolicy = MovePolicy(), resizePolicy = ResizePolicy()
                     ) {
                         SharedTransitionLayout {
                             AnimatedVisibility(visible = true) {
