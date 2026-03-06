@@ -1,3 +1,20 @@
+# [0.15.0](https://github.com/lackary/omnihub/compare/v0.14.0...v0.15.0) (2026-03-06)
+
+
+### Features
+
+* **android:** implement XR spatial layout and update entry point ([705f182](https://github.com/lackary/omnihub/commit/705f1826d9a303f7eb722b8c1679bdd3f396d5c8))
+* **compose:** implement photo stack and spatial layout improvements for XR ([ea3e698](https://github.com/lackary/omnihub/commit/ea3e6983bf1d6552dc9def85801186f1b033229e))
+* **compose:** refactor spatial layout to use SpatialCurvedRow ([7c831d8](https://github.com/lackary/omnihub/commit/7c831d8b17cb44eb8b2a09ca4b77219839a23e2b))
+* **ui:** extract smart navigation logic to a dedicated extension file ([530641f](https://github.com/lackary/omnihub/commit/530641fc05c3393d27b213455276bff8182096c9))
+* **ui:** implement multiplatform AppEntry and add XR support for Android ([7f03f83](https://github.com/lackary/omnihub/commit/7f03f830e0a781ca1976a27303831a6f619e9ccd))
+* **ui:** implement unified XR navigation with support for user profiles ([4a222d0](https://github.com/lackary/omnihub/commit/4a222d0ce259af9f25104ad5a2df0844bb4359b5))
+* **ui:** implement XR navigation override for photo details ([3a016cf](https://github.com/lackary/omnihub/commit/3a016cf2e1831e7ea672790c8858df23ac547820))
+* **ui:** implement XR navigation support in UserScreen ([d124b57](https://github.com/lackary/omnihub/commit/d124b572797eadff2418be000821c435001c6434))
+* **ui:** refine XR spatial layout positioning and depth logic ([c5e0d2d](https://github.com/lackary/omnihub/commit/c5e0d2d23e6426c39a286e8f6b393f72999890da))
+* **ui:** support XR navigation for user clicks in GalleryScreen ([88aa6e5](https://github.com/lackary/omnihub/commit/88aa6e5b80dd80923cfb26da3cf30881a8377fd4))
+* **ui:** update gallery navigation to include aspect ratio and support XR overrides ([1c4e87e](https://github.com/lackary/omnihub/commit/1c4e87e5bab6507dff330ec21f3d19d32517d1a5))
+
 # [0.14.0](https://github.com/lackary/omnihub/compare/v0.13.1...v0.14.0) (2026-02-10)
 
 
