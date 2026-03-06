@@ -41,6 +41,8 @@ import coil3.compose.LocalPlatformContext
 import coil3.size.Size
 import io.lackstudio.omnifeed.ui.state.AppUiState
 import io.lackstudio.omnihub.compose.ui.navigation.Feature
+import io.lackstudio.omnihub.compose.ui.navigation.XrNavEvent
+import io.lackstudio.omnihub.compose.utils.LocalXrNavigation
 import io.lackstudio.omnihub.compose.utils.UnsplashLinks
 import io.lackstudio.omnihub.compose.utils.logging.rememberLogger
 import kotlin.math.min
@@ -56,10 +58,13 @@ fun PhotoDetailScreen(
     onNavigateToFeature: (Feature) -> Unit,
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope,
-    viewModel: PhotoViewModel = koinViewModel()
+    // Add key = id
+    // This forces Koin to create and retain a separate ViewModel instance for each unique photo ID.
+    viewModel: PhotoViewModel = koinViewModel(key = id)
 ) {
     val logger = rememberLogger("PhotoDetailScreen")
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val xrNav = LocalXrNavigation.current
 
     LaunchedEffect(id) {
         viewModel.handleIntent(PhotoDetailIntent.LoadDetail(id))
@@ -75,7 +80,12 @@ fun PhotoDetailScreen(
             viewModel.handleIntent(PhotoDetailIntent.Retry)
         },
         onNavigateToUser = { username ->
-            onNavigateToFeature(Feature.User(username))
+            if (xrNav != null) {
+                xrNav(XrNavEvent.NavigateToUser(username))
+            } else {
+                onNavigateToFeature(Feature.User(username))
+            }
+
         },
         sharedTransitionScope = sharedTransitionScope,
         animatedVisibilityScope = animatedVisibilityScope

@@ -108,7 +108,7 @@ fun PhotoList(
     animatedVisibilityScope: AnimatedVisibilityScope,
     isEndOfList: Boolean,
     onLoadMore: () -> Unit,
-    onPhotoClick: (String, String) -> Unit,
+    onPhotoClick: (String, String, Float) -> Unit,
     onUserClick: (String) -> Unit = {}
 ) {
     // Use Staggered Grid State
@@ -136,7 +136,10 @@ fun PhotoList(
         ) { item ->
             GalleryCard(
                 item = item,
-                onClick = { onPhotoClick(item.displayId, item.displayImageUrl?: "") },
+                onClick = {
+                    val ratio = item.displayWidth / item.displayHeight.toFloat()
+                    onPhotoClick(item.displayId, item.displayImageUrl?: "", ratio)
+                },
                 onUserClick = { item.displayUsername?.let { onUserClick(it) } },
                 sharedTransitionScope = sharedTransitionScope,
                 animatedVisibilityScope = animatedVisibilityScope)
@@ -246,8 +249,8 @@ fun GalleryCard(
 
     // Calculate image aspect ratio
     val aspectRatio = remember(item.displayWidth, item.displayHeight) {
-        val w = item.displayWidth ?: 0
-        val h = item.displayHeight ?: 0
+        val w = item.displayWidth
+        val h = item.displayHeight
         if (h > 0 && w > 0) {
             w.toFloat() / h.toFloat()
         } else {

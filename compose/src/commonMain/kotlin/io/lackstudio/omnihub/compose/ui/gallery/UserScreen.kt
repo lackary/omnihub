@@ -31,7 +31,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import io.lackstudio.omnifeed.ui.state.AppUiState
 import io.lackstudio.omnihub.compose.ui.components.ExpandableText
-import io.lackstudio.omnihub.compose.ui.navigation.Feature // Remember to import Feature
+import io.lackstudio.omnihub.compose.ui.navigation.Feature
+import io.lackstudio.omnihub.compose.ui.navigation.XrNavEvent
+import io.lackstudio.omnihub.compose.utils.LocalXrNavigation
 import io.lackstudio.omnihub.compose.utils.UnsplashLinks
 import io.lackstudio.omnihub.compose.utils.logging.rememberLogger
 import io.lackstudio.omnihub.compose.utils.toCompactDisplayString
@@ -203,6 +205,8 @@ fun UserPhotosSection(
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope,
 ) {
+    val xrNav = LocalXrNavigation.current
+
     when (state) {
         is AppUiState.Loading, AppUiState.Idle -> {
             Box(modifier = Modifier.fillMaxSize().height(200.dp), contentAlignment = Alignment.Center) {
@@ -227,8 +231,13 @@ fun UserPhotosSection(
                     animatedVisibilityScope = animatedVisibilityScope,
                     isEndOfList = isEndOfList,
                     onLoadMore = onLoadMore,
-                    onPhotoClick = { id, url ->
-                        onNavigateToFeature(Feature.Photo(id, url))
+                    onPhotoClick = { id, url, ratio ->
+                        if (xrNav != null) {
+                            xrNav(XrNavEvent.NavigateToPhoto(id, url, ratio))
+                        } else {
+                            onNavigateToFeature(Feature.Photo(id, url))
+                        }
+
                     },
                     onUserClick = { username ->
                         onNavigateToFeature(Feature.User(username))

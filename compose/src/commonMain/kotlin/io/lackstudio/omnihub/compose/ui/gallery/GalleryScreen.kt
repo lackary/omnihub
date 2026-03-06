@@ -7,7 +7,6 @@ import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.foundation.focusable
-import androidx.compose.foundation.interaction.collectIsDraggedAsState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -53,6 +52,8 @@ import io.lackstudio.omnifeed.ui.state.AppUiState
 import io.lackstudio.omnihub.compose.platform.isPullToRefreshSupported
 import io.lackstudio.omnihub.compose.ui.components.MonitorErrorStates
 import io.lackstudio.omnihub.compose.ui.navigation.Feature
+import io.lackstudio.omnihub.compose.ui.navigation.XrNavEvent
+import io.lackstudio.omnihub.compose.utils.LocalXrNavigation
 import io.lackstudio.omnihub.compose.utils.logging.rememberLogger
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
@@ -399,6 +400,7 @@ fun PhotosContent(
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope
 ) {
+    val xrNav = LocalXrNavigation.current
     SafePullToRefreshBox(
         isRefreshing = isRefreshing,
         onRefresh = onRefresh,
@@ -420,11 +422,19 @@ fun PhotosContent(
                         animatedVisibilityScope = animatedVisibilityScope,
                         isEndOfList = isEndOfList,
                         onLoadMore = onLoadMore,
-                        onPhotoClick = { id, url ->
-                            onNavigateToFeature(Feature.Photo(id, url))
+                        onPhotoClick = { id, url, ratio ->
+                            if (xrNav != null) {
+                                xrNav(XrNavEvent.NavigateToPhoto(id, url, ratio))
+                            } else {
+                                onNavigateToFeature(Feature.Photo(id, url))
+                            }
                         },
-                        onUserClick = { id ->
-                            onNavigateToFeature(Feature.User(id))
+                        onUserClick = { username ->
+                            if (xrNav != null) {
+                                xrNav(XrNavEvent.NavigateToUser(username))
+                            } else {
+                                onNavigateToFeature(Feature.User(username))
+                            }
                         }
                     )
                 }
@@ -442,6 +452,7 @@ fun CollectionsContent(
     onLoadMore: () -> Unit,
     onNavigateToFeature: (Feature) -> Unit,
 ) {
+    val xrNav = LocalXrNavigation.current
     SafePullToRefreshBox(
         isRefreshing = isRefreshing,
         onRefresh = onRefresh,
@@ -460,8 +471,13 @@ fun CollectionsContent(
                         onCollectionClick = { id, title ->
                             onNavigateToFeature(Feature.Collection(id, title))
                         },
-                        onUserClick = { id ->
-                            onNavigateToFeature(Feature.User(id))
+                        onUserClick = { username ->
+                            if (xrNav != null) {
+                                xrNav(XrNavEvent.NavigateToUser(username))
+                            } else {
+                                onNavigateToFeature(Feature.User(username))
+                            }
+
                         }
                     )
                 }

@@ -30,6 +30,8 @@ import coil3.compose.AsyncImage
 import io.lackstudio.omnifeed.ui.state.AppUiState
 import io.lackstudio.omnihub.compose.ui.components.ExpandableText
 import io.lackstudio.omnihub.compose.ui.navigation.Feature
+import io.lackstudio.omnihub.compose.ui.navigation.XrNavEvent
+import io.lackstudio.omnihub.compose.utils.LocalXrNavigation
 import io.lackstudio.omnihub.compose.utils.UnsplashLinks
 import io.lackstudio.omnihub.compose.utils.logging.rememberLogger
 import omnihub.compose.generated.resources.Res
@@ -52,6 +54,7 @@ fun TopicDetailScreen(
     val uriHandler = LocalUriHandler.current
 
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val xrNav = LocalXrNavigation.current
 
     LaunchedEffect(topicId) {
         viewModel.handleIntent(TopicDetailIntent.LoadData(topicId))
@@ -90,11 +93,19 @@ fun TopicDetailScreen(
         Box(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
             TopicDetailContent(
                 state = state,
-                onNavigateToPhoto = { id, url ->
-                    onNavigateToFeature(Feature.Photo(id, url))
+                onNavigateToPhoto = { id, url, ratio ->
+                    if (xrNav != null) {
+                        xrNav(XrNavEvent.NavigateToPhoto(id, url, ratio))
+                    } else {
+                        onNavigateToFeature(Feature.Photo(id, url))
+                    }
                 },
                 onNavigateToUser = { username ->
-                    onNavigateToFeature(Feature.User(username))
+                    if (xrNav != null) {
+                        xrNav(XrNavEvent.NavigateToUser(username))
+                    } else {
+                        onNavigateToFeature(Feature.User(username))
+                    }
                 },
                 onLoadMore = {
                     logger.d { "onLoadMore" }
@@ -111,7 +122,7 @@ fun TopicDetailScreen(
 @Composable
 fun TopicDetailContent(
     state: TopicDetailUiState,
-    onNavigateToPhoto: (String, String) -> Unit,
+    onNavigateToPhoto: (String, String, Float) -> Unit,
     onNavigateToUser: (String) -> Unit,
     onLoadMore: () -> Unit,
     sharedTransitionScope: SharedTransitionScope,
@@ -330,7 +341,7 @@ private fun TopicDetailContentPreview() {
                                 photosState = AppUiState.Success(mockPhotos),
                                 isPhotosEndOfList = false
                             ),
-                            onNavigateToPhoto = { _, _ -> },
+                            onNavigateToPhoto = { _, _, _-> },
                             onNavigateToUser = {},
                             onLoadMore = {},
                             sharedTransitionScope = this@SharedTransitionLayout,
@@ -356,7 +367,7 @@ private fun TopicDetailLoadingPreview() {
                         photosState = AppUiState.Loading,
                         isPhotosEndOfList = false
                     ),
-                    onNavigateToPhoto = { _, _ -> },
+                    onNavigateToPhoto = { _, _, _ -> },
                     onNavigateToUser = {},
                     onLoadMore = {},
                     sharedTransitionScope = this@SharedTransitionLayout,

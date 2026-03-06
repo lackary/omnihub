@@ -52,6 +52,8 @@ import coil3.compose.AsyncImage
 import io.lackstudio.omnifeed.ui.state.AppUiState
 import io.lackstudio.omnihub.compose.ui.components.ExpandableText
 import io.lackstudio.omnihub.compose.ui.navigation.Feature
+import io.lackstudio.omnihub.compose.ui.navigation.XrNavEvent
+import io.lackstudio.omnihub.compose.utils.LocalXrNavigation
 import io.lackstudio.omnihub.compose.utils.UnsplashLinks
 import io.lackstudio.omnihub.compose.utils.logging.rememberLogger
 import omnihub.compose.generated.resources.Res
@@ -76,6 +78,7 @@ fun CollectionDetailScreen(
 
     val state by viewModel.state.collectAsStateWithLifecycle()
     val uriHandler = LocalUriHandler.current
+    val xrNav = LocalXrNavigation.current
 
     LaunchedEffect(collectionId) {
          viewModel.handleIntent(CollectionDetailIntent.LoadData(collectionId))
@@ -121,11 +124,19 @@ fun CollectionDetailScreen(
         ) {
             CollectionDetailContent(
                 state = state,
-                onNavigateToPhoto = { id, url ->
-                    onNavigateToFeature(Feature.Photo(id, url))
+                onNavigateToPhoto = { id, url, ratio ->
+                    if (xrNav != null) {
+                        xrNav(XrNavEvent.NavigateToPhoto(id, url, ratio))
+                    } else {
+                        onNavigateToFeature(Feature.Photo(id, url))
+                    }
                 },
                 onNavigateToUser = { username ->
-                    onNavigateToFeature(Feature.User(username))
+                    if (xrNav != null) {
+                        xrNav(XrNavEvent.NavigateToUser(username))
+                    } else {
+                        onNavigateToFeature(Feature.User(username))
+                    }
                 },
                 onLoadMore = {
                     logger.d { "CollectionDetailScreen: onLoadMore" }
@@ -142,7 +153,7 @@ fun CollectionDetailScreen(
 @Composable
 fun CollectionDetailContent(
     state: CollectionDetailUiState,
-    onNavigateToPhoto: (String, String) -> Unit,
+    onNavigateToPhoto: (String, String, Float) -> Unit,
     onNavigateToUser: (String) -> Unit,
     onLoadMore: () -> Unit,
     sharedTransitionScope: SharedTransitionScope,
@@ -365,7 +376,7 @@ private fun CollectionDetailContentPreview() {
                                 infoState = AppUiState.Success(mockCollection),
                                 photosState = AppUiState.Success(mockPhotos)
                             ),
-                            onNavigateToPhoto = { _, _ -> },
+                            onNavigateToPhoto = { _, _, _-> },
                             onNavigateToUser = {},
                             onLoadMore = {},
                             sharedTransitionScope = this@SharedTransitionLayout,
@@ -390,7 +401,7 @@ private fun CollectionDetailLoadingPreview() {
                         infoState = AppUiState.Loading,
                         photosState = AppUiState.Loading
                     ),
-                    onNavigateToPhoto = { _, _ -> },
+                    onNavigateToPhoto = { _, _, _ -> },
                     onNavigateToUser = {},
                     onLoadMore = {},
                     sharedTransitionScope = this@SharedTransitionLayout,
