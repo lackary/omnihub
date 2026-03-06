@@ -1,6 +1,6 @@
 [versions]
 # Gradle
-agp = "9.0.1"
+agp = "9.1.0"
 android-compileSdk = "36"
 android-minSdk = "30"
 android-targetSdk = "36"
