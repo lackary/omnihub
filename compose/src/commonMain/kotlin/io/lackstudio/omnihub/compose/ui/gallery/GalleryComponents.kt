@@ -1,8 +1,13 @@
 package io.lackstudio.omnihub.compose.ui.gallery
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -33,9 +38,12 @@ import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FilterNone
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
@@ -44,6 +52,8 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
@@ -68,6 +78,7 @@ import coil3.request.ImageRequest
 import coil3.request.crossfade
 import coil3.size.Size
 import com.brys.compose.blurhash.BlurHashImage
+import io.lackstudio.omnifeed.ui.state.AppUiState
 import io.lackstudio.omnihub.compose.platform.isPullToRefreshSupported // Variable defined recently
 import io.lackstudio.omnihub.compose.ui.extensions.pagingGridItems
 import io.lackstudio.omnihub.compose.ui.extensions.pagingStaggeredGridItems
@@ -99,97 +110,198 @@ fun SafePullToRefreshBox(
     }
 }
 
-// --- List Components ---
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
-fun PhotoList(
-    photos: List<GalleryDisplayable>,
-    sharedTransitionScope: SharedTransitionScope,
-    animatedVisibilityScope: AnimatedVisibilityScope,
-    isEndOfList: Boolean,
-    onLoadMore: () -> Unit,
-    onPhotoClick: (String, String, Float) -> Unit,
-    onUserClick: (String) -> Unit = {}
+fun <T> StatefulListContent(
+    state: AppUiState<List<T>>,
+    isRefreshing: Boolean = false,
+    onRefresh: (() -> Unit)? = null,
+    emptyMessage: String,
+    // Let the caller decide what List to draw on success (pass the unwrapped List<T>)
+    successContent: @Composable (List<T>) -> Unit
 ) {
-    // Use Staggered Grid State
-    val state = rememberLazyStaggeredGridState()
-
-    LazyVerticalStaggeredGrid(
-        // Key setting: Adaptive
-        // Set minimum width (e.g., 300.dp or 180.dp)
-        // - On mobile (width < 600dp), it automatically becomes 1 or 2 columns
-        // - On Desktop/Web (large width), it automatically becomes 3, 4, 5... columns
-        // Value can be adjusted based on design, smaller value means more columns
-        columns = StaggeredGridCells.Adaptive(minSize = 300.dp),
-        modifier = Modifier.fillMaxSize(),
-        state = state,
-        contentPadding = PaddingValues(8.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalItemSpacing = 8.dp
-    ) {
-        // Use the newly added extension
-        pagingStaggeredGridItems(
-            items = photos,
-            isEndOfList = isEndOfList,
-            onLoadMore = onLoadMore,
-            key = { it.displayId }
-        ) { item ->
-            GalleryCard(
-                item = item,
-                onClick = {
-                    val ratio = item.displayWidth / item.displayHeight.toFloat()
-                    onPhotoClick(item.displayId, item.displayImageUrl?: "", ratio)
-                },
-                onUserClick = { item.displayUsername?.let { onUserClick(it) } },
-                sharedTransitionScope = sharedTransitionScope,
-                animatedVisibilityScope = animatedVisibilityScope)
+    // Determine if a pull-to-refresh wrapper is needed
+    val contentWrapper: @Composable (@Composable () -> Unit) -> Unit = { child ->
+        if (onRefresh != null) {
+            SafePullToRefreshBox(
+                isRefreshing = isRefreshing,
+                onRefresh = onRefresh,
+                modifier = Modifier.fillMaxSize()
+            ) { child() }
+        } else {
+            Box(modifier = Modifier.fillMaxSize()) { child() }
         }
     }
-}
 
-@OptIn(ExperimentalSharedTransitionApi::class)
-@Composable
-fun CollectionList(
-    collections: List<GalleryDisplayable>,
-    isEndOfList: Boolean,
-    onLoadMore: () -> Unit,
-    onCollectionClick: (String, String) -> Unit,
-    onUserClick: (String) -> Unit = {}
-) {
-    // Use Staggered Grid State
-    val state = rememberLazyStaggeredGridState()
+    contentWrapper {
+        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            when (state) {
+                is AppUiState.Idle, is AppUiState.Loading -> CircularProgressIndicator()
 
-    LazyVerticalStaggeredGrid(
-        columns = StaggeredGridCells.Adaptive(minSize = 300.dp),
-        modifier = Modifier.fillMaxSize(),
-        state = state,
-        contentPadding = PaddingValues(8.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalItemSpacing = 8.dp
-    ) {
-        pagingStaggeredGridItems(
-            items = collections,
-            isEndOfList = isEndOfList,
-            onLoadMore = onLoadMore,
-            key = { it.displayId }
-        ) { collection ->
-            GalleryCard(
-                item = collection,
-                onClick = { onCollectionClick(collection.displayId, collection.displayTitle) },
-                onUserClick = {
-                    collection.displayUsername?.let {
-                        onUserClick(it)
+                is AppUiState.Error -> Text(
+                    text = state.message,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.padding(16.dp)
+                )
+
+                is AppUiState.Success -> {
+                    val data = state.data
+                    if (data.isEmpty()) {
+                        Text(emptyMessage, color = Color.Gray)
+                    } else {
+                        successContent(data)
                     }
                 }
-            )
+            }
         }
     }
 }
 
+@Composable
+fun TopicPagedSection(
+    state: AppUiState<List<GalleryTopic>>,
+    isRefreshing: Boolean = false,
+    onRefresh: (() -> Unit)? = null,
+    isEndOfList: Boolean,
+    appendError: String?,
+    emptyMessage: String = "No topics found.",
+    onLoadMore: () -> Unit,
+    onTopicClick: (String, String) -> Unit
+) {
+    StatefulListContent(
+        state = state,
+        isRefreshing = isRefreshing,
+        onRefresh = onRefresh,
+        emptyMessage = emptyMessage
+    ) { topics ->
+        TopicList(
+            topics = topics,
+            isEndOfList = isEndOfList,
+            appendError = appendError,
+            onLoadMore = onLoadMore,
+            onTopicClick = onTopicClick
+        )
+    }
+}
+
+@OptIn(ExperimentalSharedTransitionApi::class)
+@Composable
+fun GalleryPagedSection(
+    state: AppUiState<List<GalleryDisplayable>>,
+    isRefreshing: Boolean = false,
+    onRefresh: (() -> Unit)? = null,
+    isEndOfList: Boolean,
+    appendError: String?,
+    emptyMessage: String,
+    onLoadMore: () -> Unit,
+    onItemClick: (GalleryDisplayable) -> Unit,
+    onUserClick: (String) -> Unit = {},
+    sharedTransitionScope: SharedTransitionScope? = null,
+    animatedVisibilityScope: AnimatedVisibilityScope? = null
+) {
+    StatefulListContent(
+        state = state,
+        isRefreshing = isRefreshing,
+        onRefresh = onRefresh,
+        emptyMessage = emptyMessage
+    ) { items ->
+        GalleryDisplayableList(
+            items = items,
+            isEndOfList = isEndOfList,
+            appendError = appendError,
+            onLoadMore = onLoadMore,
+            onItemClick = onItemClick,
+            onUserClick = onUserClick,
+            sharedTransitionScope = sharedTransitionScope,
+            animatedVisibilityScope = animatedVisibilityScope
+        )
+    }
+}
+
+@OptIn(ExperimentalSharedTransitionApi::class)
+@Composable
+fun GalleryDisplayableList(
+    items: List<GalleryDisplayable>,
+    isEndOfList: Boolean,
+    appendError: String?,
+    onLoadMore: () -> Unit,
+    onItemClick: (GalleryDisplayable) -> Unit,
+    onUserClick: (String) -> Unit = {},
+    sharedTransitionScope: SharedTransitionScope? = null,
+    animatedVisibilityScope: AnimatedVisibilityScope? = null
+) {
+    val state = rememberLazyStaggeredGridState()
+    val coroutineScope = rememberCoroutineScope()
+
+    val showFab by remember {
+        derivedStateOf { state.firstVisibleItemIndex > 2 }
+    }
+    Box(modifier = Modifier.fillMaxSize()) {
+
+        LazyVerticalStaggeredGrid(
+            // Key setting: Adaptive
+            // Set minimum width (e.g., 300.dp or 180.dp)
+            // - On mobile (width < 600dp), it automatically becomes 1 or 2 columns
+            // - On Desktop/Web (large width), it automatically becomes 3, 4, 5... columns
+            // Value can be adjusted based on design, smaller value means more columns
+            columns = StaggeredGridCells.Adaptive(minSize = 300.dp),
+            modifier = Modifier.fillMaxSize(),
+            state = state,
+            contentPadding = PaddingValues(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalItemSpacing = 8.dp
+        ) {
+            pagingStaggeredGridItems(
+                items = items,
+                isEndOfList = isEndOfList,
+                appendError = appendError,
+                onLoadMore = onLoadMore,
+                key = { it.displayId }
+            ) { item ->
+                GalleryCard(
+                    item = item,
+                    onClick = { onItemClick(item) },
+                    onUserClick = { item.displayUsername?.let { onUserClick(it) } },
+                    sharedTransitionScope = sharedTransitionScope,
+                    animatedVisibilityScope = animatedVisibilityScope
+                )
+            }
+        }
+
+        AnimatedVisibility(
+            visible = showFab,
+            enter = fadeIn() + scaleIn(),
+            exit = fadeOut() + scaleOut(),
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(16.dp) // Margin from the bottom right corner
+        ) {
+            FloatingActionButton(
+                onClick = {
+                    coroutineScope.launch {
+                        // Magic to instantly unlock pull-to-refresh: force the list to scroll back to absolute 0 position!
+                        state.animateScrollToItem(0)
+                    }
+                },
+                containerColor = MaterialTheme.colorScheme.primaryContainer,
+                contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                modifier = Modifier.size(48.dp) // Button size can be fine-tuned according to preference
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.KeyboardArrowUp,
+                    contentDescription = "Scroll to top"
+                )
+            }
+        }
+    }
+}
+
+// --- List Components ---
 @Composable
 fun TopicList(
     topics: List<GalleryTopic>,
     isEndOfList: Boolean,
+    appendError: String?,
     onLoadMore: () -> Unit,
     onTopicClick: (String, String) -> Unit
 ) {
@@ -203,6 +315,7 @@ fun TopicList(
         pagingGridItems(
             items = topics,
             isEndOfList = isEndOfList,
+            appendError = appendError,
             onLoadMore = onLoadMore,
             key = { topic -> topic.id }
         ) { topic ->

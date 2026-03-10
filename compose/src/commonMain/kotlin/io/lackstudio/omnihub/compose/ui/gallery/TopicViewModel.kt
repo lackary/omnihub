@@ -18,6 +18,7 @@ class TopicViewModel(
     val state = _state.asStateFlow()
 
     private var currentTopicId: String? = null
+    private var internalLoading = false
 
     fun handleIntent(intent: TopicDetailIntent) {
         when (intent) {
@@ -31,6 +32,7 @@ class TopicViewModel(
             }
             is TopicDetailIntent.Refresh -> {
                 logger.d { "handleIntent: Refresh" }
+                _state.update { it.copy(isRefreshing = true) }
                 currentTopicId?.let { id ->
                     loadTopicInfo(id)
                     loadTopicPhotos(id, isRefresh = true)
@@ -38,6 +40,12 @@ class TopicViewModel(
             }
             is TopicDetailIntent.LoadMorePhotos -> {
                 logger.d { "handleIntent: LoadMorePhotos" }
+                val currentState = _state.value
+
+                if (internalLoading) return
+                if (currentState.isRefreshing) return
+                if (currentState.isPhotosEndOfList) return
+                if (currentState.photosAppendError != null) return
                 currentTopicId?.let { id ->
                     loadTopicPhotos(id, isRefresh = false)
                 }
@@ -49,7 +57,12 @@ class TopicViewModel(
         handleUseCaseCall(
             name = "Topic",
             useCase = { getTopicUseCase(id) },
-            onLoading = { _state.update { it.copy(infoState = AppUiState.Loading) } },
+            onLoading = {
+                _state.update { currentState ->
+                    if (currentState.infoState is AppUiState.Success) currentState
+                    else currentState.copy(infoState = AppUiState.Loading)
+                }
+            },
             onSuccess = { domainTopic ->
                 // Convert Domain Model -> UI Model
                 val uiTopic = Topic(
@@ -76,17 +89,24 @@ class TopicViewModel(
 
     private fun loadTopicPhotos(id: String, isRefresh: Boolean) {
         val currentState = _state.value
-        if (!isRefresh && (currentState.isPhotosLoadingMore || currentState.isPhotosEndOfList)) return
-
         val page = if (isRefresh) 1 else currentState.photosPage + 1
+
+        if (page > 1) internalLoading = true
+
         val topicPhotoParams = GetTopicPhotosParams(id, page = page, perPage = 10)
 
         handleUseCaseCall(
             name = "Topic Photos",
             useCase = { getTopicPhotosUseCase(topicPhotoParams) },
             onLoading = {
-                if (isRefresh) _state.update { it.copy(photosState = AppUiState.Loading) }
-                else _state.update { it.copy(isPhotosLoadingMore = true) }
+                _state.update { state ->
+                    val oldList = (state.photosState as? AppUiState.Success)?.data
+                    if (!oldList.isNullOrEmpty()) {
+                        state
+                    } else {
+                        state.copy(photosState = AppUiState.Loading)
+                    }
+                }
             },
             onSuccess = { domainPhotos ->
                 val newPhotos = domainPhotos.map { photo ->
@@ -104,22 +124,43 @@ class TopicViewModel(
                     )
                 }
 
-                _state.update { oldState ->
-                    val combinedList = if (isRefresh) newPhotos else {
-                        (oldState.photosState as? AppUiState.Success)?.data.orEmpty() + newPhotos
-                    }
-                    oldState.copy(
+                _state.update { currentState ->
+                    val oldList =
+                        if (isRefresh) emptyList()
+                        else (currentState.photosState as? AppUiState.Success)?.data ?: emptyList()
+
+                    val combinedList = (oldList + newPhotos).distinctBy { it.displayId }
+
+                    currentState.copy(
                         photosState = AppUiState.Success(combinedList),
                         photosPage = page,
-                        isPhotosLoadingMore = false,
+                        isRefreshing = false,
+                        photosAppendError = null,
                         isPhotosEndOfList = newPhotos.isEmpty()
                     )
                 }
+
+                if (page > 1) internalLoading = false
             },
             onError = { msg ->
                 logger.e { "Error loading topic photos: $msg" }
-                if (isRefresh) _state.update { it.copy(photosState = AppUiState.Error(msg)) }
-                else _state.update { it.copy(isPhotosLoadingMore = false) }
+                _state.update { currentState ->
+                    val oldList = (currentState.photosState as? AppUiState.Success)?.data
+                    if (!oldList.isNullOrEmpty()) {
+                        currentState.copy(
+                            photosAppendError = msg,
+                            isRefreshing = false
+                        )
+                    } else {
+                        currentState.copy(
+                            photosState = AppUiState.Error(msg),
+                            photosAppendError = null,
+                            isRefreshing = false
+                        )
+                    }
+                }
+
+                if (page > 1) internalLoading = false
             }
         )
     }

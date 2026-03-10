@@ -131,18 +131,15 @@ enum class GalleryTab(
 data class GalleryUiState(
     // Global state
     val currentTab: GalleryTab = GalleryTab.Photos,
-
     // Use Map to track the refreshing status of each Tab
     val refreshingStatus: Map<GalleryTab, Boolean> = emptyMap(),
+    val endOfListStatus: Map<GalleryTab, Boolean> = emptyMap(),
+    val pages: Map<GalleryTab, Int> = emptyMap(),
+    val appendError: Map<GalleryTab, String> = emptyMap(),
 
     val photosState: AppUiState<List<GalleryPhoto>> = AppUiState.Idle,
-    val photosEndOfList: Boolean = false,
-
     val collectionsState: AppUiState<List<GalleryCollection>> = AppUiState.Idle,
-    val collectionsEndOfList: Boolean = false,
-
     val topicsState: AppUiState<List<GalleryTopic>> = AppUiState.Idle,
-    val topicsEndOfList: Boolean = false,
 
     val meProfile: Me? = null,
     val isAuthenticating: Boolean = false

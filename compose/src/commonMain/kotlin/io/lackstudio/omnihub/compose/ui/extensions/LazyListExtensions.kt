@@ -30,6 +30,7 @@ import io.lackstudio.omnihub.compose.ui.components.LoadingFooter
 inline fun <T> LazyListScope.pagingItems(
     items: List<T>,
     isEndOfList: Boolean,
+    appendError: String?,
     prefetchDistance: Int = 3, // Default triggers when the 3rd from last item is reached
     noinline onLoadMore: () -> Unit,
     noinline key: ((item: T) -> Any)? = null,
@@ -53,10 +54,14 @@ inline fun <T> LazyListScope.pagingItems(
 
     // Render bottom Footer (decide what to display based on state)
     if (items.isNotEmpty()) {
-        if (isEndOfList) {
+        if (appendError != null) {
+            item(key = "footer_error_of_list") {
+                EndOfListFooter(message = appendError)
+            }
+        } else if (isEndOfList) {
             // Case A: Already at the end -> Show "No more data"
             item(key = "footer_end_of_list") {
-                EndOfListFooter()
+                EndOfListFooter(message = "No more data")
             }
         } else {
             // Case B: Not yet at the end -> Show "Loading Spinner"
@@ -78,6 +83,7 @@ inline fun <T> LazyListScope.pagingItems(
 inline fun <T> LazyGridScope.pagingGridItems(
     items: List<T>,
     isEndOfList: Boolean,
+    appendError: String?,
     noinline onLoadMore: () -> Unit,
     noinline key: ((item: T) -> Any)? = null,
     crossinline itemContent: @Composable (item: T) -> Unit
@@ -104,8 +110,10 @@ inline fun <T> LazyGridScope.pagingGridItems(
             // Key: Make the Footer occupy all columns of the row
             span = { GridItemSpan(maxLineSpan) }
         ) {
-            if (isEndOfList) {
-                EndOfListFooter()
+            if (appendError != null) {
+                EndOfListFooter(message = appendError)
+            } else if (isEndOfList) {
+                EndOfListFooter(message = " No more data")
             } else {
                 LoadingFooter()
             }
@@ -121,6 +129,7 @@ inline fun <T> LazyGridScope.pagingGridItems(
 inline fun <T> LazyStaggeredGridScope.pagingStaggeredGridItems(
     items: List<T>,
     isEndOfList: Boolean,
+    appendError: String?,
     noinline onLoadMore: () -> Unit,
     noinline key: ((item: T) -> Any)? = null,
     crossinline itemContent: @Composable (item: T) -> Unit
@@ -147,8 +156,10 @@ inline fun <T> LazyStaggeredGridScope.pagingStaggeredGridItems(
             // Make the Footer span all columns (FullLine)
             span = StaggeredGridItemSpan.FullLine
         ) {
-            if (isEndOfList) {
-                EndOfListFooter()
+            if (appendError != null) {
+                EndOfListFooter(message = appendError)
+            } else if (isEndOfList) {
+                EndOfListFooter(message = " No more data")
             } else {
                 LoadingFooter()
             }

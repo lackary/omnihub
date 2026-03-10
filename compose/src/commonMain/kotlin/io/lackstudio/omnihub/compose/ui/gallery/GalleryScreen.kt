@@ -7,7 +7,6 @@ import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.foundation.focusable
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -52,8 +51,7 @@ import io.lackstudio.omnifeed.ui.state.AppUiState
 import io.lackstudio.omnihub.compose.platform.isPullToRefreshSupported
 import io.lackstudio.omnihub.compose.ui.components.MonitorErrorStates
 import io.lackstudio.omnihub.compose.ui.navigation.Feature
-import io.lackstudio.omnihub.compose.ui.navigation.XrNavEvent
-import io.lackstudio.omnihub.compose.utils.LocalXrNavigation
+import io.lackstudio.omnihub.compose.ui.navigation.rememberGalleryNavigator
 import io.lackstudio.omnihub.compose.utils.logging.rememberLogger
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
@@ -80,6 +78,7 @@ fun GalleryScreen(
     animatedVisibilityScope: AnimatedVisibilityScope
 ) {
     val logger = rememberLogger(tag)
+    val navigator = rememberGalleryNavigator(onNavigateToFeature)
     // Collect ViewModel state
     val state by viewModel.state.collectAsStateWithLifecycle()
     val sideEffectFlow = viewModel.sideEffect
@@ -118,6 +117,8 @@ fun GalleryScreen(
         state = state,
         // Pass SideEffect Flow (receive ViewModel one-time events)
         sideEffectFlow = sideEffectFlow,
+        onItemClick = navigator::navigateToPhoto,
+        onUserClick = navigator::navigateToUser,
         onEvent = { event ->
             logger.d { "Event: $event" }
             viewModel.handleIntent(event)
@@ -138,6 +139,8 @@ fun GalleryScreen(
 fun GalleryScreenContent(
     state: GalleryUiState,          // Receive pure data state
     sideEffectFlow: Flow<GallerySideEffect>, // Receive onetime event
+    onItemClick: (GalleryDisplayable) -> Unit,
+    onUserClick: (String) -> Unit,
     onEvent: (GalleryIntent) -> Unit, // Receive event callbacks
     onNavigateToFeature: (Feature) -> Unit,
     onBack: () -> Unit,
@@ -152,6 +155,7 @@ fun GalleryScreenContent(
 
     val lifecycleOwner = LocalLifecycleOwner.current
     val uriHandler = LocalUriHandler.current
+
     // Observe SideEffect and ensure Snackbar events are received only when in foreground
     // Use flowWithLifecycle to bind lifecycle
     // Safety: When the App goes to background (STOPPED), collection is automatically "paused" to avoid wasting resources on UI actions.
@@ -354,170 +358,58 @@ fun GalleryScreenContent(
                 // Keep the state of 1 page on each side to avoid resetting scroll position when switching
                 beyondViewportPageCount = 1
             ) { pageIndex ->
+                val tab = tabs[pageIndex]
+                val isEndOfList = state.endOfListStatus[tab] ?: false
+                val isRefreshing = state.refreshingStatus[tab] ?: false
+                val currentError = state.appendError[tab]?.takeIf { it.isNotBlank() }
+
                 when (tabs[pageIndex]) {
-                    GalleryTab.Photos -> PhotosContent(
-                        state = state.photosState,
-                        isRefreshing = state.refreshingStatus[GalleryTab.Photos] ?: false,
-                        onRefresh = { onEvent(GalleryIntent.Refresh) },
-                        isEndOfList = state.photosEndOfList,
-                        onLoadMore = { onEvent(GalleryIntent.LoadMore) },
-                        onNavigateToFeature = onNavigateToFeature,
-                        sharedTransitionScope = sharedTransitionScope,
-                        animatedVisibilityScope = animatedVisibilityScope
-                    )
-                    GalleryTab.Collections -> CollectionsContent(
-                        state = state.collectionsState,
-                        isRefreshing = state.refreshingStatus[GalleryTab.Collections] ?: false,
-                        onRefresh = { onEvent(GalleryIntent.Refresh) },
-                        isEndOfList = state.collectionsEndOfList,
-                        onLoadMore = { onEvent(GalleryIntent.LoadMore) },
-                        onNavigateToFeature = onNavigateToFeature
-                    )
-                    GalleryTab.Topics -> TopicsContent(
-                        state = state.topicsState,
-                        isRefreshing = state.refreshingStatus[GalleryTab.Topics] ?: false,
-                        onRefresh = { onEvent(GalleryIntent.Refresh) },
-                        isEndOfList = state.topicsEndOfList,
-                        onLoadMore = { onEvent(GalleryIntent.LoadMore) },
-                        onNavigateToFeature = onNavigateToFeature
-                    )
-                }
-            }
-        }
-    }
-}
-
-// --- Content Sub-pages (Updated with onLoadMore) ---
-@OptIn(ExperimentalSharedTransitionApi::class)
-@Composable
-fun PhotosContent(
-    state: AppUiState<List<GalleryPhoto>>,
-    isRefreshing: Boolean,
-    onRefresh: () -> Unit,
-    isEndOfList: Boolean,
-    onLoadMore: () -> Unit,
-    onNavigateToFeature: (Feature) -> Unit,
-    sharedTransitionScope: SharedTransitionScope,
-    animatedVisibilityScope: AnimatedVisibilityScope
-) {
-    val xrNav = LocalXrNavigation.current
-    SafePullToRefreshBox(
-        isRefreshing = isRefreshing,
-        onRefresh = onRefresh,
-        modifier = Modifier.fillMaxSize()
-    ) {
-        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            when (state) {
-                is AppUiState.Idle, is AppUiState.Loading -> CircularProgressIndicator()
-                is AppUiState.Error -> Text(
-                    "Error: ${state.message}",
-                    color = MaterialTheme.colorScheme.error
-                )
-
-                is AppUiState.Success -> {
-                    if (state.data.isEmpty()) Text("No photos found.")
-                    else PhotoList(
-                        state.data,
-                        sharedTransitionScope = sharedTransitionScope,
-                        animatedVisibilityScope = animatedVisibilityScope,
-                        isEndOfList = isEndOfList,
-                        onLoadMore = onLoadMore,
-                        onPhotoClick = { id, url, ratio ->
-                            if (xrNav != null) {
-                                xrNav(XrNavEvent.NavigateToPhoto(id, url, ratio))
-                            } else {
-                                onNavigateToFeature(Feature.Photo(id, url))
+                    GalleryTab.Photos -> {
+                        GalleryPagedSection(
+                            state = state.photosState,
+                            isRefreshing = isRefreshing,
+                            onRefresh = { onEvent(GalleryIntent.Refresh) },
+                            isEndOfList = isEndOfList,
+                            appendError = currentError,
+                            emptyMessage = "No photos found.",
+                            onLoadMore = { onEvent(GalleryIntent.LoadMore) },
+                            onItemClick = onItemClick,
+                            onUserClick = onUserClick,
+                            sharedTransitionScope = sharedTransitionScope,
+                            animatedVisibilityScope = animatedVisibilityScope
+                        )
+                    }
+                    GalleryTab.Collections -> {
+                        GalleryPagedSection(
+                            state = state.collectionsState,
+                            isRefreshing = isRefreshing,
+                            onRefresh = { onEvent(GalleryIntent.Refresh) },
+                            isEndOfList = isEndOfList,
+                            appendError = currentError,
+                            emptyMessage = "No collections found",
+                            onLoadMore = { onEvent(GalleryIntent.LoadMore) },
+                            onItemClick = { item ->
+                                onNavigateToFeature(Feature.Collection(item.displayId, item.displayTitle))
+                            },
+                            onUserClick = onUserClick,
+                            sharedTransitionScope = sharedTransitionScope,
+                            animatedVisibilityScope = animatedVisibilityScope
+                        )
+                    }
+                    GalleryTab.Topics -> {
+                        TopicPagedSection(
+                            state = state.topicsState,
+                            isRefreshing = isRefreshing,
+                            onRefresh = { onEvent(GalleryIntent.Refresh) },
+                            isEndOfList = isEndOfList,
+                            appendError = currentError,
+                            emptyMessage = "No topics found",
+                            onLoadMore = { onEvent(GalleryIntent.LoadMore) },
+                            onTopicClick = { id, title ->
+                                onNavigateToFeature(Feature.Topic(idOrSlug = id, title = title))
                             }
-                        },
-                        onUserClick = { username ->
-                            if (xrNav != null) {
-                                xrNav(XrNavEvent.NavigateToUser(username))
-                            } else {
-                                onNavigateToFeature(Feature.User(username))
-                            }
-                        }
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun CollectionsContent(
-    state: AppUiState<List<GalleryCollection>>,
-    isRefreshing: Boolean,
-    onRefresh: () -> Unit,
-    isEndOfList: Boolean,
-    onLoadMore: () -> Unit,
-    onNavigateToFeature: (Feature) -> Unit,
-) {
-    val xrNav = LocalXrNavigation.current
-    SafePullToRefreshBox(
-        isRefreshing = isRefreshing,
-        onRefresh = onRefresh,
-        modifier = Modifier.fillMaxSize()
-    ) {
-        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            when (state) {
-                is AppUiState.Idle, is AppUiState.Loading -> CircularProgressIndicator()
-                is AppUiState.Error -> Text("Error: ${state.message}", color = MaterialTheme.colorScheme.error)
-                is AppUiState.Success -> {
-                    if (state.data.isEmpty()) Text("No collections found.")
-                    else CollectionList(
-                        state.data,
-                        isEndOfList = isEndOfList,
-                        onLoadMore = onLoadMore,
-                        onCollectionClick = { id, title ->
-                            onNavigateToFeature(Feature.Collection(id, title))
-                        },
-                        onUserClick = { username ->
-                            if (xrNav != null) {
-                                xrNav(XrNavEvent.NavigateToUser(username))
-                            } else {
-                                onNavigateToFeature(Feature.User(username))
-                            }
-
-                        }
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun TopicsContent(
-    state: AppUiState<List<GalleryTopic>>,
-    isRefreshing: Boolean,
-    onRefresh: () -> Unit,
-    isEndOfList: Boolean,
-    onLoadMore: () -> Unit,
-    onNavigateToFeature: (Feature) -> Unit,
-) {
-    SafePullToRefreshBox(
-        isRefreshing = isRefreshing,
-        onRefresh = onRefresh,
-        modifier = Modifier.fillMaxSize()
-    ) {
-        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            when (state) {
-                is AppUiState.Idle, is AppUiState.Loading -> CircularProgressIndicator()
-                is AppUiState.Error -> Text(
-                    "Error: ${state.message}",
-                    color = MaterialTheme.colorScheme.error
-                )
-
-                is AppUiState.Success -> {
-                    if (state.data.isEmpty()) Text("No topics found.")
-                    else TopicList(
-                        state.data,
-                        isEndOfList = isEndOfList,
-                        onLoadMore,
-                        onTopicClick = { id, title ->
-                            onNavigateToFeature(Feature.Topic(idOrSlug = id, title = title ))
-                        }
-                    )
+                        )
+                    }
                 }
             }
         }
@@ -568,6 +460,8 @@ fun GalleryScreenPreview() {
             GalleryScreenContent(
                 state = dummyState,
                 sideEffectFlow = emptyFlow(),
+                onItemClick = {},
+                onUserClick = {},
                 onEvent = {},
                 onNavigateToFeature = {},
                 onBack = {},

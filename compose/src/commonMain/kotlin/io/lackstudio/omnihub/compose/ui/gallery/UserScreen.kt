@@ -33,6 +33,7 @@ import io.lackstudio.omnifeed.ui.state.AppUiState
 import io.lackstudio.omnihub.compose.ui.components.ExpandableText
 import io.lackstudio.omnihub.compose.ui.navigation.Feature
 import io.lackstudio.omnihub.compose.ui.navigation.XrNavEvent
+import io.lackstudio.omnihub.compose.ui.navigation.rememberGalleryNavigator
 import io.lackstudio.omnihub.compose.utils.LocalXrNavigation
 import io.lackstudio.omnihub.compose.utils.UnsplashLinks
 import io.lackstudio.omnihub.compose.utils.logging.rememberLogger
@@ -56,6 +57,8 @@ fun UserDetailScreen(
     animatedVisibilityScope: AnimatedVisibilityScope
 ) {
     val logger = rememberLogger("UserDetailScreen")
+    val navigator = rememberGalleryNavigator(onNavigateToFeature)
+
     val state by viewModel.state.collectAsStateWithLifecycle()
 
     LaunchedEffect(username) {
@@ -78,6 +81,8 @@ fun UserDetailScreen(
         Box(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
             UserDetailContent(
                 state = state,
+                onItemClick = navigator::navigateToPhoto,
+                onUserClick = navigator::navigateToUser,
                 onEvent = { event ->
                     logger.d { "UserDetailScreen: onEvent: $event" }
                     viewModel.handleIntent(event)
@@ -94,6 +99,8 @@ fun UserDetailScreen(
 @Composable
 fun UserDetailContent(
     state: UserDetailUiState,
+    onItemClick: (GalleryDisplayable) -> Unit,
+    onUserClick: (String) -> Unit,
     onEvent: (UserDetailIntent) -> Unit,
     onNavigateToFeature: (Feature) -> Unit,
     sharedTransitionScope: SharedTransitionScope,
@@ -102,6 +109,7 @@ fun UserDetailContent(
     val tabs = UserTab.entries
     val pagerState = rememberPagerState(pageCount = { tabs.size })
     val coroutineScope = rememberCoroutineScope()
+    val xrNav = LocalXrNavigation.current
 
     LaunchedEffect(state.currentTab) {
         if (pagerState.currentPage != state.currentTab.ordinal) {
@@ -159,129 +167,67 @@ fun UserDetailContent(
         ) { pageIndex ->
             val tab = UserTab.getByIndex(pageIndex)
             val isEndOfList = state.endOfListStatus[tab] ?: false
+            val isRefreshing = state.refreshingStatus[tab] ?: false
+            val currentError = state.appendError[tab]?.takeIf { it.isNotBlank() }
 
             when (tab) {
                 UserTab.Photos -> {
-                    UserPhotosSection(
+                    GalleryPagedSection(
                         state = state.photosState,
+                        isRefreshing = isRefreshing,
+                        onRefresh = { onEvent(UserDetailIntent.Refresh) },
                         isEndOfList = isEndOfList,
+                        appendError = currentError,
+                        emptyMessage = "No photos uploaded",
                         onLoadMore = { onEvent(UserDetailIntent.LoadMore) },
-                        onNavigateToFeature = onNavigateToFeature,
                         sharedTransitionScope = sharedTransitionScope,
                         animatedVisibilityScope = animatedVisibilityScope,
+                        onItemClick = onItemClick,
+                        onUserClick = onUserClick
                     )
                 }
                 UserTab.Collections -> {
-                    UserCollectionsSection(
+                    GalleryPagedSection(
                         state = state.collectionsState,
+                        isRefreshing = isRefreshing,
+                        onRefresh = { onEvent(UserDetailIntent.Refresh) },
                         isEndOfList = isEndOfList,
+                        appendError = currentError,
+                        emptyMessage = "No collections found",
                         onLoadMore = { onEvent(UserDetailIntent.LoadMore) },
-                        onNavigateToFeature = onNavigateToFeature
+                        onItemClick = { item ->
+                            onNavigateToFeature(Feature.Collection(item.displayId, item.displayTitle))
+                        },
+                        onUserClick = { username ->
+                            if (xrNav != null) xrNav(XrNavEvent.NavigateToUser(username))
+                            else onNavigateToFeature(Feature.User(username))
+                        }
                     )
                 }
 
                 UserTab.Likes -> {
-                    UserPhotosSection(
+                    GalleryPagedSection(
                         state = state.likesState,
+                        isRefreshing = isRefreshing,
+                        onRefresh = { onEvent(UserDetailIntent.Refresh) },
                         isEndOfList = isEndOfList,
+                        appendError = currentError,
+                        emptyMessage = "No liked photos",
                         onLoadMore = { onEvent(UserDetailIntent.LoadMore) },
-                        onNavigateToFeature = onNavigateToFeature,
                         sharedTransitionScope = sharedTransitionScope,
                         animatedVisibilityScope = animatedVisibilityScope,
+                        onItemClick = { item ->
+                            val ratio = item.displayWidth / item.displayHeight.toFloat()
+                            val url = item.displayImageUrl ?: ""
+                            if (xrNav != null) xrNav(XrNavEvent.NavigateToPhoto(item.displayId, url, ratio))
+                            else onNavigateToFeature(Feature.Photo(item.displayId, url))
+                        },
+                        onUserClick = { username ->
+                            if (xrNav != null) xrNav(XrNavEvent.NavigateToUser(username))
+                            else onNavigateToFeature(Feature.User(username))
+                        }
                     )
                 }
-            }
-        }
-    }
-}
-
-@OptIn(ExperimentalSharedTransitionApi::class)
-@Composable
-fun UserPhotosSection(
-    state: AppUiState<List<GalleryDisplayable>>,
-    isEndOfList: Boolean,
-    onLoadMore: () -> Unit,
-    onNavigateToFeature: (Feature) -> Unit,
-    sharedTransitionScope: SharedTransitionScope,
-    animatedVisibilityScope: AnimatedVisibilityScope,
-) {
-    val xrNav = LocalXrNavigation.current
-
-    when (state) {
-        is AppUiState.Loading, AppUiState.Idle -> {
-            Box(modifier = Modifier.fillMaxSize().height(200.dp), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
-            }
-        }
-        is AppUiState.Error -> {
-            Box(modifier = Modifier.fillMaxSize().padding(16.dp), contentAlignment = Alignment.Center) {
-                Text("Failed to load photos", color = MaterialTheme.colorScheme.error)
-            }
-        }
-        is AppUiState.Success -> {
-            val photos = state.data
-            if (photos.isEmpty()) {
-                Box(modifier = Modifier.fillMaxSize().height(100.dp), contentAlignment = Alignment.Center) {
-                    Text("No photos uploaded", color = Color.Gray)
-                }
-            } else {
-                PhotoList(
-                    photos = photos,
-                    sharedTransitionScope = sharedTransitionScope,
-                    animatedVisibilityScope = animatedVisibilityScope,
-                    isEndOfList = isEndOfList,
-                    onLoadMore = onLoadMore,
-                    onPhotoClick = { id, url, ratio ->
-                        if (xrNav != null) {
-                            xrNav(XrNavEvent.NavigateToPhoto(id, url, ratio))
-                        } else {
-                            onNavigateToFeature(Feature.Photo(id, url))
-                        }
-
-                    },
-                    onUserClick = { username ->
-                        onNavigateToFeature(Feature.User(username))
-                    }
-                )
-            }
-        }
-    }
-}
-
-@Composable
-fun UserCollectionsSection(
-    state: AppUiState<List<GalleryDisplayable>>,
-    isEndOfList: Boolean,
-    onLoadMore: () -> Unit,
-    onNavigateToFeature: (Feature) -> Unit
-) {
-    when (state) {
-        is AppUiState.Loading, AppUiState.Idle -> {
-            Box(modifier = Modifier.fillMaxSize().height(200.dp), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
-            }
-        }
-        is AppUiState.Error -> {
-            Box(modifier = Modifier.fillMaxSize().padding(16.dp), contentAlignment = Alignment.Center) {
-                Text("Failed to load collections", color = MaterialTheme.colorScheme.error)
-            }
-        }
-        is AppUiState.Success -> {
-            val collections = state.data
-            if (collections.isEmpty()) {
-                Box(modifier = Modifier.fillMaxSize().height(100.dp), contentAlignment = Alignment.Center) {
-                    Text("No collections found", color = Color.Gray)
-                }
-            } else {
-                CollectionList(
-                    collections = collections,
-                    isEndOfList = isEndOfList,
-                    onLoadMore = onLoadMore,
-                    onCollectionClick = { id, title ->
-                        onNavigateToFeature(Feature.Collection(id, title))
-                    },
-                    onUserClick = {}
-                )
             }
         }
     }
@@ -520,6 +466,8 @@ private fun UserDetailContentPreview() {
                             UserTab.Likes to false
                         )
                     ),
+                    onItemClick = {},
+                    onUserClick = {},
                     onEvent = {},
                     onNavigateToFeature = {},
                     sharedTransitionScope = this@SharedTransitionLayout,

@@ -38,7 +38,8 @@ fun LoadingFooter(
  */
 @Composable
 fun EndOfListFooter(
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    message: String,
 ) {
     Box(
         modifier = modifier
@@ -47,7 +48,7 @@ fun EndOfListFooter(
         contentAlignment = Alignment.Center
     ) {
         Text(
-            text = "No more data",
+            text = message,
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.secondary
         )

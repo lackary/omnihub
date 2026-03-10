@@ -30,8 +30,7 @@ import coil3.compose.AsyncImage
 import io.lackstudio.omnifeed.ui.state.AppUiState
 import io.lackstudio.omnihub.compose.ui.components.ExpandableText
 import io.lackstudio.omnihub.compose.ui.navigation.Feature
-import io.lackstudio.omnihub.compose.ui.navigation.XrNavEvent
-import io.lackstudio.omnihub.compose.utils.LocalXrNavigation
+import io.lackstudio.omnihub.compose.ui.navigation.rememberGalleryNavigator
 import io.lackstudio.omnihub.compose.utils.UnsplashLinks
 import io.lackstudio.omnihub.compose.utils.logging.rememberLogger
 import omnihub.compose.generated.resources.Res
@@ -51,10 +50,10 @@ fun TopicDetailScreen(
     animatedVisibilityScope: AnimatedVisibilityScope
 ) {
     val logger = rememberLogger("TopicDetailScreen")
-    val uriHandler = LocalUriHandler.current
+    val navigator = rememberGalleryNavigator(onNavigateToFeature)
 
+    val uriHandler = LocalUriHandler.current
     val state by viewModel.state.collectAsStateWithLifecycle()
-    val xrNav = LocalXrNavigation.current
 
     LaunchedEffect(topicId) {
         viewModel.handleIntent(TopicDetailIntent.LoadData(topicId))
@@ -93,23 +92,15 @@ fun TopicDetailScreen(
         Box(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
             TopicDetailContent(
                 state = state,
-                onNavigateToPhoto = { id, url, ratio ->
-                    if (xrNav != null) {
-                        xrNav(XrNavEvent.NavigateToPhoto(id, url, ratio))
-                    } else {
-                        onNavigateToFeature(Feature.Photo(id, url))
-                    }
-                },
-                onNavigateToUser = { username ->
-                    if (xrNav != null) {
-                        xrNav(XrNavEvent.NavigateToUser(username))
-                    } else {
-                        onNavigateToFeature(Feature.User(username))
-                    }
-                },
+                onItemClick = navigator::navigateToPhoto,
+                onUserClick = navigator::navigateToUser,
                 onLoadMore = {
                     logger.d { "onLoadMore" }
                     viewModel.handleIntent(TopicDetailIntent.LoadMorePhotos)
+                },
+                onRefresh = {
+                    logger.d { "onRefresh" }
+                    viewModel.handleIntent(TopicDetailIntent.Refresh)
                 },
                 sharedTransitionScope = sharedTransitionScope,
                 animatedVisibilityScope = animatedVisibilityScope
@@ -122,67 +113,74 @@ fun TopicDetailScreen(
 @Composable
 fun TopicDetailContent(
     state: TopicDetailUiState,
-    onNavigateToPhoto: (String, String, Float) -> Unit,
-    onNavigateToUser: (String) -> Unit,
+    onItemClick: (GalleryDisplayable) -> Unit,
+    onUserClick: (String) -> Unit,
     onLoadMore: () -> Unit,
+    onRefresh: () -> Unit,
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope
 ) {
-    Column(modifier = Modifier.fillMaxSize()) {
+    SafePullToRefreshBox(
+        isRefreshing = state.isRefreshing,
+        onRefresh = onRefresh,
+        modifier = Modifier.fillMaxSize()
+    ) {
+        Column(modifier = Modifier.fillMaxSize()) {
 
-        // --- Header Section (Fixed at the top) ---
-        when (val infoState = state.infoState) {
-            is AppUiState.Loading, AppUiState.Idle -> {
-                Box(modifier = Modifier.fillMaxWidth().height(100.dp), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator()
-                }
-            }
-            is AppUiState.Error -> {
-                Text("Error: ${infoState.message}", color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(16.dp))
-            }
-            is AppUiState.Success -> {
-                Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
-                    TopicHeader(
-                        topic = infoState.data,
-                        onUserClick = onNavigateToUser
-                    )
-                }
-                HorizontalDivider(modifier = Modifier.padding(bottom = 8.dp))
-            }
-        }
-
-        // --- Photo List Section ---
-        // Handle state and type conversion
-        // We need to convert AppUiState<List<TopicPhoto>> to AppUiState<List<GalleryDisplayable>>
-        // Or convert data directly upon Success
-        when (val photosState = state.photosState) {
-            is AppUiState.Loading, AppUiState.Idle -> {
-                Box(modifier = Modifier.fillMaxWidth().height(200.dp), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator()
-                }
-            }
-            is AppUiState.Error -> {
-                Box(modifier = Modifier.fillMaxWidth().padding(16.dp), contentAlignment = Alignment.Center) {
-                    Text("Failed to load photos", color = MaterialTheme.colorScheme.error)
-                }
-            }
-            is AppUiState.Success -> {
-                val photos = photosState.data
-                if (photos.isEmpty()) {
-                    Box(modifier = Modifier.height(100.dp).fillMaxWidth(), contentAlignment = Alignment.Center) {
-                        Text("No photos in this topic", color = Color.Gray)
+            // --- Header Section (Fixed at the top) ---
+            when (val infoState = state.infoState) {
+                is AppUiState.Loading, AppUiState.Idle -> {
+                    Box(modifier = Modifier.fillMaxWidth().height(100.dp), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator()
                     }
-                } else {
-                    // Use the shared PhotoList
-                    PhotoList(
-                        photos = photos,
-                        sharedTransitionScope = sharedTransitionScope,
-                        animatedVisibilityScope = animatedVisibilityScope,
-                        isEndOfList = state.isPhotosEndOfList,
-                        onLoadMore = onLoadMore,
-                        onPhotoClick = onNavigateToPhoto,
-                        onUserClick = onNavigateToUser
-                    )
+                }
+                is AppUiState.Error -> {
+                    Text("Error: ${infoState.message}", color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(16.dp))
+                }
+                is AppUiState.Success -> {
+                    Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+                        TopicHeader(
+                            topic = infoState.data,
+                            onUserClick = onUserClick
+                        )
+                    }
+                    HorizontalDivider(modifier = Modifier.padding(bottom = 8.dp))
+                }
+            }
+
+            // --- Photo List Section ---
+            // Handle state and type conversion
+            // We need to convert AppUiState<List<TopicPhoto>> to AppUiState<List<GalleryDisplayable>>
+            // Or convert data directly upon Success
+            when (val photosState = state.photosState) {
+                is AppUiState.Loading, AppUiState.Idle -> {
+                    Box(modifier = Modifier.fillMaxWidth().height(200.dp), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator()
+                    }
+                }
+                is AppUiState.Error -> {
+                    Box(modifier = Modifier.fillMaxWidth().padding(16.dp), contentAlignment = Alignment.Center) {
+                        Text("Failed to load photos", color = MaterialTheme.colorScheme.error)
+                    }
+                }
+                is AppUiState.Success -> {
+                    val photos = photosState.data
+                    if (photos.isEmpty()) {
+                        Box(modifier = Modifier.height(100.dp).fillMaxWidth(), contentAlignment = Alignment.Center) {
+                            Text("No photos in this topic", color = Color.Gray)
+                        }
+                    } else {
+                        GalleryDisplayableList(
+                            items = photos,
+                            isEndOfList = state.isPhotosEndOfList,
+                            appendError = state.photosAppendError,
+                            onLoadMore = onLoadMore,
+                            onItemClick = onItemClick,
+                            onUserClick = onUserClick,
+                            sharedTransitionScope = sharedTransitionScope,
+                            animatedVisibilityScope = animatedVisibilityScope
+                        )
+                    }
                 }
             }
         }
@@ -341,9 +339,10 @@ private fun TopicDetailContentPreview() {
                                 photosState = AppUiState.Success(mockPhotos),
                                 isPhotosEndOfList = false
                             ),
-                            onNavigateToPhoto = { _, _, _-> },
-                            onNavigateToUser = {},
+                            onItemClick = {},
+                            onUserClick = {},
                             onLoadMore = {},
+                            onRefresh = {},
                             sharedTransitionScope = this@SharedTransitionLayout,
                             animatedVisibilityScope = this@AnimatedVisibility
                         )
@@ -367,9 +366,10 @@ private fun TopicDetailLoadingPreview() {
                         photosState = AppUiState.Loading,
                         isPhotosEndOfList = false
                     ),
-                    onNavigateToPhoto = { _, _, _ -> },
-                    onNavigateToUser = {},
+                    onItemClick = {},
+                    onUserClick = {},
                     onLoadMore = {},
+                    onRefresh = {},
                     sharedTransitionScope = this@SharedTransitionLayout,
                     animatedVisibilityScope = this@AnimatedVisibility
                 )
