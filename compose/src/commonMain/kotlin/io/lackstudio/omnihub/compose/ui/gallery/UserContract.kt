@@ -33,14 +33,15 @@ enum class UserTab(val title: String) {
 data class UserDetailUiState(
     val currentTab: UserTab = UserTab.Photos,
 
-    val loadingMoreStatus: Map<UserTab, Boolean> = emptyMap(),
+    val refreshingStatus: Map<UserTab, Boolean> = emptyMap(),
     val endOfListStatus: Map<UserTab, Boolean> = emptyMap(),
     val pages: Map<UserTab, Int> = emptyMap(),
+    val appendError: Map<UserTab, String> = emptyMap(),
 
     val infoState: AppUiState<UserProfile> = AppUiState.Idle,
     val photosState: AppUiState<List<GalleryDisplayable>> = AppUiState.Idle,
     val collectionsState: AppUiState<List<GalleryDisplayable>> = AppUiState.Idle,
-    val likesState: AppUiState<List<GalleryDisplayable>> = AppUiState.Idle
+    val likesState: AppUiState<List<GalleryDisplayable>> = AppUiState.Idle,
 )
 
 // UI Intents

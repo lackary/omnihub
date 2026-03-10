@@ -61,7 +61,13 @@ class UserViewModel(
                 currentUsername?.let { loadNextPage(it) }
             }
             is UserDetailIntent.Refresh -> {
-                logger.d { "handleIntent: Refresh" }
+                _state.update { currentState ->
+                    logger.d { "handleIntent: Refresh" }
+                    currentState.copy(
+                        refreshingStatus = currentState.refreshingStatus +
+                                (currentState.currentTab to true)
+                    )
+                }
                 currentUsername?.let { username ->
                     // Reload user information
                     loadUserInfo(username)
@@ -103,17 +109,21 @@ class UserViewModel(
 
     // Determine if next page loading is needed
     private fun loadNextPage(username: String) {
-        val currentTab = _state.value.currentTab
+        val currentState = _state.value
+        val currentTab = currentState.currentTab
 
         // Check lock (is it currently loading)
-        if (internalLoadingMap.getValue(currentTab)) return
+        if (internalLoadingMap[currentTab] == true) return
+
+        val isRefreshing = currentState.refreshingStatus[currentTab] ?: false
+        if (isRefreshing) return
 
         // Check if end of list reached
-        val isEndOfList = _state.value.endOfListStatus[currentTab] ?: false
+        val isEndOfList = currentState.endOfListStatus[currentTab] ?: false
         if (isEndOfList) return
 
         // Calculate next page
-        val currentPage = _state.value.pages[currentTab] ?: 1
+        val currentPage = currentState.pages[currentTab] ?: 1
         val nextPage = currentPage + 1
 
         // Execute loading
@@ -136,28 +146,30 @@ class UserViewModel(
     private fun <T, R> fetchUserCategory(
         tab: UserTab,
         targetPage: Int,
-        currentSubState: AppUiState<List<R>>,
+//        currentSubState: AppUiState<List<R>>,
         getOldList: (UserDetailUiState) -> List<R>?,
         useCase: suspend () -> UseCaseResult<List<T>>,
         mapper: (List<T>) -> List<R>,
+        distinctBy: (R) -> Any,
         stateReducer: (UserDetailUiState, AppUiState<List<R>>) -> UserDetailUiState
     ) {
         // Set internal lock
-        internalLoadingMap[tab] = true
+        if (targetPage > 1 && internalLoadingMap.getValue(tab)) return
+        if (targetPage > 1) internalLoadingMap[tab] = true
 
         handleUseCaseCall(
             name = "User $tab",
             useCase = useCase,
             onLoading = {
-                // Logic: Show full-page loading only if it's page 1 and there is no data
-                // If it's page 1 but has data (representing Pull-to-Refresh), do not show full-page loading
-                // If it's Load More (Page > 1), show footer loading indicator
-                val hasOldData = targetPage > 1 || (currentSubState is AppUiState.Success && currentSubState.data.isNotEmpty())
+                _state.update { currentState ->
+                    val oldList = getOldList(currentState)
+                    val hasOldData = !oldList.isNullOrEmpty()
 
-                if (!hasOldData) {
-                    _state.update { stateReducer(it, AppUiState.Loading) }
-                } else if (targetPage > 1) {
-                    updateLoadingMap(tab, true)
+                    if (!hasOldData) {
+                        stateReducer(currentState, AppUiState.Loading)
+                    } else {
+                        currentState
+                    }
                 }
             },
             onSuccess = { resultData ->
@@ -165,37 +177,54 @@ class UserViewModel(
                 val isEndOfList = newItems.isEmpty()
 
                 _state.update { currentState ->
-                    // Get old data (if Page 1, clear it, representing Refresh)
                     val oldList = if (targetPage > 1) {
                         getOldList(currentState).orEmpty()
                     } else {
                         emptyList()
                     }
 
-                    // Merge data
-                    val combinedList = oldList + newItems
+                    val combinedList = (oldList + newItems).distinctBy(distinctBy)
 
-                    // Update specific data fields
-                    val intermediateState = stateReducer(currentState, AppUiState.Success(combinedList))
+                    val newPagesMap = currentState.pages + (tab to targetPage)
+                    val newEndOfListMap = currentState.endOfListStatus + (tab to isEndOfList)
+                    val newErrorMap = currentState.appendError - tab
+                    val newRefreshMap = currentState.refreshingStatus + (tab to false)
 
-                    // Update paging and status Map
-                    intermediateState.copy(
-                        pages = intermediateState.pages + (tab to targetPage),
-                        endOfListStatus = intermediateState.endOfListStatus + (tab to isEndOfList),
-                        loadingMoreStatus = intermediateState.loadingMoreStatus + (tab to false)
-                    )
+                    stateReducer(currentState, AppUiState.Success(combinedList))
+                        .copy(
+                            pages = newPagesMap,
+                            endOfListStatus = newEndOfListMap,
+                            appendError = newErrorMap,
+                            refreshingStatus = newRefreshMap
+                        )
                 }
                 // Unlock
                 internalLoadingMap[tab] = false
             },
-            onError = { msg ->
-                logger.e { "Error fetching user category ($tab): $msg" }
+            onError = { errorMessage ->
+                logger.e { "Error fetching user category ($tab): $errorMessage" }
                 // If page 1 fails, show full-page error
                 // If Load More fails, only hide footer loading indicator
-                if (targetPage == 1) {
-                    _state.update { stateReducer(it, AppUiState.Error(msg)) }
-                } else {
-                    updateLoadingMap(tab, false)
+                _state.update { currentState ->
+                    val oldList = getOldList(currentState)
+                    val newRefreshMap = currentState.refreshingStatus + (tab to false)
+
+                    if (!oldList.isNullOrEmpty()) {
+                        val newErrorMap = currentState.appendError + (tab to errorMessage)
+                        stateReducer(currentState, AppUiState.Success(oldList))
+                            .copy(
+                                refreshingStatus = newRefreshMap,
+                                appendError = newErrorMap
+                            )
+                    } else {
+                        // Only show a full-screen error when there is absolutely no data (e.g., no internet on the first app launch).
+                        val newErrorMap = currentState.appendError - tab
+                        stateReducer(currentState, AppUiState.Error(errorMessage))
+                            .copy(
+                                refreshingStatus = newRefreshMap,
+                                appendError = newErrorMap
+                            )
+                    }
                 }
                 internalLoadingMap[tab] = false
             }
@@ -208,7 +237,6 @@ class UserViewModel(
         fetchUserCategory(
             tab = UserTab.Photos,
             targetPage = page,
-            currentSubState = _state.value.photosState,
             // Lambda for getting old data
             getOldList = { state -> (state.photosState as? AppUiState.Success)?.data },
             // UseCase
@@ -230,6 +258,7 @@ class UserViewModel(
                     )
                 }
             },
+            distinctBy = {it.displayId},
             // Reducer
             stateReducer = { state, newState -> state.copy(photosState = newState) }
         )
@@ -241,7 +270,6 @@ class UserViewModel(
         fetchUserCategory(
             tab = UserTab.Collections,
             targetPage = page,
-            currentSubState = _state.value.collectionsState,
             // Get old data
             getOldList = { state -> (state.collectionsState as? AppUiState.Success)?.data },
             // UseCase
@@ -267,6 +295,7 @@ class UserViewModel(
                     )
                 }
             },
+            distinctBy = {it.displayId},
             // Reducer
             stateReducer = { state, newState -> state.copy(collectionsState = newState) }
         )
@@ -278,7 +307,6 @@ class UserViewModel(
         fetchUserCategory(
             tab = UserTab.Likes,
             targetPage = page,
-            currentSubState = _state.value.likesState,
             // Get old data
             getOldList = { state -> (state.likesState as? AppUiState.Success)?.data },
             useCase = { getUserLikedPhotosUseCase(params) },
@@ -300,15 +328,9 @@ class UserViewModel(
                     )
                 }
             },
+            distinctBy = {it.displayId},
             // Reducer: Update likesState
             stateReducer = { state, newState -> state.copy(likesState = newState) }
         )
-    }
-
-    // Helper function: Update Loading Map (for Load More footer loading)
-    private fun updateLoadingMap(tab: UserTab, isLoading: Boolean) {
-        _state.update {
-            it.copy(loadingMoreStatus = it.loadingMoreStatus + (tab to isLoading))
-        }
     }
 }

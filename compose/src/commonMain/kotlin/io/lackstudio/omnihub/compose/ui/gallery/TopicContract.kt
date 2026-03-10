@@ -22,8 +22,10 @@ data class TopicContributor(
 data class TopicDetailUiState(
     val infoState: AppUiState<Topic> = AppUiState.Idle,
     val photosState: AppUiState<List<GalleryDisplayable>> = AppUiState.Idle,
-    val isPhotosLoadingMore: Boolean = false,
+
+    val isRefreshing: Boolean = false,
     val isPhotosEndOfList: Boolean = false,
+    val photosAppendError: String? = null,
     val photosPage: Int = 1
 )
 

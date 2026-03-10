@@ -51,7 +51,7 @@ class GalleryViewModel(
 
     // Flag to prevent duplicate loading (avoid triggering API multiple times on scroll)
     // Use Map to track loading status of each Tab
-    private val loadingStatus = mutableMapOf<GalleryTab, Boolean>().withDefault { false }
+    private val internalLoadingMap = mutableMapOf<GalleryTab, Boolean>().withDefault { false }
 
     init {
         logger.d{"ViewModel init"}
@@ -94,19 +94,22 @@ class GalleryViewModel(
                 logger.d { "handleIntent: SelectTab tab=${intent.tab}" }
                 _state.update { it.copy(currentTab = intent.tab) }
                 logger.d { "handleIntent: currentTab=${_state.value.currentTab}" }
-                when (intent.tab) {
-                    // Check if Idle (means not loaded yet)
-                    GalleryTab.Photos -> if (_state.value.photosState is AppUiState.Idle) fetchPhotos(1)
-                    GalleryTab.Collections -> if (_state.value.collectionsState is AppUiState.Idle) fetchCollections(1)
-                    GalleryTab.Topics -> if (_state.value.topicsState is AppUiState.Idle) fetchTopics(1)
+                val shouldLoad = when(intent.tab) {
+                    GalleryTab.Photos -> _state.value.photosState is AppUiState.Idle
+                    GalleryTab.Collections -> _state.value.collectionsState is AppUiState.Idle
+                    GalleryTab.Topics -> _state.value.topicsState is AppUiState.Idle
+                }
+                if (shouldLoad) {
+                    loadContent(intent.tab, 1)
                 }
             }
             is GalleryIntent.Refresh -> {
-                logger.d { "handleIntent: Refresh" }
                 // Enable Refresh indicator
-                val currentTab = _state.value.currentTab
-                _state.update {
-                    it.copy(refreshingStatus = it.refreshingStatus + (currentTab to true))
+                _state.update { currentState ->
+                    logger.d { "handleIntent: Refresh" }
+                    currentState.copy(
+                        refreshingStatus = currentState.refreshingStatus +
+                                (currentState.currentTab to true))
                 }
                 // Execute refresh (force reload)
                 refreshCurrentTab()
@@ -195,27 +198,29 @@ class GalleryViewModel(
     }
 
     private fun loadNextPage() {
-        val currentTab = _state.value.currentTab
+        val currentState = _state.value
+        val currentTab = currentState.currentTab
         // Check if the Tab is currently loading
-        if (loadingStatus[currentTab] == true) return
+        if (internalLoadingMap[currentTab] == true) return
 
         // If refreshing, do not trigger load more to avoid data inconsistency
-        val isRefreshing = _state.value.refreshingStatus[currentTab] ?: false
+        val isRefreshing = currentState.refreshingStatus[currentTab] ?: false
         if (isRefreshing) return
 
         // Check if end of list (EndOfList) is reached, if so, do not load
-        val isEnd = when (_state.value.currentTab) {
-            GalleryTab.Photos -> _state.value.photosEndOfList
-            GalleryTab.Collections -> _state.value.collectionsEndOfList
-            GalleryTab.Topics -> _state.value.topicsEndOfList
-        }
-        if (isEnd) return
+        val isEndOfList = currentState.endOfListStatus[currentTab] ?: false
+        if (isEndOfList) return
 
-        // Determine what to load based on current Tab
-        when (_state.value.currentTab) {
-            GalleryTab.Photos -> fetchPhotos(photosPage + 1)
-            GalleryTab.Collections -> fetchCollections(collectionsPage + 1)
-            GalleryTab.Topics -> fetchTopics(topicsPage + 1)
+        val currentPage = currentState.pages[currentTab] ?: 1
+        val nextPage = currentPage + 1
+        loadContent(currentTab, nextPage)
+    }
+
+    private fun loadContent(tab: GalleryTab, page: Int) {
+        when(tab) {
+            GalleryTab.Photos -> fetchPhotos(page)
+            GalleryTab.Collections -> fetchCollections(page)
+            GalleryTab.Topics -> fetchTopics(page)
         }
     }
 
@@ -223,43 +228,37 @@ class GalleryViewModel(
      * Generic Helper function: Handle "Smart Loading" and "State Update" uniformly
      * @name Optional name for the UseCase
      * @param targetPage Target page number
-     * @param currentSubState Current state of the field (used for Loading check only)
      * @param getOldList Lambda to retrieve the *latest* list data at the moment of update
      * @param useCase API call logic
      * @param mapper Data transformation logic (Domain -> UI)
+     * @param distinctBy
      * @param stateReducer State update logic (specify which field of state to update)
-     * @param onSuccessUpdatePage Update current page number
      */
     private fun <T, R> fetchCategory(
         name: String = "fetchCategory",
         tab: GalleryTab,
         targetPage: Int,
-        currentSubState: AppUiState<List<R>>,
         getOldList: (GalleryUiState) -> List<R>?, // Function to retrieve the latest data dynamically
         useCase: suspend () -> UseCaseResult<List<T>>,
         mapper: (List<T>) -> List<R>,
         distinctBy: (R) -> Any,
-        stateReducer: (GalleryUiState, AppUiState<List<R>>, Boolean) -> GalleryUiState,
-        onSuccessUpdatePage: () -> Unit
+        stateReducer: (GalleryUiState, AppUiState<List<R>>) -> GalleryUiState,
     ) {
-        // Need to get the current Tab, or pass it as a parameter
-        val currentTab = _state.value.currentTab
-        // Prevent concurrent load-more requests.
-        if (targetPage > 1 && loadingStatus.getValue(currentTab)) return
-
-        // Set flag: If Page > 1, mark as loading more
-        if (targetPage > 1) loadingStatus[currentTab] = true
+        if (targetPage > 1 && internalLoadingMap.getValue(tab)) return
+        if (targetPage > 1) internalLoadingMap[tab] = true
 
         handleUseCaseCall(
             name = name,
             useCase = useCase,
             onLoading = {
-                // Show full page loading (AppUiState.Loading) only when "Page 1" and "no old data"
-                val hasOldData = targetPage > 1 || (currentSubState is AppUiState.Success && currentSubState.data.isNotEmpty())
+                _state.update { currentState ->
+                    val oldList = getOldList(currentState)
+                    val hasOldData = !oldList.isNullOrEmpty()
 
-                if (!hasOldData) {
-                    _state.update {
-                        stateReducer(it, AppUiState.Loading, false)
+                    if (!hasOldData) {
+                        stateReducer(currentState, AppUiState.Loading)
+                    } else {
+                        currentState
                     }
                 }
             },
@@ -267,41 +266,65 @@ class GalleryViewModel(
                 val newItems = mapper(resultData)
                 val isEndOfList = newItems.isEmpty()
 
-                onSuccessUpdatePage()
                 // Enter update block to get the "latest" state, instead of relying on the passed currentSubState
                 _state.update { currentState ->
-                    // 1. Dynamically retrieve old data (prevent Page 1 from being overwritten by Page 2 before it's written)
+                    // Get old data (if Page 1, clear it, representing Refresh)
                     val oldList = if (targetPage > 1) {
                         getOldList(currentState) ?: emptyList()
                     } else {
                         emptyList()
                     }
 
-                    // 2. Merge data
+                    // Merge data
                     val finalData = (oldList + newItems).distinctBy(distinctBy)
                     val finalSubState = AppUiState.Success(finalData)
 
                     // Turn off the refresh status of a specific Tab
-                    val newMap = currentState.refreshingStatus + (tab to false)
+                    val newPagesMap = currentState.pages + (tab to targetPage)
+                    val newRefreshMap = currentState.refreshingStatus + (tab to false)
+                    val newEndOfListMap = currentState.endOfListStatus + (tab to isEndOfList)
+                    val newErrorMap = currentState.appendError - tab
 
-                    // 3. Update State and ensure Refresh loading indicator is closed
-                    stateReducer(currentState, finalSubState, isEndOfList)
-                        .copy(refreshingStatus = newMap)
+                    // Update State and ensure Refresh or EndOfList loading indicator is closed
+                    stateReducer(currentState, finalSubState)
+                        .copy(
+                            refreshingStatus = newRefreshMap,
+                            endOfListStatus = newEndOfListMap,
+                            appendError = newErrorMap,
+                            pages = newPagesMap
+                        )
                 }
 
                 // Unlock flag
-                if (targetPage > 1) loadingStatus[currentTab] = false
+                if (targetPage > 1) internalLoadingMap[tab] = false
             },
-            onError = { exception ->
+            onError = { errorMessage ->
+                logger.d{"errorMessage: $errorMessage"}
                 _state.update { currentState ->
-                    val newMap = currentState.refreshingStatus + (tab to false)
-                    // Remember to close Refresh loading indicator even if an error occurs
-                    stateReducer(currentState, AppUiState.Error(exception), false)
-                        .copy(refreshingStatus = newMap)
+                    val newRefreshMap = currentState.refreshingStatus + (tab to false)
+                    val oldList = getOldList(currentState)
+
+                    if (!oldList.isNullOrEmpty()) {
+                        val newErrorMap = currentState.appendError + (tab to errorMessage)
+                        stateReducer(currentState, AppUiState.Success(oldList))
+                            .copy(
+                                refreshingStatus = newRefreshMap,
+                                appendError = newErrorMap
+                            )
+                    } else {
+                        // Only show a full-screen error when there is absolutely no data
+                        // (e.g., no internet on the first app launch).
+                        val newErrorMap = currentState.appendError - tab
+                        stateReducer(currentState, AppUiState.Error(errorMessage))
+                            .copy(
+                                refreshingStatus = newRefreshMap,
+                                appendError = newErrorMap
+                            )
+                    }
                 }
 
                 // Unlock flag
-                if (targetPage > 1) loadingStatus[currentTab] = false
+                if (targetPage > 1) internalLoadingMap[tab] = false
             }
         )
     }
@@ -313,7 +336,6 @@ class GalleryViewModel(
             name = "Photos",
             tab = GalleryTab.Photos,
             targetPage = page,
-            currentSubState = _state.value.photosState,
             // Pass Lambda to retrieve the latest data during merge
             getOldList = { state -> (state.photosState as? AppUiState.Success)?.data },
             useCase = { getPhotosUseCase(params) },
@@ -333,10 +355,11 @@ class GalleryViewModel(
                     )
                 } },
             distinctBy = { it.id },
-            stateReducer = { state, newState, isEnd ->
-                state.copy(photosState = newState, photosEndOfList = isEnd)
+            stateReducer = { state, newState ->
+                state.copy(
+                    photosState = newState,
+                )
             },
-            onSuccessUpdatePage = { photosPage = page }
         )
     }
 
@@ -347,7 +370,6 @@ class GalleryViewModel(
             name = "Collections",
             tab = GalleryTab.Collections,
             targetPage = page,
-            currentSubState = _state.value.collectionsState,
             // Pass Lambda to retrieve the latest data during merge
             getOldList = { state -> (state.collectionsState as? AppUiState.Success)?.data },
             useCase = { getCollectionsUseCase(params) },
@@ -374,10 +396,11 @@ class GalleryViewModel(
                     )
                 } },
             distinctBy = { it.id },
-            stateReducer = { state, newState, isEnd ->
-                state.copy(collectionsState = newState, collectionsEndOfList = isEnd)
+            stateReducer = { state, newState ->
+                state.copy(
+                    collectionsState = newState,
+                )
             },
-            onSuccessUpdatePage = { collectionsPage = page }
         )
     }
 
@@ -388,7 +411,6 @@ class GalleryViewModel(
             name = "Topics",
             tab = GalleryTab.Topics,
             targetPage = page,
-            currentSubState = _state.value.topicsState,
             // Pass Lambda to retrieve the latest data during merge
             getOldList = { state -> (state.topicsState as? AppUiState.Success)?.data },
             useCase = { getTopicsUseCase(params) },
@@ -408,10 +430,11 @@ class GalleryViewModel(
                     )
                 } },
             distinctBy = { it.id },
-            stateReducer = { state, newState, isEnd ->
-                state.copy(topicsState = newState, topicsEndOfList = isEnd)
+            stateReducer = { state, newState ->
+                state.copy(
+                    topicsState = newState,
+                )
             },
-            onSuccessUpdatePage = { topicsPage = page }
         )
     }
 

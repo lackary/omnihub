@@ -52,8 +52,7 @@ import coil3.compose.AsyncImage
 import io.lackstudio.omnifeed.ui.state.AppUiState
 import io.lackstudio.omnihub.compose.ui.components.ExpandableText
 import io.lackstudio.omnihub.compose.ui.navigation.Feature
-import io.lackstudio.omnihub.compose.ui.navigation.XrNavEvent
-import io.lackstudio.omnihub.compose.utils.LocalXrNavigation
+import io.lackstudio.omnihub.compose.ui.navigation.rememberGalleryNavigator
 import io.lackstudio.omnihub.compose.utils.UnsplashLinks
 import io.lackstudio.omnihub.compose.utils.logging.rememberLogger
 import omnihub.compose.generated.resources.Res
@@ -75,10 +74,11 @@ fun CollectionDetailScreen(
     animatedVisibilityScope: AnimatedVisibilityScope
 ) {
     val logger = rememberLogger("CollectionDetailScreen")
+    val navigator = rememberGalleryNavigator(onNavigateToFeature)
 
     val state by viewModel.state.collectAsStateWithLifecycle()
     val uriHandler = LocalUriHandler.current
-    val xrNav = LocalXrNavigation.current
+//    val xrNav = LocalXrNavigation.current
 
     LaunchedEffect(collectionId) {
          viewModel.handleIntent(CollectionDetailIntent.LoadData(collectionId))
@@ -124,23 +124,15 @@ fun CollectionDetailScreen(
         ) {
             CollectionDetailContent(
                 state = state,
-                onNavigateToPhoto = { id, url, ratio ->
-                    if (xrNav != null) {
-                        xrNav(XrNavEvent.NavigateToPhoto(id, url, ratio))
-                    } else {
-                        onNavigateToFeature(Feature.Photo(id, url))
-                    }
-                },
-                onNavigateToUser = { username ->
-                    if (xrNav != null) {
-                        xrNav(XrNavEvent.NavigateToUser(username))
-                    } else {
-                        onNavigateToFeature(Feature.User(username))
-                    }
-                },
+                onItemClick = navigator::navigateToPhoto,
+                onUserClick = navigator::navigateToUser,
                 onLoadMore = {
                     logger.d { "CollectionDetailScreen: onLoadMore" }
                     viewModel.handleIntent(CollectionDetailIntent.LoadMorePhotos)
+                },
+                onRefresh = {
+                    logger.d { "CollectionDetailScreen: onRefresh" }
+                    viewModel.handleIntent(CollectionDetailIntent.Refresh)
                 },
                 sharedTransitionScope = sharedTransitionScope,
                 animatedVisibilityScope = animatedVisibilityScope
@@ -153,75 +145,82 @@ fun CollectionDetailScreen(
 @Composable
 fun CollectionDetailContent(
     state: CollectionDetailUiState,
-    onNavigateToPhoto: (String, String, Float) -> Unit,
-    onNavigateToUser: (String) -> Unit,
+    onItemClick: (GalleryDisplayable) -> Unit,
+    onUserClick: (String) -> Unit,
     onLoadMore: () -> Unit,
+    onRefresh: () -> Unit,
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope
 ) {
-    Column(modifier = Modifier.fillMaxSize()) {
-        when (val infoState = state.infoState) {
-            is AppUiState.Loading, AppUiState.Idle -> {
-                // Simple Header Loading placeholder
-                Box(
-                    modifier = Modifier.fillMaxWidth().padding(16.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator(modifier = Modifier.size(24.dp))
-                }
-            }
-            is AppUiState.Error -> {
-                Box(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
-                    Text(
-                        text = "Failed to load info: ${infoState.message}",
-                        color = MaterialTheme.colorScheme.error,
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                }
-            }
-            is AppUiState.Success -> {
-                Box(modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp)) {
-                    CollectionHeader(
-                        info = infoState.data,
-                        onUserClick = onNavigateToUser
-                    )
-                }
-                HorizontalDivider(modifier = Modifier.padding(bottom = 8.dp))
-            }
-        }
-
-        // --- Photo List Section ---
-        // Handle state and type conversion.
-        // We need to convert AppUiState<List<CollectionPhoto>> to AppUiState<List<GalleryDisplayable>>,
-        // or convert the data directly in the Success state.
-        when (val photosState = state.photosState) {
-            is AppUiState.Loading, AppUiState.Idle -> {
-                Box(modifier = Modifier.fillMaxWidth().height(200.dp), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator()
-                }
-            }
-            is AppUiState.Error -> {
-                Box(modifier = Modifier.fillMaxWidth().padding(16.dp), contentAlignment = Alignment.Center) {
-                    Text("Failed to load photos", color = MaterialTheme.colorScheme.error)
-                }
-            }
-            is AppUiState.Success -> {
-                val photos = photosState.data
-                if (photos.isEmpty()) {
-                    Box(modifier = Modifier.height(100.dp).fillMaxWidth(), contentAlignment = Alignment.Center) {
-                        Text("No photos in this topic", color = Color.Gray)
+    SafePullToRefreshBox(
+        isRefreshing = state.isRefreshing,
+        onRefresh = onRefresh,
+        modifier = Modifier.fillMaxSize()
+    ) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            when (val infoState = state.infoState) {
+                is AppUiState.Loading, AppUiState.Idle -> {
+                    // Simple Header Loading placeholder
+                    Box(
+                        modifier = Modifier.fillMaxWidth().padding(16.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator(modifier = Modifier.size(24.dp))
                     }
-                } else {
-                    // Use the shared PhotoList component.
-                    PhotoList(
-                        photos = photos,
-                        sharedTransitionScope = sharedTransitionScope,
-                        animatedVisibilityScope = animatedVisibilityScope,
-                        isEndOfList = state.isPhotosEndOfList,
-                        onLoadMore = onLoadMore,
-                        onPhotoClick = onNavigateToPhoto,
-                        onUserClick = onNavigateToUser
-                    )
+                }
+                is AppUiState.Error -> {
+                    Box(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+                        Text(
+                            text = "Failed to load info: ${infoState.message}",
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                }
+                is AppUiState.Success -> {
+                    Box(modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp)) {
+                        CollectionHeader(
+                            info = infoState.data,
+                            onUserClick = onUserClick
+                        )
+                    }
+                    HorizontalDivider(modifier = Modifier.padding(bottom = 8.dp))
+                }
+            }
+
+            // --- Photo List Section ---
+            // Handle state and type conversion.
+            // We need to convert AppUiState<List<CollectionPhoto>> to AppUiState<List<GalleryDisplayable>>,
+            // or convert the data directly in the Success state.
+            when (val photosState = state.photosState) {
+                is AppUiState.Loading, AppUiState.Idle -> {
+                    Box(modifier = Modifier.fillMaxWidth().height(200.dp), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator()
+                    }
+                }
+                is AppUiState.Error -> {
+                    Box(modifier = Modifier.fillMaxWidth().padding(16.dp), contentAlignment = Alignment.Center) {
+                        Text("Failed to load photos", color = MaterialTheme.colorScheme.error)
+                    }
+                }
+                is AppUiState.Success -> {
+                    val photos = photosState.data
+                    if (photos.isEmpty()) {
+                        Box(modifier = Modifier.height(100.dp).fillMaxWidth(), contentAlignment = Alignment.Center) {
+                            Text("No photos in this topic", color = Color.Gray)
+                        }
+                    } else {
+                        GalleryDisplayableList(
+                            items = photos,
+                            isEndOfList = state.isPhotosEndOfList,
+                            appendError = state.photosAppendError,
+                            onLoadMore = onLoadMore,
+                            onItemClick = onItemClick,
+                            onUserClick = onUserClick,
+                            sharedTransitionScope = sharedTransitionScope,
+                            animatedVisibilityScope = animatedVisibilityScope
+                        )
+                    }
                 }
             }
         }
@@ -376,9 +375,10 @@ private fun CollectionDetailContentPreview() {
                                 infoState = AppUiState.Success(mockCollection),
                                 photosState = AppUiState.Success(mockPhotos)
                             ),
-                            onNavigateToPhoto = { _, _, _-> },
-                            onNavigateToUser = {},
+                            onItemClick = { },
+                            onUserClick = {},
                             onLoadMore = {},
+                            onRefresh = {},
                             sharedTransitionScope = this@SharedTransitionLayout,
                             animatedVisibilityScope = this@AnimatedVisibility
                         )
@@ -401,9 +401,10 @@ private fun CollectionDetailLoadingPreview() {
                         infoState = AppUiState.Loading,
                         photosState = AppUiState.Loading
                     ),
-                    onNavigateToPhoto = { _, _, _ -> },
-                    onNavigateToUser = {},
+                    onItemClick = { },
+                    onUserClick = {},
                     onLoadMore = {},
+                    onRefresh = {},
                     sharedTransitionScope = this@SharedTransitionLayout,
                     animatedVisibilityScope = this@AnimatedVisibility
                 )

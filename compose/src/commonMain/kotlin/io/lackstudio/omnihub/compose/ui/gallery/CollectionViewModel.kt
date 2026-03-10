@@ -19,6 +19,8 @@ class CollectionViewModel(
 
     private var currentCollectionId: String? = null
 
+    private var internalLoading = false
+
     fun handleIntent(intent: CollectionDetailIntent) {
         when (intent) {
             is CollectionDetailIntent.LoadData -> {
@@ -33,6 +35,7 @@ class CollectionViewModel(
             }
             is CollectionDetailIntent.Refresh -> {
                 logger.d { "handleIntent: Refresh" }
+                _state.update { it.copy(isRefreshing = true) }
                 currentCollectionId?.let { id ->
                     loadCollectionInfo(id)
                     loadCollectionPhotos(id, isRefresh = true)
@@ -40,6 +43,13 @@ class CollectionViewModel(
             }
             is CollectionDetailIntent.LoadMorePhotos -> {
                 logger.d { "handleIntent: LoadMorePhotos" }
+                val currentState = _state.value
+
+                if (internalLoading) return
+                if (currentState.isRefreshing) return
+                if (currentState.isPhotosEndOfList) return
+                if (currentState.photosAppendError != null) return
+
                 currentCollectionId?.let { id ->
                     loadCollectionPhotos(id, isRefresh = false)
                 }
@@ -54,7 +64,11 @@ class CollectionViewModel(
             useCase = { getCollectionUseCase(id) },
             onLoading = {
                 // Set Info state to Loading
-                _state.update { it.copy(infoState = AppUiState.Loading) }
+                _state.update { currentState ->
+                    // Anti-flickering: Keep current state instead of reverting to Loading if old data exists
+                    if (currentState.infoState is AppUiState.Success) currentState
+                    else currentState.copy(infoState = AppUiState.Loading)
+                }
             },
             onSuccess = { domainCollection ->
                 // Convert Domain Model to UI Model (Collection) here
@@ -80,25 +94,23 @@ class CollectionViewModel(
     // --- Part 2: Collection Photos (Pagination) ---
     private fun loadCollectionPhotos(id: String, isRefresh: Boolean) {
         val currentState = _state.value
-
-        // Guard: If LoadMore and currently loading or reached end of list, do not execute
-        if (!isRefresh && (currentState.isPhotosLoadingMore || currentState.isPhotosEndOfList)) {
-            logger.d { "loadCollectionPhotos: Guard triggered" }
-            return
-        }
-
         val page = if (isRefresh) 1 else currentState.photosPage + 1
+
+        if (page > 1) internalLoading = true
+
         val params = GetCollectionPhotosParams(id = id, page = page, perPage = 10)
         handleUseCaseCall(
             name = "Collection Photos",
             useCase = { getCollectionPhotosUseCase(params) },
             onLoading = {
-                if (isRefresh) {
-                    // Pull-to-refresh or first load: Show Loading for the whole list
-                    _state.update { it.copy(photosState = AppUiState.Loading) }
-                } else {
-                    // Load more: Keep list displayed, only show bottom Loading
-                    _state.update { it.copy(isPhotosLoadingMore = true) }
+                _state.update { state ->
+                    val oldList = (state.photosState as? AppUiState.Success)?.data
+                    // If the list has old data, do not show full-screen Loading
+                    if (!oldList.isNullOrEmpty()) {
+                        state
+                    } else {
+                        state.copy(photosState = AppUiState.Loading)
+                    }
                 }
             },
             onSuccess = { domainPhotos ->
@@ -118,32 +130,43 @@ class CollectionViewModel(
                     )
                 }
 
-                _state.update { oldState ->
+                _state.update { currentState ->
                     // Logic: If Refresh, use new data directly; if LoadMore, append new data to old data
-                    val combinedPhotos = if (isRefresh) {
-                        newPhotos
-                    } else {
-                        val currentList = (oldState.photosState as? AppUiState.Success)?.data ?: emptyList()
-                        currentList + newPhotos
-                    }
+                    val oldList =
+                        if (isRefresh) emptyList()
+                        else (currentState.photosState as? AppUiState.Success)?.data ?: emptyList()
 
-                    oldState.copy(
+                    val combinedPhotos = (oldList + newPhotos).distinctBy { it.displayId }
+
+                    currentState.copy(
                         photosState = AppUiState.Success(combinedPhotos),
                         photosPage = page,
-                        isPhotosLoadingMore = false,
+                        isRefreshing = false,
+                        photosAppendError = null,
                         // If returned data is empty, the end of the list has been reached
                         isPhotosEndOfList = newPhotos.isEmpty()
                     )
                 }
+                if (page > 1) internalLoading = false
             },
             onError = { msg ->
                 logger.e { "Error loading collection photos: $msg" }
-                if (isRefresh) {
-                    _state.update { it.copy(photosState = AppUiState.Error(msg)) }
-                } else {
-                    // LoadMore failed, just turn off Loading state, keep the original list
-                    // (Advanced: use SideEffect to show Snackbar error)
-                    _state.update { it.copy(isPhotosLoadingMore = false) }
+                _state.update { currentState ->
+                    val oldList = (currentState.photosState as? AppUiState.Success)?.data
+
+                    // Prevent clearing: As long as there is old data, only set the error to appendError
+                    if (!oldList.isNullOrEmpty()) {
+                        currentState.copy(
+                            photosAppendError = msg,
+                            isRefreshing = false
+                        )
+                    } else {
+                        currentState.copy(
+                            photosState = AppUiState.Error(msg),
+                            photosAppendError = null,
+                            isRefreshing = false
+                        )
+                    }
                 }
             }
         )
