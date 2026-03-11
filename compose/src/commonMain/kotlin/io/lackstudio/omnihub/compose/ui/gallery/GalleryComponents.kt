@@ -204,6 +204,7 @@ fun GalleryPagedSection(
     contentPaddingTop: Dp = 0.dp,
     contentPaddingBottom: Dp = 0.dp,
     listOffsetY: () -> Float = { 0f }, // Add this Lambda parameter, default to 0 for no offset
+    onScrollToTop: () -> Unit = {}
 ) {
     StatefulListContent(
         state = state,
@@ -223,6 +224,7 @@ fun GalleryPagedSection(
             contentPaddingTop = contentPaddingTop,
             contentPaddingBottom = contentPaddingBottom,
             listOffsetY = listOffsetY,
+            onScrollToTop = onScrollToTop
         )
     }
 }
@@ -241,6 +243,7 @@ fun GalleryDisplayableList(
     contentPaddingTop: Dp = 0.dp,
     contentPaddingBottom: Dp = 8.dp,
     listOffsetY: () -> Float = { 0f },
+    onScrollToTop: () -> Unit = {}
 ) {
     val state = rememberLazyStaggeredGridState()
     val coroutineScope = rememberCoroutineScope()
@@ -302,6 +305,8 @@ fun GalleryDisplayableList(
                     coroutineScope.launch {
                         // Magic to instantly unlock pull-to-refresh: force the list to scroll back to absolute 0 position!
                         state.animateScrollToItem(0)
+                        // callback to scroll to top (ex: Header)
+                        onScrollToTop()
                     }
                 },
                 containerColor = MaterialTheme.colorScheme.primaryContainer,

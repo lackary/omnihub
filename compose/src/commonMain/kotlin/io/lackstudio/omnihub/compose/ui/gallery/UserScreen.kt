@@ -5,6 +5,7 @@ import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.animation.SharedTransitionScope
+import androidx.compose.animation.core.animate
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.HorizontalPager
@@ -218,6 +219,18 @@ fun UserDetailContent(
             // Declare a Lambda to provide the offset amount, ensuring Recomposition is not triggered during scrolling
             val listOffsetProvider = { totalOverlayHeightPx + headerOffsetPx }
 
+            // Declare an animated scroll-to-top action to smoothly reset the offset to 0f
+            val onScrollToTopAction: () -> Unit = {
+                coroutineScope.launch {
+                    animate(
+                        initialValue = headerOffsetPx,
+                        targetValue = 0f
+                    ) { value, _ ->
+                        headerOffsetPx = value
+                    }
+                }
+            }
+
             HorizontalPager(
                 state = pagerState,
                 modifier = Modifier.fillMaxSize(),
@@ -244,7 +257,8 @@ fun UserDetailContent(
                             sharedTransitionScope = sharedTransitionScope,
                             animatedVisibilityScope = animatedVisibilityScope,
                             onItemClick = onItemClick,
-                            onUserClick = onUserClick
+                            onUserClick = onUserClick,
+                            onScrollToTop = onScrollToTopAction
                         )
                     }
                     UserTab.Collections -> {
@@ -264,7 +278,8 @@ fun UserDetailContent(
                             onItemClick = { item ->
                                 onNavigateToFeature(Feature.Collection(item.displayId, item.displayTitle))
                             },
-                            onUserClick = onUserClick
+                            onUserClick = onUserClick,
+                            onScrollToTop = onScrollToTopAction
                         )
                     }
                     UserTab.Likes -> {
@@ -282,7 +297,8 @@ fun UserDetailContent(
                             sharedTransitionScope = sharedTransitionScope,
                             animatedVisibilityScope = animatedVisibilityScope,
                             onItemClick = onItemClick,
-                            onUserClick = onUserClick
+                            onUserClick = onUserClick,
+                            onScrollToTop = onScrollToTopAction
                         )
                     }
                 }
