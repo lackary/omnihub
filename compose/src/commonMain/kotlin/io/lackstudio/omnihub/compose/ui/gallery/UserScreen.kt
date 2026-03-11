@@ -19,13 +19,21 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
@@ -46,6 +54,7 @@ import omnihub.compose.generated.resources.ic_unsplash
 import omnihub.compose.generated.resources.ic_x_twitter
 import org.jetbrains.compose.resources.painterResource
 import org.koin.compose.viewmodel.koinViewModel
+import kotlin.math.roundToInt
 
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
@@ -78,7 +87,13 @@ fun UserDetailScreen(
         topBar = {
             @OptIn(ExperimentalMaterial3Api::class)
             TopAppBar(
-                title = { },
+                title = {
+                    Text(
+                        text = username,
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+                },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
@@ -108,8 +123,8 @@ fun UserDetailScreen(
                 onEvent = { event ->
                     logger.d { "UserDetailScreen: onEvent: $event" }
                     viewModel.handleIntent(event)
-                },
-                onNavigateToFeature = onNavigateToFeature, // Pass it down
+                }, // Pass it down
+                onNavigateToFeature = onNavigateToFeature,
                 sharedTransitionScope = sharedTransitionScope,
                 animatedVisibilityScope = animatedVisibilityScope
             )
@@ -131,7 +146,6 @@ fun UserDetailContent(
     val tabs = UserTab.entries
     val pagerState = rememberPagerState(pageCount = { tabs.size })
     val coroutineScope = rememberCoroutineScope()
-    val xrNav = LocalXrNavigation.current
 
     LaunchedEffect(state.currentTab) {
         if (pagerState.currentPage != state.currentTab.ordinal) {
@@ -146,96 +160,186 @@ fun UserDetailContent(
         }
     }
 
-    Column(modifier = Modifier.fillMaxSize()) {
+    // --- Core: Nested Scroll State and Logic ---
+    val density = LocalDensity.current
+    var headerHeightPx by remember { mutableFloatStateOf(0f) }
+    var totalOverlayHeightPx by remember { mutableFloatStateOf(0f) }
+    var headerOffsetPx by remember { mutableFloatStateOf(0f) }
 
-        // --- Header Section ---
-        when (val infoState = state.infoState) {
-            is AppUiState.Loading, AppUiState.Idle -> {
-                Box(modifier = Modifier.fillMaxWidth().height(200.dp), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator()
+    val nestedScrollConnection = remember {
+        object : NestedScrollConnection {
+            override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
+                val delta = available.y
+                if (delta < 0 && headerHeightPx > 0f) {
+                    // Scroll up: Prioritize collapsing the Header
+                    val oldOffset = headerOffsetPx
+                    val newOffset = (oldOffset + delta).coerceIn(-headerHeightPx, 0f)
+                    headerOffsetPx = newOffset
+                    return Offset(0f, newOffset - oldOffset)
                 }
+                return Offset.Zero
             }
-            is AppUiState.Error -> {
-                Text("Error: ${infoState.message}", color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(16.dp))
-            }
-            is AppUiState.Success -> {
-                UserHeader(user = infoState.data)
+
+            override fun onPostScroll(
+                consumed: Offset,
+                available: Offset,
+                source: NestedScrollSource
+            ): Offset {
+                val delta = available.y
+                if (delta > 0 && headerHeightPx > 0f) {
+                    // Scroll down: Expand the Header only when the list has scrolled to the top
+                    val oldOffset = headerOffsetPx
+                    val newOffset = (oldOffset + delta).coerceIn(-headerHeightPx, 0f)
+                    headerOffsetPx = newOffset
+                    return Offset(0f, newOffset - oldOffset)
+                }
+                return Offset.Zero
             }
         }
+    }
 
-        // --- Tab Row ---
-        PrimaryTabRow(
-            selectedTabIndex = pagerState.currentPage,
-            containerColor = MaterialTheme.colorScheme.surface,
-            contentColor = MaterialTheme.colorScheme.primary,
-            divider = { HorizontalDivider() }
+    val isRefreshing = state.refreshingStatus[state.currentTab] ?: false
+    SafePullToRefreshBox(
+        isRefreshing = isRefreshing,
+        onRefresh = { onEvent(UserDetailIntent.Refresh) },
+        modifier = Modifier.fillMaxSize()
+    ) {
+        // Use Box to overlap Header/TabRow on top of the list, and attach nestedScroll
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .nestedScroll(nestedScrollConnection)
         ) {
-            tabs.forEachIndexed { index, tab ->
-                Tab(
-                    selected = pagerState.currentPage == index,
-                    onClick = {
-                        coroutineScope.launch { pagerState.animateScrollToPage(index) }
-                    },
-                    text = { Text(tab.title) }
-                )
+            // ==========================================
+            // 1. Bottom layer: Pager and List
+            // ==========================================
+            // Dynamically calculate the TabRow height to use as bottom compensation
+            val tabRowHeightDp = with(density) { (totalOverlayHeightPx - headerHeightPx).toDp() }
+            // Declare a Lambda to provide the offset amount, ensuring Recomposition is not triggered during scrolling
+            val listOffsetProvider = { totalOverlayHeightPx + headerOffsetPx }
+
+            HorizontalPager(
+                state = pagerState,
+                modifier = Modifier.fillMaxSize(),
+                verticalAlignment = Alignment.Top
+            ) { pageIndex ->
+                val tab = UserTab.getByIndex(pageIndex)
+                val isEndOfList = state.endOfListStatus[tab] ?: false
+                val isRefreshing = state.refreshingStatus[tab] ?: false
+                val currentError = state.appendError[tab]?.takeIf { it.isNotBlank() }
+
+                when (tab) {
+                    UserTab.Photos -> {
+                        GalleryPagedSection(
+                            state = state.photosState,
+                            isRefreshing = isRefreshing,
+                            onRefresh = null,
+                            isEndOfList = isEndOfList,
+                            appendError = currentError,
+                            emptyMessage = "No photos uploaded",
+                            onLoadMore = { onEvent(UserDetailIntent.LoadMore) },
+                            contentPaddingTop = 0.dp, // Pass in top Padding so the images are not covered
+                            contentPaddingBottom = tabRowHeightDp,
+                            listOffsetY = listOffsetProvider,
+                            sharedTransitionScope = sharedTransitionScope,
+                            animatedVisibilityScope = animatedVisibilityScope,
+                            onItemClick = onItemClick,
+                            onUserClick = onUserClick
+                        )
+                    }
+                    UserTab.Collections -> {
+                        GalleryPagedSection(
+                            state = state.collectionsState,
+                            isRefreshing = isRefreshing,
+                            onRefresh = null,
+                            isEndOfList = isEndOfList,
+                            appendError = currentError,
+                            emptyMessage = "No collections found",
+                            onLoadMore = { onEvent(UserDetailIntent.LoadMore) },
+                            contentPaddingTop = 0.dp,
+                            contentPaddingBottom = tabRowHeightDp,
+                            listOffsetY = listOffsetProvider,
+                            sharedTransitionScope = sharedTransitionScope,
+                            animatedVisibilityScope = animatedVisibilityScope,
+                            onItemClick = { item ->
+                                onNavigateToFeature(Feature.Collection(item.displayId, item.displayTitle))
+                            },
+                            onUserClick = onUserClick
+                        )
+                    }
+                    UserTab.Likes -> {
+                        GalleryPagedSection(
+                            state = state.likesState,
+                            isRefreshing = isRefreshing,
+                            onRefresh = null,
+                            isEndOfList = isEndOfList,
+                            appendError = currentError,
+                            emptyMessage = "No liked photos",
+                            onLoadMore = { onEvent(UserDetailIntent.LoadMore) },
+                            contentPaddingTop = 0.dp,
+                            contentPaddingBottom = tabRowHeightDp,
+                            listOffsetY = listOffsetProvider,
+                            sharedTransitionScope = sharedTransitionScope,
+                            animatedVisibilityScope = animatedVisibilityScope,
+                            onItemClick = onItemClick,
+                            onUserClick = onUserClick
+                        )
+                    }
+                }
             }
-        }
 
-        // --- Pager Content ---
-        HorizontalPager(
-            state = pagerState,
-            modifier = Modifier.fillMaxSize(),
-            verticalAlignment = Alignment.Top
-        ) { pageIndex ->
-            val tab = UserTab.getByIndex(pageIndex)
-            val isEndOfList = state.endOfListStatus[tab] ?: false
-            val isRefreshing = state.refreshingStatus[tab] ?: false
-            val currentError = state.appendError[tab]?.takeIf { it.isNotBlank() }
-
-            when (tab) {
-                UserTab.Photos -> {
-                    GalleryPagedSection(
-                        state = state.photosState,
-                        isRefreshing = isRefreshing,
-                        onRefresh = { onEvent(UserDetailIntent.Refresh) },
-                        isEndOfList = isEndOfList,
-                        appendError = currentError,
-                        emptyMessage = "No photos uploaded",
-                        onLoadMore = { onEvent(UserDetailIntent.LoadMore) },
-                        sharedTransitionScope = sharedTransitionScope,
-                        animatedVisibilityScope = animatedVisibilityScope,
-                        onItemClick = onItemClick,
-                        onUserClick = onUserClick
-                    )
-                }
-                UserTab.Collections -> {
-                    GalleryPagedSection(
-                        state = state.collectionsState,
-                        isRefreshing = isRefreshing,
-                        onRefresh = { onEvent(UserDetailIntent.Refresh) },
-                        isEndOfList = isEndOfList,
-                        appendError = currentError,
-                        emptyMessage = "No collections found",
-                        onLoadMore = { onEvent(UserDetailIntent.LoadMore) },
-                        onItemClick = onItemClick,
-                        onUserClick = onUserClick
-                    )
+            // ==========================================
+            // 2. Top layer: Floating Header and TabRow
+            // ==========================================
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    // Push the entire Header area up based on the scroll state
+                    .offset { IntOffset(x = 0, y = headerOffsetPx.roundToInt()) }
+                    .background(MaterialTheme.colorScheme.surface) // Add a background color to prevent the underlying images from showing through
+                    .onGloballyPositioned { coordinates ->
+                        totalOverlayHeightPx = coordinates.size.height.toFloat()
+                    }
+            ) {
+                // Header area
+                Box(
+                    modifier = Modifier.onGloballyPositioned { coordinates ->
+                        // Only measure the height of the UserHeader here
+                        headerHeightPx = coordinates.size.height.toFloat()
+                    }
+                ) {
+                    when (val infoState = state.infoState) {
+                        is AppUiState.Loading, AppUiState.Idle -> {
+                            Box(modifier = Modifier.fillMaxWidth().height(100.dp), contentAlignment = Alignment.Center) {
+                                CircularProgressIndicator()
+                            }
+                        }
+                        is AppUiState.Error -> {
+                            Text("Error: ${infoState.message}", color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(16.dp))
+                        }
+                        is AppUiState.Success -> {
+                            UserHeader(user = infoState.data)
+                        }
+                    }
                 }
 
-                UserTab.Likes -> {
-                    GalleryPagedSection(
-                        state = state.likesState,
-                        isRefreshing = isRefreshing,
-                        onRefresh = { onEvent(UserDetailIntent.Refresh) },
-                        isEndOfList = isEndOfList,
-                        appendError = currentError,
-                        emptyMessage = "No liked photos",
-                        onLoadMore = { onEvent(UserDetailIntent.LoadMore) },
-                        sharedTransitionScope = sharedTransitionScope,
-                        animatedVisibilityScope = animatedVisibilityScope,
-                        onItemClick = onItemClick,
-                        onUserClick = onUserClick
-                    )
+                // TabRow area
+                // When the Header is completely pushed off the screen, the TabRow will perfectly stick to the top of the screen, creating a Sticky Header effect!
+                PrimaryTabRow(
+                    selectedTabIndex = pagerState.currentPage,
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    contentColor = MaterialTheme.colorScheme.primary,
+                    divider = { HorizontalDivider() }
+                ) {
+                    tabs.forEachIndexed { index, tab ->
+                        Tab(
+                            selected = pagerState.currentPage == index,
+                            onClick = {
+                                coroutineScope.launch { pagerState.animateScrollToPage(index) }
+                            },
+                            text = { Text(tab.title) }
+                        )
+                    }
                 }
             }
         }
@@ -268,55 +372,55 @@ fun UserHeader(
                 )
                 Spacer(modifier = Modifier.width(16.dp))
                 Column {
-                    Text(
-                        text = user.name,
-                        style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text(
-                        text = "@${user.username}",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    // Stats Row
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Start
+                    ) {
+                        UserStatItem("Photos", user.totalPhotos)
+                        Spacer(modifier = Modifier.width(24.dp))
+                        UserStatItem("Collections", user.totalCollections)
+                        Spacer(modifier = Modifier.width(24.dp))
+                        UserStatItem("Likes", user.totalLikes)
 
-                    // Location if available
-                    user.location?.let { loc ->
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = Icons.Default.LocationOn,
-                                contentDescription = null,
-                                modifier = Modifier.size(14.dp),
-                                tint = MaterialTheme.colorScheme.secondary
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(
-                                text = loc,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.secondary
-                            )
+                        if (isLargeScreen) {
+                            Spacer(modifier = Modifier.weight(1f))
+                            SocialLinkItems(user = user, modifier = Modifier.wrapContentWidth())
                         }
                     }
+
                 }
             }
-
             Spacer(modifier = Modifier.height(8.dp))
 
-            // 2. Stats Row
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.Start
-            ) {
-                UserStatItem("Photos", user.totalPhotos)
-                Spacer(modifier = Modifier.width(24.dp))
-                UserStatItem("Collections", user.totalCollections)
-                Spacer(modifier = Modifier.width(24.dp))
-                UserStatItem("Likes", user.totalLikes)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = "@${user.username}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
 
-                if (isLargeScreen) {
-                    Spacer(modifier = Modifier.weight(1f))
-                    SocialLinkItems(user = user, modifier = Modifier.wrapContentWidth())
+                Spacer(modifier = Modifier.width(8.dp))
+
+                // Location if available
+                user.location?.let { loc ->
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Default.LocationOn,
+                            contentDescription = null,
+                            modifier = Modifier.size(14.dp),
+                            tint = MaterialTheme.colorScheme.secondary
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = loc,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.secondary
+                        )
+                    }
                 }
             }
 
@@ -389,7 +493,7 @@ fun SocialLinkItems(
 
 @Composable
 fun UserStatItem(label: String, count: Long) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
+    Column (horizontalAlignment = Alignment.CenterHorizontally) {
         Text(
             text = count.toCompactDisplayString(),
             style = MaterialTheme.typography.titleMedium,

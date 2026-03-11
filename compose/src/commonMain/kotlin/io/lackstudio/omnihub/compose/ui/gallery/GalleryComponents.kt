@@ -27,6 +27,7 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
+import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridItemSpan
 import androidx.compose.foundation.lazy.staggeredgrid.rememberLazyStaggeredGridState
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PagerState
@@ -61,6 +62,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.text.LinkAnnotation
@@ -71,6 +73,7 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withLink
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import coil3.compose.LocalPlatformContext
@@ -197,7 +200,10 @@ fun GalleryPagedSection(
     onItemClick: (GalleryDisplayable) -> Unit,
     onUserClick: (String) -> Unit = {},
     sharedTransitionScope: SharedTransitionScope? = null,
-    animatedVisibilityScope: AnimatedVisibilityScope? = null
+    animatedVisibilityScope: AnimatedVisibilityScope? = null,
+    contentPaddingTop: Dp = 0.dp,
+    contentPaddingBottom: Dp = 0.dp,
+    listOffsetY: () -> Float = { 0f }, // Add this Lambda parameter, default to 0 for no offset
 ) {
     StatefulListContent(
         state = state,
@@ -213,7 +219,10 @@ fun GalleryPagedSection(
             onItemClick = onItemClick,
             onUserClick = onUserClick,
             sharedTransitionScope = sharedTransitionScope,
-            animatedVisibilityScope = animatedVisibilityScope
+            animatedVisibilityScope = animatedVisibilityScope,
+            contentPaddingTop = contentPaddingTop,
+            contentPaddingBottom = contentPaddingBottom,
+            listOffsetY = listOffsetY,
         )
     }
 }
@@ -228,7 +237,10 @@ fun GalleryDisplayableList(
     onItemClick: (GalleryDisplayable) -> Unit,
     onUserClick: (String) -> Unit = {},
     sharedTransitionScope: SharedTransitionScope? = null,
-    animatedVisibilityScope: AnimatedVisibilityScope? = null
+    animatedVisibilityScope: AnimatedVisibilityScope? = null,
+    contentPaddingTop: Dp = 0.dp,
+    contentPaddingBottom: Dp = 8.dp,
+    listOffsetY: () -> Float = { 0f },
 ) {
     val state = rememberLazyStaggeredGridState()
     val coroutineScope = rememberCoroutineScope()
@@ -245,9 +257,18 @@ fun GalleryDisplayableList(
             // - On Desktop/Web (large width), it automatically becomes 3, 4, 5... columns
             // Value can be adjusted based on design, smaller value means more columns
             columns = StaggeredGridCells.Adaptive(minSize = 300.dp),
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier
+                .fillMaxSize()
+                .graphicsLayer {
+                    translationY = listOffsetY() // Add the displacement magic here! Only push the Grid
+                },
             state = state,
-            contentPadding = PaddingValues(8.dp),
+            contentPadding = PaddingValues(
+                start = 8.dp,
+                end = 8.dp,
+                bottom = 8.dp + contentPaddingBottom,
+                top = 8.dp + contentPaddingTop
+            ),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalItemSpacing = 8.dp
         ) {
