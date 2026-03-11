@@ -30,9 +30,10 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import io.lackstudio.omnifeed.ui.state.AppUiState
+import io.lackstudio.omnihub.compose.ui.components.CommonTopBarActions
 import io.lackstudio.omnihub.compose.ui.components.ExpandableText
+import io.lackstudio.omnihub.compose.ui.components.WebLinkAction
 import io.lackstudio.omnihub.compose.ui.navigation.Feature
-import io.lackstudio.omnihub.compose.ui.navigation.XrNavEvent
 import io.lackstudio.omnihub.compose.ui.navigation.rememberGalleryNavigator
 import io.lackstudio.omnihub.compose.utils.LocalXrNavigation
 import io.lackstudio.omnihub.compose.utils.UnsplashLinks
@@ -195,13 +196,8 @@ fun UserDetailContent(
                         appendError = currentError,
                         emptyMessage = "No collections found",
                         onLoadMore = { onEvent(UserDetailIntent.LoadMore) },
-                        onItemClick = { item ->
-                            onNavigateToFeature(Feature.Collection(item.displayId, item.displayTitle))
-                        },
-                        onUserClick = { username ->
-                            if (xrNav != null) xrNav(XrNavEvent.NavigateToUser(username))
-                            else onNavigateToFeature(Feature.User(username))
-                        }
+                        onItemClick = onItemClick,
+                        onUserClick = onUserClick
                     )
                 }
 
@@ -216,16 +212,8 @@ fun UserDetailContent(
                         onLoadMore = { onEvent(UserDetailIntent.LoadMore) },
                         sharedTransitionScope = sharedTransitionScope,
                         animatedVisibilityScope = animatedVisibilityScope,
-                        onItemClick = { item ->
-                            val ratio = item.displayWidth / item.displayHeight.toFloat()
-                            val url = item.displayImageUrl ?: ""
-                            if (xrNav != null) xrNav(XrNavEvent.NavigateToPhoto(item.displayId, url, ratio))
-                            else onNavigateToFeature(Feature.Photo(item.displayId, url))
-                        },
-                        onUserClick = { username ->
-                            if (xrNav != null) xrNav(XrNavEvent.NavigateToUser(username))
-                            else onNavigateToFeature(Feature.User(username))
-                        }
+                        onItemClick = onItemClick,
+                        onUserClick = onUserClick
                     )
                 }
             }
