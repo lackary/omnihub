@@ -37,7 +37,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.LinkAnnotation
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -50,9 +49,12 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import io.lackstudio.omnifeed.ui.state.AppUiState
+import io.lackstudio.omnihub.compose.ui.components.CommonTopBarActions
 import io.lackstudio.omnihub.compose.ui.components.ExpandableText
+import io.lackstudio.omnihub.compose.ui.components.WebLinkAction
 import io.lackstudio.omnihub.compose.ui.navigation.Feature
 import io.lackstudio.omnihub.compose.ui.navigation.rememberGalleryNavigator
+import io.lackstudio.omnihub.compose.utils.LocalXrNavigation
 import io.lackstudio.omnihub.compose.utils.UnsplashLinks
 import io.lackstudio.omnihub.compose.utils.logging.rememberLogger
 import omnihub.compose.generated.resources.Res
@@ -61,6 +63,7 @@ import omnihub.compose.generated.resources.ic_unsplash
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
+import kotlin.math.log
 
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
@@ -77,12 +80,19 @@ fun CollectionDetailScreen(
     val navigator = rememberGalleryNavigator(onNavigateToFeature)
 
     val state by viewModel.state.collectAsStateWithLifecycle()
-    val uriHandler = LocalUriHandler.current
-//    val xrNav = LocalXrNavigation.current
 
     LaunchedEffect(collectionId) {
          viewModel.handleIntent(CollectionDetailIntent.LoadData(collectionId))
     }
+
+    val isCurrentRefreshing = state.isRefreshing
+    val onRefresh = {
+        if (!isCurrentRefreshing) {
+            logger.d { "onRefresh"}
+            viewModel.handleIntent(CollectionDetailIntent.Refresh)
+        }
+    }
+
 
     Scaffold(
         topBar = {
@@ -104,15 +114,19 @@ fun CollectionDetailScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = {
-                        logger.d { "view on Unsplash" }
-                        uriHandler.openUri(UnsplashLinks.collection(collectionId))
-                    }) {
-                        Icon(
-                            painter = painterResource(Res.drawable.ic_unsplash),
-                            contentDescription = "View on Unsplash",
-                        )
-                    }
+                    val isCurrentRefreshing = state.isRefreshing
+                    CommonTopBarActions(
+                        isRefreshing = isCurrentRefreshing,
+                        onRefresh = onRefresh,
+                        appendActions = {
+                            // External link
+                            WebLinkAction(
+                                url = UnsplashLinks.home(),
+                                icon = painterResource(Res.drawable.ic_unsplash),
+                                contentDescription = "View on Unsplash"
+                            )
+                        }
+                    )
                 }
             )
         }

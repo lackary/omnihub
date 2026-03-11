@@ -66,6 +66,14 @@ fun UserDetailScreen(
         viewModel.handleIntent(UserDetailIntent.LoadData(username))
     }
 
+    val isCurrentTabRefreshing = state.refreshingStatus[state.currentTab] ?: false
+    val onRefreshAction = {
+        // Only send the event if the current Tab is not refreshing
+        if (!isCurrentTabRefreshing) {
+            viewModel.handleIntent(UserDetailIntent.Refresh)
+        }
+    }
+
     Scaffold(
         topBar = {
             @OptIn(ExperimentalMaterial3Api::class)
@@ -75,6 +83,19 @@ fun UserDetailScreen(
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
+                },
+                actions = {
+                    CommonTopBarActions(
+                        isRefreshing = isCurrentTabRefreshing,
+                        onRefresh = onRefreshAction,
+                        appendActions = {
+                            WebLinkAction(
+                                url = UnsplashLinks.userProfile(username),
+                                icon = painterResource(Res.drawable.ic_unsplash),
+                                contentDescription = "View on Unsplash"
+                            )
+                        }
+                    )
                 }
             )
         }

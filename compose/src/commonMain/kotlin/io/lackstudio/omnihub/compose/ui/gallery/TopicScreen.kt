@@ -28,7 +28,9 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import io.lackstudio.omnifeed.ui.state.AppUiState
+import io.lackstudio.omnihub.compose.ui.components.CommonTopBarActions
 import io.lackstudio.omnihub.compose.ui.components.ExpandableText
+import io.lackstudio.omnihub.compose.ui.components.WebLinkAction
 import io.lackstudio.omnihub.compose.ui.navigation.Feature
 import io.lackstudio.omnihub.compose.ui.navigation.rememberGalleryNavigator
 import io.lackstudio.omnihub.compose.utils.UnsplashLinks
@@ -59,6 +61,14 @@ fun TopicDetailScreen(
         viewModel.handleIntent(TopicDetailIntent.LoadData(topicId))
     }
 
+    val isRefreshing = state.isRefreshing
+    val onRefresh = {
+        if (!isRefreshing) {
+            logger.d { "onRefresh" }
+            viewModel.handleIntent(TopicDetailIntent.Refresh)
+        }
+    }
+
     Scaffold(
         topBar = {
             @OptIn(ExperimentalMaterial3Api::class)
@@ -76,15 +86,17 @@ fun TopicDetailScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = {
-                        logger.d { "View on Unsplash" }
-                        uriHandler.openUri(UnsplashLinks.topic(topicId))
-                    }) {
-                        Icon(
-                            painter = painterResource(Res.drawable.ic_unsplash),
-                            contentDescription = "View on Unsplash"
-                        )
-                    }
+                    CommonTopBarActions(
+                        isRefreshing = isRefreshing,
+                        onRefresh = onRefresh,
+                        appendActions = {
+                            WebLinkAction(
+                                url = UnsplashLinks.home(),
+                                icon = painterResource(Res.drawable.ic_unsplash),
+                                contentDescription = "View on Unsplash"
+                            )
+                        }
+                    )
                 }
             )
         }

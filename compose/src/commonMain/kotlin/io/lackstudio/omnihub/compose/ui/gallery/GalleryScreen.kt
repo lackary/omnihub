@@ -49,9 +49,15 @@ import androidx.lifecycle.flowWithLifecycle
 import coil3.compose.AsyncImage
 import io.lackstudio.omnifeed.ui.state.AppUiState
 import io.lackstudio.omnihub.compose.platform.isPullToRefreshSupported
+import io.lackstudio.omnihub.compose.ui.components.AvatarAction
+import io.lackstudio.omnihub.compose.ui.components.CommonTopBarActions
 import io.lackstudio.omnihub.compose.ui.components.MonitorErrorStates
+import io.lackstudio.omnihub.compose.ui.components.RefreshAction
+import io.lackstudio.omnihub.compose.ui.components.SearchAction
+import io.lackstudio.omnihub.compose.ui.components.WebLinkAction
 import io.lackstudio.omnihub.compose.ui.navigation.Feature
 import io.lackstudio.omnihub.compose.ui.navigation.rememberGalleryNavigator
+import io.lackstudio.omnihub.compose.utils.UnsplashLinks
 import io.lackstudio.omnihub.compose.utils.logging.rememberLogger
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
@@ -59,8 +65,10 @@ import kotlinx.coroutines.launch
 import omnihub.compose.generated.resources.Res
 import omnihub.compose.generated.resources.back
 import omnihub.compose.generated.resources.gallery_title
+import omnihub.compose.generated.resources.ic_unsplash
 import omnihub.compose.generated.resources.refresh
 import omnihub.compose.generated.resources.search
+import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -254,71 +262,36 @@ fun GalleryScreenContent(
                     }
                 },
                 actions = {
-                    IconButton(onClick = {
-                        // If search logic is needed here, it can also be passed out via onEvent
-                        isSearching = !isSearching
-                    }) {
-                        Icon(
-                            imageVector = Icons.Filled.Search,
-                            contentDescription = stringResource(Res.string.search)
-                        )
-                    }
-                    if (!isPullToRefreshSupported) {
-                        IconButton(
-                            onClick = { onRefreshAction() },
-                            // Disable button while refreshing to prevent multiple clicks
-                            enabled = !isCurrentTabRefreshing
-                        ) {
-                            if (isCurrentTabRefreshing) {
-                                // You can change the button to a spinner, or just gray it out
-                                CircularProgressIndicator(
-                                    modifier = Modifier.size(24.dp),
-                                    strokeWidth = 2.dp,
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-                            } else {
-                                Icon(
-                                    imageVector = Icons.Default.Refresh,
-                                    contentDescription = stringResource(Res.string.refresh)
-                                )
-                            }
-                        }
-                    }
-                    IconButton(
-                        onClick = {
-                            state.meProfile?.let {
-                                onNavigateToFeature(Feature.User(it.username))
-                            }?: onEvent(GalleryIntent.Login)
-                        }
-                    ) {
-                        Crossfade(targetState = state.meProfile) { profile ->
-                            if (profile != null) {
-                                AsyncImage(
-                                    model = profile.profileImage.small,
-                                    contentDescription = "My Avatar",
-                                    contentScale = ContentScale.Crop,
-                                    modifier = Modifier
-                                        .size(32.dp)  // Set avatar display size
-                                        .clip(CircleShape) // Clip to circle
-                                )
-                            } else {
-                                if (state.isAuthenticating) {
-                                    // If authenticating, show progress indicator instead of an icon
-                                    CircularProgressIndicator(
-                                        modifier = Modifier.size(24.dp), // Same size as the Icon
-                                        strokeWidth = 2.dp,
-                                        color = MaterialTheme.colorScheme.primary
-                                    )
-                                } else {
-                                    Icon(
-                                        imageVector = Icons.Filled.AccountCircle,
-                                        contentDescription = "Login"
-                                    )
+                    CommonTopBarActions(
+                        isRefreshing = isCurrentTabRefreshing,
+                        onRefresh = onRefreshAction,
+                        prependActions = {
+                            SearchAction(
+                                onClick = {/* TODO: Implement Search */ isSearching = !isSearching}
+                            )
+                        },
+                        appendActions = {
+                            // External link
+                            WebLinkAction(
+                                url = UnsplashLinks.home(),
+                                icon = painterResource(Res.drawable.ic_unsplash),
+                                contentDescription = "View on Unsplash"
+                            )
+
+                            // User account / loggin
+                            AvatarAction(
+                                avatarUrl = state.meProfile?.profileImage?.small,
+                                isAuthenticating = state.isAuthenticating,
+                                onClick = {
+                                    state.meProfile?.let {
+                                        onNavigateToFeature(Feature.User(it.username))
+                                    } ?: onEvent(GalleryIntent.Login)
                                 }
-                            }
+                            )
                         }
-                    }
-                },
+                    )
+
+                }
             )
         },
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
