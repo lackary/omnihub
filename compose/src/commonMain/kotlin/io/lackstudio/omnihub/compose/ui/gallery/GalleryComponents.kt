@@ -25,6 +25,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.staggeredgrid.LazyStaggeredGridState
 import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridItemSpan
@@ -204,7 +205,8 @@ fun GalleryPagedSection(
     contentPaddingTop: Dp = 0.dp,
     contentPaddingBottom: Dp = 0.dp,
     listOffsetY: () -> Float = { 0f }, // Add this Lambda parameter, default to 0 for no offset
-    onScrollToTop: () -> Unit = {}
+    onScrollToTop: () -> Unit = {},
+    gridState: LazyStaggeredGridState = rememberLazyStaggeredGridState()
 ) {
     StatefulListContent(
         state = state,
@@ -224,7 +226,8 @@ fun GalleryPagedSection(
             contentPaddingTop = contentPaddingTop,
             contentPaddingBottom = contentPaddingBottom,
             listOffsetY = listOffsetY,
-            onScrollToTop = onScrollToTop
+            onScrollToTop = onScrollToTop,
+            gridState = gridState
         )
     }
 }
@@ -243,13 +246,14 @@ fun GalleryDisplayableList(
     contentPaddingTop: Dp = 0.dp,
     contentPaddingBottom: Dp = 8.dp,
     listOffsetY: () -> Float = { 0f },
-    onScrollToTop: () -> Unit = {}
+    onScrollToTop: () -> Unit = {},
+    gridState: LazyStaggeredGridState = rememberLazyStaggeredGridState()
 ) {
-    val state = rememberLazyStaggeredGridState()
+//    val state = rememberLazyStaggeredGridState()
     val coroutineScope = rememberCoroutineScope()
 
     val showFab by remember {
-        derivedStateOf { state.firstVisibleItemIndex > 2 }
+        derivedStateOf { gridState.firstVisibleItemIndex > 2 }
     }
     Box(modifier = Modifier.fillMaxSize()) {
 
@@ -265,7 +269,7 @@ fun GalleryDisplayableList(
                 .graphicsLayer {
                     translationY = listOffsetY() // Add the displacement magic here! Only push the Grid
                 },
-            state = state,
+            state = gridState,
             contentPadding = PaddingValues(
                 start = 8.dp,
                 end = 8.dp,
@@ -304,7 +308,7 @@ fun GalleryDisplayableList(
                 onClick = {
                     coroutineScope.launch {
                         // Magic to instantly unlock pull-to-refresh: force the list to scroll back to absolute 0 position!
-                        state.animateScrollToItem(0)
+                        gridState.animateScrollToItem(0)
                         // callback to scroll to top (ex: Header)
                         onScrollToTop()
                     }

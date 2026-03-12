@@ -7,7 +7,11 @@ import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.animation.core.animate
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.rememberScrollableState
+import androidx.compose.foundation.gestures.scrollable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.staggeredgrid.rememberLazyStaggeredGridState
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
@@ -22,7 +26,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
@@ -35,6 +38,7 @@ import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
@@ -44,7 +48,6 @@ import io.lackstudio.omnihub.compose.ui.components.ExpandableText
 import io.lackstudio.omnihub.compose.ui.components.WebLinkAction
 import io.lackstudio.omnihub.compose.ui.navigation.Feature
 import io.lackstudio.omnihub.compose.ui.navigation.rememberGalleryNavigator
-import io.lackstudio.omnihub.compose.utils.LocalXrNavigation
 import io.lackstudio.omnihub.compose.utils.UnsplashLinks
 import io.lackstudio.omnihub.compose.utils.logging.rememberLogger
 import io.lackstudio.omnihub.compose.utils.toCompactDisplayString
@@ -148,6 +151,10 @@ fun UserDetailContent(
     val pagerState = rememberPagerState(pageCount = { tabs.size })
     val coroutineScope = rememberCoroutineScope()
 
+    val photosGridState = rememberLazyStaggeredGridState()
+    val collectionsGridState = rememberLazyStaggeredGridState()
+    val likesGridState = rememberLazyStaggeredGridState()
+
     LaunchedEffect(state.currentTab) {
         if (pagerState.currentPage != state.currentTab.ordinal) {
             pagerState.animateScrollToPage(state.currentTab.ordinal)
@@ -167,36 +174,117 @@ fun UserDetailContent(
     var totalOverlayHeightPx by remember { mutableFloatStateOf(0f) }
     var headerOffsetPx by remember { mutableFloatStateOf(0f) }
 
+    // Dynamically get the GridState of the currently displayed Tab
+    val activeTabGridState by remember {
+        derivedStateOf {
+            when (UserTab.getByIndex(pagerState.currentPage)) {
+                UserTab.Photos -> photosGridState
+                UserTab.Collections -> collectionsGridState
+                UserTab.Likes -> likesGridState
+            }
+        }
+    }
+
+    // Extract the math logic for calculating Header expand/collapse into a shared core!
+    val consumeHeaderDelta: (Float, Boolean) -> Float = { delta, isPostScroll ->
+        var consumed = 0f
+        if (delta < 0 && headerHeightPx > 0f) {
+            // Scroll up: Collapse the Header
+            val oldOffset = headerOffsetPx
+            val newOffset = (oldOffset + delta).coerceIn(-headerHeightPx, 0f)
+            headerOffsetPx = newOffset
+            consumed = newOffset - oldOffset
+        } else if (delta > 0 && headerHeightPx > 0f) {
+            // Scroll down: Expand the Header
+            val isAtTop = activeTabGridState.firstVisibleItemIndex == 0 &&
+                    activeTabGridState.firstVisibleItemScrollOffset <= 15
+
+            // Check if the Header has left the top (i.e., not fully collapsed)!
+            // This variable updates synchronously with no delay.
+            val isHeaderNotClosed = headerOffsetPx > -headerHeightPx
+
+            // As long as the Header is even slightly exposed, we must "unconditionally intercept" all downward scroll signals!
+            // This ensures that during high-speed scrolling, signals won't leak to the list and be consumed by Overscroll.
+            if (isPostScroll || isAtTop || isHeaderNotClosed) {
+                val oldOffset = headerOffsetPx
+                val newOffset = (oldOffset + delta).coerceIn(-headerHeightPx, 0f)
+                headerOffsetPx = newOffset
+                consumed = newOffset - oldOffset
+            }
+        }
+        consumed
+    }
+
     val nestedScrollConnection = remember {
         object : NestedScrollConnection {
             override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
-                val delta = available.y
-                if (delta < 0 && headerHeightPx > 0f) {
-                    // Scroll up: Prioritize collapsing the Header
-                    val oldOffset = headerOffsetPx
-                    val newOffset = (oldOffset + delta).coerceIn(-headerHeightPx, 0f)
-                    headerOffsetPx = newOffset
-                    return Offset(0f, newOffset - oldOffset)
-                }
-                return Offset.Zero
+                // Pre-scroll interception
+                val consumedY = consumeHeaderDelta(available.y, false)
+                return Offset(0f, consumedY)
             }
 
-            override fun onPostScroll(
-                consumed: Offset,
-                available: Offset,
-                source: NestedScrollSource
-            ): Offset {
-                val delta = available.y
-                if (delta > 0 && headerHeightPx > 0f) {
-                    // Scroll down: Expand the Header only when the list has scrolled to the top
-                    val oldOffset = headerOffsetPx
-                    val newOffset = (oldOffset + delta).coerceIn(-headerHeightPx, 0f)
-                    headerOffsetPx = newOffset
-                    return Offset(0f, newOffset - oldOffset)
+            override fun onPostScroll(consumed: Offset, available: Offset, source: NestedScrollSource): Offset {
+                // Post-scroll safety net
+                val consumedY = consumeHeaderDelta(available.y, true)
+                return Offset(0f, consumedY)
+            }
+
+            // 🔥 Ultimate move: Capture the "inertial momentum (Fling)" after releasing a fast scroll and implement "Auto-Snap"
+            override suspend fun onPostFling(consumed: Velocity, available: Velocity): Velocity {
+                if (headerHeightPx > 0f) {
+                    if (available.y > 0f && headerOffsetPx < 0f) {
+                        // 1. Fast scroll down: Residual momentum after the list hits the top -> smoothly pull the Header all the way down
+                        animate(
+                            initialValue = headerOffsetPx,
+                            targetValue = 0f,
+                            initialVelocity = available.y
+                        ) { value, _ -> headerOffsetPx = value }
+                        return Velocity(0f, available.y)
+
+                    } else if (available.y < 0f && headerOffsetPx > -headerHeightPx) {
+                        // 2. Fast scroll up: Header not fully collapsed yet -> smoothly collapse the Header entirely
+                        animate(
+                            initialValue = headerOffsetPx,
+                            targetValue = -headerHeightPx,
+                            initialVelocity = available.y
+                        ) { value, _ -> headerOffsetPx = value }
+                        return Velocity(0f, available.y)
+
+                    } else if (headerOffsetPx < 0f && headerOffsetPx > -headerHeightPx) {
+                        // 3. Slow scroll and release: No strong momentum, but Header is stuck halfway -> auto-snap to the nearest state
+                        val targetOffset = if (headerOffsetPx > -headerHeightPx / 2) 0f else -headerHeightPx
+                        animate(
+                            initialValue = headerOffsetPx,
+                            targetValue = targetOffset
+                        ) { value, _ -> headerOffsetPx = value }
+                    }
                 }
-                return Offset.Zero
+                return super.onPostFling(consumed, available)
             }
         }
+    }
+
+    // Bind a dedicated scroll channel for the Header (implementing a complete Pre -> Grid -> Post flow manually)
+    val headerScrollState = rememberScrollableState { delta ->
+        // a. Pre-scroll: When hovering over the Header, ask the Header to consume the scroll first
+        val consumedByHeaderPre = consumeHeaderDelta(delta, false)
+
+        // b. Handover: Pass the remaining delta to the underlying image list
+        val leftoverPre = delta - consumedByHeaderPre
+        val consumedByGrid = if (leftoverPre != 0f) {
+            activeTabGridState.dispatchRawDelta(leftoverPre)
+        } else {
+            0f
+        }
+
+        // c. Post-scroll: If the list can't consume it all (meaning it hit the boundary), ask the Header again! (isPostScroll = true)
+        val leftoverPost = leftoverPre - consumedByGrid
+        if (leftoverPost != 0f) {
+            consumeHeaderDelta(leftoverPost, true)
+        }
+
+        // Unconditionally return the delta to trick the OS, keeping the gesture smooth and uninterrupted
+        delta
     }
 
     val isRefreshing = state.refreshingStatus[state.currentTab] ?: false
@@ -258,7 +346,8 @@ fun UserDetailContent(
                             animatedVisibilityScope = animatedVisibilityScope,
                             onItemClick = onItemClick,
                             onUserClick = onUserClick,
-                            onScrollToTop = onScrollToTopAction
+                            onScrollToTop = onScrollToTopAction,
+                            gridState = photosGridState
                         )
                     }
                     UserTab.Collections -> {
@@ -279,7 +368,8 @@ fun UserDetailContent(
                                 onNavigateToFeature(Feature.Collection(item.displayId, item.displayTitle))
                             },
                             onUserClick = onUserClick,
-                            onScrollToTop = onScrollToTopAction
+                            onScrollToTop = onScrollToTopAction,
+                            gridState = collectionsGridState
                         )
                     }
                     UserTab.Likes -> {
@@ -298,7 +388,8 @@ fun UserDetailContent(
                             animatedVisibilityScope = animatedVisibilityScope,
                             onItemClick = onItemClick,
                             onUserClick = onUserClick,
-                            onScrollToTop = onScrollToTopAction
+                            onScrollToTop = onScrollToTopAction,
+                            gridState = likesGridState
                         )
                     }
                 }
@@ -316,6 +407,7 @@ fun UserDetailContent(
                     .onGloballyPositioned { coordinates ->
                         totalOverlayHeightPx = coordinates.size.height.toFloat()
                     }
+                    .scrollable(state = headerScrollState, orientation = Orientation.Vertical)
             ) {
                 // Header area
                 Box(
