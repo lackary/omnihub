@@ -28,7 +28,6 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.staggeredgrid.LazyStaggeredGridState
 import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
-import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridItemSpan
 import androidx.compose.foundation.lazy.staggeredgrid.rememberLazyStaggeredGridState
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PagerState
@@ -307,10 +306,10 @@ fun GalleryDisplayableList(
             FloatingActionButton(
                 onClick = {
                     coroutineScope.launch {
-                        // Magic to instantly unlock pull-to-refresh: force the list to scroll back to absolute 0 position!
-                        gridState.animateScrollToItem(0)
                         // callback to scroll to top (ex: Header)
                         onScrollToTop()
+                        // Magic to instantly unlock pull-to-refresh: force the list to scroll back to absolute 0 position!
+                        gridState.animateScrollToItem(0)
                     }
                 },
                 containerColor = MaterialTheme.colorScheme.primaryContainer,
