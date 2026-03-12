@@ -21,16 +21,16 @@ val omniServices = listOf(
         icon = Icons.Filled.Photo,
         route = Feature.Gallery
     ),
-    OmniService(
-        title = "News",
-        description = "Global real-time news aggregation",
-        icon = Icons.Filled.Newspaper,
-        route = Feature.News
-    ),
-    OmniService(
-        title = "Stocks",
-        description = "Stock market quotes and financial data",
-        icon = Icons.AutoMirrored.Filled.ShowChart,
-        route = Feature.Stocks
-    )
+//    OmniService(
+//        title = "News",
+//        description = "Global real-time news aggregation",
+//        icon = Icons.Filled.Newspaper,
+//        route = Feature.News
+//    ),
+//    OmniService(
+//        title = "Stocks",
+//        description = "Stock market quotes and financial data",
+//        icon = Icons.AutoMirrored.Filled.ShowChart,
+//        route = Feature.Stocks
+//    )
 )

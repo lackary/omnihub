@@ -221,18 +221,35 @@ fun PhotoDetailContent(
                 }
 
                 if (state.detailState is AppUiState.Error) {
+                    // Get the error message and check if it's a Rate Limit error
+                    val errorMessage = state.detailState.message
+                    val isRateLimited =
+                        errorMessage.contains("Rate Limit", ignoreCase = true) ||
+                                errorMessage.contains("403")
+
                     Column(
                         modifier = Modifier.align(Alignment.Center),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Icon(Icons.Default.Warning, contentDescription = null, tint = Color.Red)
                         Spacer(modifier = Modifier.height(8.dp))
-                        Text("Error loading details", color = Color.White)
-                        Button(
-                            onClick = onRetry,
-                            colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = Color.Black)
-                        ) {
-                            Text("Retry")
+
+                        if (isRateLimited) {
+                            // If it's a Rate Limit error, only show the message, no Retry button
+                            Text("Rate Limited Exceeded", color = Color.White)
+                        } else {
+                            // For other errors, show the Retry button
+                            Text("Error loading details", color = Color.White)
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Button(
+                                onClick = onRetry,
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = Color.White,
+                                    contentColor = Color.Black
+                                )
+                            ) {
+                                Text("Retry")
+                            }
                         }
                     }
                 }
