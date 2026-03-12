@@ -1,3 +1,15 @@
+# [0.16.0](https://github.com/lackary/omnihub/compare/v0.15.0...v0.16.0) (2026-03-12)
+
+
+### Features
+
+* **ui:** add scroll-to-top callback support for gallery components ([941027c](https://github.com/lackary/omnihub/commit/941027c9ab8aea22e0eb9611a951b1e93ab9242b))
+* **ui:** comment out News and Stocks services in HomeModel ([a274d55](https://github.com/lackary/omnihub/commit/a274d550cf2aff77ab6229b80f4018bef1f89e58))
+* **ui:** extract and unify common top bar actions ([384ff8b](https://github.com/lackary/omnihub/commit/384ff8b2504ddf42bcac3bae7167200f86070801))
+* **ui:** handle rate limit errors in PhotoScreen ([c80ac79](https://github.com/lackary/omnihub/commit/c80ac79d7585473e7d376eda63129ef9e2893097))
+* **ui:** implement sticky header and nested scrolling for `UserScreen` ([a33020b](https://github.com/lackary/omnihub/commit/a33020be18c18d6102e89b4e8878408cecaa4c12))
+* **ui:** improve nested scrolling and header behavior in UserScreen ([a04791b](https://github.com/lackary/omnihub/commit/a04791b72ac44065b4b1a739c0e80fc7e9a62ae5))
+
 # [0.15.0](https://github.com/lackary/omnihub/compare/v0.14.0...v0.15.0) (2026-03-06)
 
 
