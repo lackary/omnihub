@@ -1,3 +1,10 @@
+## [0.16.1](https://github.com/lackary/omnihub/compare/v0.16.0...v0.16.1) (2026-03-13)
+
+
+### Bug Fixes
+
+* **xr:** resolve spatial panel squashing and clipping in multi-panel layout ([717eff1](https://github.com/lackary/omnihub/commit/717eff12c9bfcec0432c4805f277ce07eb9c5614))
+
 # [0.16.0](https://github.com/lackary/omnihub/compare/v0.15.0...v0.16.0) (2026-03-12)
 
 
