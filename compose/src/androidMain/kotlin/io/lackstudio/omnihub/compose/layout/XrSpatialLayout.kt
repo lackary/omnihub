@@ -30,7 +30,6 @@ import androidx.xr.compose.spatial.ContentEdge
 import androidx.xr.compose.spatial.Orbiter
 import androidx.xr.compose.spatial.Subspace
 import androidx.xr.compose.subspace.MovePolicy
-import androidx.xr.compose.subspace.ResizePolicy
 import androidx.xr.compose.subspace.SpatialCurvedRow
 import androidx.xr.compose.subspace.SpatialPanel
 import androidx.xr.compose.subspace.SpatialSpacer
@@ -62,7 +61,7 @@ fun XrSpatialLayout() {
         LocalXrNavigation provides { event ->
             when(event) {
                 is XrNavEvent.NavigateToPhoto -> {
-                    selectedUsername = null
+//                    selectedUsername = null
                     val newPhoto = StackedPhoto(event.id, event.thumbUrl, event.ratio)
                     if (!photoStack.any { it.id == event.id }) photoStack.add(newPhoto)
                     currentPhotoIndex = photoStack.indexOfFirst { it.id == event.id }
@@ -77,18 +76,65 @@ fun XrSpatialLayout() {
             // Significantly widen the curve radius to 2000.dp to flatten the curve
             SpatialCurvedRow(curveRadius = 2000.dp) {
                 val hasUser = selectedUsername != null
-                val hasStack = photoStack.isNotEmpty() && !hasUser
+                val hasStack = photoStack.isNotEmpty()
 
-                val panelWidth = 848.dp
+                // Set safe total width and gap
+                val safeTotalWidth = 1248.dp // Absolute safe limit for 3D rendering
+                val gap = 24.dp
                 val panelHeight = 800.dp
 
-                val gap = 8.dp
+                val (targetUserWidth, targetMainWidth, targetPhotoWidth) = when {
+                    hasUser && hasStack -> {
+                        // Scenario A: All three panels open (User:Main:Photo = 1:1:2)
+                        val availableWidth = safeTotalWidth - (gap * 2) // 1248 - 48 = 1200
+                        val unit = availableWidth / 4                   // 1200 / 4 = 300
+                        Triple(unit * 1, unit * 1, unit * 2)            // User: 300, Main: 300, Photo: 600
+                    }
+                    !hasUser && hasStack -> {
+                        // Scenario B: Only Main + Photo (Main:Photo = 1:2)
+                        val availableWidth = safeTotalWidth - gap       // 1248 - 24 = 1224
+                        val unit = availableWidth / 3                   // 1224 / 3 = 408
+                        Triple(0.dp, unit * 1, unit * 2)                // Main: 408, Photo: 816
+                    }
+                    hasUser && !hasStack -> {
+                        // Scenario C: Only User + Main (User:Main = 1:1)
+                        val availableWidth = safeTotalWidth - gap       // 1248 - 24 = 1224
+                        val unit = availableWidth / 2                   // 1224 / 2 = 612
+                        Triple(unit * 1, unit * 1, 0.dp)                // User: 612, Main: 612
+                    }
+                    else -> {
+                        // Scenario D: Only Main panel
+                        Triple(0.dp, 800.dp, 0.dp)                      // Provide a comfortable default width for the main panel
+                    }
+                }
+
+//                // Add smooth transition animations (This makes the XR experience feel premium instantly!)
+//                val userPanelWidth by animateDpAsState(
+//                    targetValue = targetUserWidth,
+//                    animationSpec = tween(500),
+//                    label = "userWidth"
+//                )
+//                val mainPanelWidth by animateDpAsState(
+//                    targetValue = targetMainWidth,
+//                    animationSpec = tween(500),
+//                    label = "mainWidth"
+//                )
+//                val photoPanelWidth by animateDpAsState(
+//                    targetValue = targetPhotoWidth,
+//                    animationSpec = tween(500),
+//                    label = "photoWidth"
+//                )
+
+                val userPanelWidth = targetUserWidth
+                val mainPanelWidth = targetMainWidth
+                val photoPanelWidth = targetPhotoWidth
 
                 // --- Left (User Panel) ---
                 if (hasUser) {
                     SpatialPanel(
-                        modifier = SubspaceModifier.width(panelWidth).height(panelHeight),
-                        dragPolicy = MovePolicy(), resizePolicy = ResizePolicy()
+                        modifier = SubspaceModifier.width(userPanelWidth).height(panelHeight),
+                        dragPolicy = MovePolicy(),
+//                        resizePolicy = ResizePolicy()
                     ) {
                         SharedTransitionLayout {
                             AnimatedVisibility(visible = true) {
@@ -111,8 +157,9 @@ fun XrSpatialLayout() {
 
                 // --- Center: Main Application ---
                 SpatialPanel(
-                    modifier = SubspaceModifier.width(panelWidth).height(panelHeight),
-                    dragPolicy = MovePolicy(), resizePolicy = ResizePolicy()
+                    modifier = SubspaceModifier.width(mainPanelWidth).height(panelHeight),
+                    dragPolicy = MovePolicy(),
+//                    resizePolicy = ResizePolicy()
                 ) {
 
                     // 100% manually controlled bottom floating Orbiter.
@@ -159,14 +206,15 @@ fun XrSpatialLayout() {
                         navController = navController,
                         showNavigationBar = false
                     )
-                }
 
+                }
                 // --- Right (Photo Panel) ---
                 if (hasStack) {
                     SpatialSpacer(modifier = SubspaceModifier.width(gap))
                     SpatialPanel(
-                        modifier = SubspaceModifier.width(panelWidth).height(panelHeight),
-                        dragPolicy = MovePolicy(), resizePolicy = ResizePolicy()
+                        modifier = SubspaceModifier.width(photoPanelWidth).height(panelHeight),
+                        dragPolicy = MovePolicy(),
+//                        resizePolicy = ResizePolicy()
                     ) {
                         SharedTransitionLayout {
                             AnimatedVisibility(visible = true) {
