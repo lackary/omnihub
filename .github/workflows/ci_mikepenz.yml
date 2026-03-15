@@ -12,6 +12,7 @@ on:
       - '.github/workflows/release.yml'
       - '.github/workflows/deploy_auth_web.yml'
       - 'site/**'
+      - 'renovate.json'
   pull_request:
     branches: [ "main" ]
     paths-ignore:
@@ -23,6 +24,7 @@ on:
       - '.github/workflows/release.yml'
       - '.github/workflows/deploy_auth_web.yml'
       - 'site/**'
+      - 'renovate.json'
 
   workflow_dispatch:
     inputs:
