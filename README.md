@@ -9,20 +9,27 @@
 
 > **A Kotlin Multiplatform (KMP) Application featuring MVI Architecture, Modular Design, and Automated CI/CD.**
 
-<table>
+<table width="100%">
   <tr>
-    <td text-align="center"><b>Android</b></td>
-    <td text-align="center"><b>iOS</b></td>
-    <td text-align="center"><b>Desktop</b></td>
-    <td text-align="center"><b>Web</b></td>
-    <td text-align="center"><b>Android XR</b></td>
+    <td width="50%"><b>Android</b></td>
+    <td width="50%"><b>iOS</b></td>
   </tr>
   <tr>
-    <td><img src="docs/images/gallery/OmniHub_Gallery_Android.webp" width="180" alt="Android"></td>
-    <td><img src="docs/images/gallery/OmniHub_Gallery_iOS.webp" width="180" alt="iOS"></td>
-    <td><img src="docs/images/gallery/OmniHub_Gallery_desktop.webp" width="280" alt="Desktop"></td>
-    <td><img src="docs/images/gallery/OmniHub_Gallery_web.webp" width="280" alt="Web"></td>
-    <td><img src="docs/images/gallery/OmniHub_Gallery_AndroidXR.webp" width="280" alt="Android XR"></td>
+    <td><img src="docs/images/gallery/OmniHub_Gallery_Android.webp" width="100%" alt="Android"></td>
+    <td><img src="docs/images/gallery/OmniHub_Gallery_iOS.webp" width="100%" alt="iOS"></td>
+  </tr>
+</table>
+
+<table width="100%">
+  <tr>
+    <td width="33%"><b>Desktop</b></td>
+    <td width="33%"><b>Web</b></td>
+    <td width="33%"><b>Android XR (Simulator)</b></td>
+  </tr>
+  <tr>
+    <td><img src="docs/images/gallery/OmniHub_Gallery_desktop.webp" width="100%" alt="Desktop"></td>
+    <td><img src="docs/images/gallery/OmniHub_Gallery_web.webp" width="100%" alt="Web"></td>
+    <td><img src="docs/images/gallery/OmniHub_Gallery_AndroidXR.webp" width="100%" alt="Android XR"></td>
   </tr>
 </table>
 
