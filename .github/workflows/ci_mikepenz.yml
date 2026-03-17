@@ -12,6 +12,7 @@ on:
       - '.github/workflows/release.yml'
       - '.github/workflows/deploy_auth_web.yml'
       - 'site/**'
+      - 'docs/**'
       - 'renovate.json'
   pull_request:
     branches: [ "main" ]
@@ -24,6 +25,7 @@ on:
       - '.github/workflows/release.yml'
       - '.github/workflows/deploy_auth_web.yml'
       - 'site/**'
+      - 'docs/**'
       - 'renovate.json'
 
   workflow_dispatch:

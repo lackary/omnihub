@@ -11,14 +11,18 @@
 
 <table>
   <tr>
-    <td text-align="center"><b>Mobile</b></td>
-    <td text-align="center"><b>Web</b></td>
+    <td text-align="center"><b>Android</b></td>
+    <td text-align="center"><b>iOS</b></td>
     <td text-align="center"><b>Desktop</b></td>
+    <td text-align="center"><b>Web</b></td>
+    <td text-align="center"><b>Android XR</b></td>
   </tr>
   <tr>
-    <td><img src="docs/images/gallery/Mobile_photos.png" width="2148" alt=""></td>
-    <td><img src="docs/images/gallery/Web_photos.png" width="3022" alt=""></td>
-    <td><img src="docs/images/gallery/Desktop_photos.png" width="2302" alt=""></td>
+    <td><img src="docs/images/gallery/OmniHub_Gallery_Android.webp" width="180" alt="Android"></td>
+    <td><img src="docs/images/gallery/OmniHub_Gallery_iOS.webp" width="180" alt="iOS"></td>
+    <td><img src="docs/images/gallery/OmniHub_Gallery_desktop.webp" width="280" alt="Desktop"></td>
+    <td><img src="docs/images/gallery/OmniHub_Gallery_web.webp" width="280" alt="Web"></td>
+    <td><img src="docs/images/gallery/OmniHub_Gallery_AndroidXR.webp" width="280" alt="Android XR"></td>
   </tr>
 </table>
 
