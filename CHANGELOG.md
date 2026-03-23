@@ -1,3 +1,10 @@
+## [0.16.3](https://github.com/lackary/omnihub/compare/v0.16.2...v0.16.3) (2026-03-23)
+
+
+### Bug Fixes
+
+* **deps:** update non-major updates (patch & minor) ([8ea6726](https://github.com/lackary/omnihub/commit/8ea6726324a1c06e1378af13625c072719ef26ee))
+
 ## [0.16.2](https://github.com/lackary/omnihub/compare/v0.16.1...v0.16.2) (2026-03-16)
 
 
