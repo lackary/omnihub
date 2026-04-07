@@ -1,5 +1,5 @@
 PODS:
-  - Compose (0.16.3)
+  - Compose (0.16.4)
 
 DEPENDENCIES:
   - Compose (from `../compose`)
@@ -9,7 +9,7 @@ EXTERNAL SOURCES:
     :path: "../compose"
 
 SPEC CHECKSUMS:
-  Compose: 848357f3b6ecd6516d6bbe4e40f8ee818382d67e
+  Compose: 2c9989590b4fa39657505e895f605d9750f0e8ee
 
 PODFILE CHECKSUM: fa282ecb6ef0ea9ca7646121a412c23ca8eb2663
 
