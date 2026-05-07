@@ -5,8 +5,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.xr.compose.platform.LocalSession
 import androidx.xr.compose.platform.LocalSpatialCapabilities
+import androidx.xr.compose.spatial.Subspace
 import androidx.xr.scenecore.scene
+import io.lackstudio.omnihub.compose.layout.XrPhotoStackLayout
 import io.lackstudio.omnihub.compose.layout.XrSpatialLayout
+import io.lackstudio.omnihub.compose.layout.XrUserDetailLayout
 import io.lackstudio.omnihub.compose.ui.App
 
 @Composable
@@ -29,4 +32,14 @@ actual fun AppEntry() {
         App()
     }
 
+}
+
+@Composable
+fun PhotoStackEntry(photoId: String) {
+    XrPhotoStackLayout(photoId)
+}
+
+@Composable
+fun UserDetailEntry(username: String) {
+    XrUserDetailLayout(username)
 }
