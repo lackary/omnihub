@@ -41,8 +41,6 @@
                     android:name="android.window.PROPERTY_XR_ACTIVITY_START_MODE"
                     android:value="XR_ACTIVITY_START_MODE_HOME_SPACE_MANAGED" />
             <layout
-                    android:defaultWidth="800dp"
-                    android:defaultHeight="1000dp"
                     android:gravity="end" />
         </activity>
         <activity
@@ -54,8 +52,6 @@
                     android:name="android.window.PROPERTY_XR_ACTIVITY_START_MODE"
                     android:value="XR_ACTIVITY_START_MODE_HOME_SPACE_MANAGED" />
             <layout
-                    android:defaultWidth="800dp"
-                    android:defaultHeight="1000dp"
                     android:gravity="start" />
         </activity>
     </application>

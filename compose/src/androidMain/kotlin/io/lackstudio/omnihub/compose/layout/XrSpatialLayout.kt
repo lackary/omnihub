@@ -1,5 +1,6 @@
 package io.lackstudio.omnihub.compose.layout
 
+import android.app.Activity
 import android.content.Intent
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -11,23 +12,28 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.xr.compose.platform.LocalSession
 import androidx.xr.compose.spatial.ContentEdge
 import androidx.xr.compose.spatial.Orbiter
 import androidx.xr.compose.spatial.Subspace
 import androidx.xr.compose.subspace.MovePolicy
-import androidx.xr.compose.subspace.SpatialCurvedRow
 import androidx.xr.compose.subspace.SpatialPanel
 import androidx.xr.compose.subspace.layout.SubspaceModifier
 import androidx.xr.compose.subspace.layout.height
 import androidx.xr.compose.subspace.layout.width
+import androidx.xr.runtime.math.IntSize2d
+import androidx.xr.runtime.math.Pose
+import androidx.xr.runtime.math.Quaternion
+import androidx.xr.runtime.math.Vector3
+import androidx.xr.scenecore.ActivityPanelEntity
 import io.lackstudio.omnihub.compose.ui.App
 import io.lackstudio.omnihub.compose.ui.navigation.XrNavEvent
 import io.lackstudio.omnihub.compose.ui.navigation.getAppNavItems
@@ -43,96 +49,109 @@ fun XrSpatialLayout() {
     val currentDestination = navBackStackEntry?.destination
 
     val navItems = getAppNavItems(currentDestination)
+    val session = LocalSession.current
+
+    val density = LocalDensity.current
+    val mainPanelWidth = 1000.dp
+    val panelHeight = 800.dp
+    val sidePanelWidth = 1000.dp
 
     CompositionLocalProvider(
         LocalXrNavigation provides { event ->
-            val intent = when(event) {
-                is XrNavEvent.NavigateToPhoto -> {
-                    // Start PhotoStackActivity
-                    // Note: The Activity name should match what's defined in androidApp
-                    Intent().setClassName(context.packageName, "${context.packageName}.PhotoStackActivity").apply {
-                        putExtra("PHOTO_ID", event.id)
-                        addFlags(
-                            Intent.FLAG_ACTIVITY_NEW_TASK or
-                            Intent.FLAG_ACTIVITY_MULTIPLE_TASK or
-                            Intent.FLAG_ACTIVITY_LAUNCH_ADJACENT
-                        )
-                    }
+            session?.let { xrSession ->
+                // 1000.dp.value returns Float type 1000f
+                val sideWidthPx = with(density) { sidePanelWidth.roundToPx() }
+                val sideHeightPx = with(density) { panelHeight.roundToPx() }
+                val panelSize = IntSize2d(sideWidthPx, sideHeightPx)
 
-                }
-                is XrNavEvent.NavigateToUser -> {
-                    // Start UserDetailActivity
-                    Intent().setClassName(context.packageName, "${context.packageName}.UserDetailActivity").apply {
-                        putExtra("USERNAME", event.username)
-                        addFlags(
-                            Intent.FLAG_ACTIVITY_NEW_TASK or
-                            Intent.FLAG_ACTIVITY_MULTIPLE_TASK or
-                            Intent.FLAG_ACTIVITY_LAUNCH_ADJACENT
-                        )
+                // Main panel (Native API): Convert dp directly to meters (1000dp -> 1.0m)
+                val mainPhysicalWidth = mainPanelWidth.value / 1000f
+
+                // Side panel (Legacy API): The system forces pixels to be treated as physical size, so we must calculate using Px!
+                // (e.g., 1800px will be forced by the system to render as 1.8m; we must face this reality)
+                val sidePhysicalWidth = sideWidthPx / 1000f
+
+                // 10cm gap
+                val gapInMeters = 0.1f
+
+                // (Main screen half) + (Side screen half) + (Gap)
+                val offsetX = (mainPhysicalWidth / 2f) + (sidePhysicalWidth / 2f) // + gapInMeters
+
+                println("Calculated side panel pixels: $sideWidthPx px, Physical offset: $offsetX m")
+
+                // Determine Intent, panel name, and initial pose based on the event
+                val (intent, panelName, launchPose) = when(event) {
+                    is XrNavEvent.NavigateToPhoto -> {
+                        val i = Intent().setClassName(context.packageName, "${context.packageName}.PhotoStackActivity").apply {
+                            putExtra("PHOTO_ID", event.id)
+                        }
+                        val p = Pose(Vector3(offsetX, 0f, 0.15f), Quaternion.fromEulerAngles(0f, -25f, 0f))
+                        Triple(i, "PhotoStackPanel", p)
+                    }
+                    is XrNavEvent.NavigateToUser -> {
+                        val i = Intent().setClassName(context.packageName, "${context.packageName}.UserDetailActivity").apply {
+                            putExtra("USERNAME", event.username)
+                        }
+                        val p = Pose(Vector3(-offsetX, 0f, 0.15f), Quaternion.fromEulerAngles(0f, 25f, 0f))
+                        Triple(i, "UserDetailPanel", p)
                     }
                 }
+
+                // Create ActivityPanelEntity
+                val activityPanelEntity = ActivityPanelEntity.create(
+                    session = xrSession,
+                    pixelDimensions = panelSize,
+                    name = panelName,
+                    pose = launchPose
+                )
+
+                activityPanelEntity.startActivity(intent)
             }
-            context.startActivity(intent)
         }
     ) {
         Subspace {
-            // Significantly widen the curve radius to 2000.dp to flatten the curve
-            SpatialCurvedRow(curveRadius = 2000.dp) {
-                val panelHeight = 800.dp
-                val mainPanelWidth = 1000.dp
+            // Main Application Panel at Center (0,0,0)
+            val panelHeight = 800.dp
+            val mainPanelWidth = 1000.dp
 
-                // --- Center: Main Application ---
-                SpatialPanel(
-                    modifier = SubspaceModifier.width(mainPanelWidth).height(panelHeight),
-                    dragPolicy = MovePolicy(),
-//                    resizePolicy = ResizePolicy()
+            SpatialPanel(
+                modifier = SubspaceModifier.width(mainPanelWidth).height(panelHeight),
+                dragPolicy = MovePolicy()
+            ) {
+                Orbiter(
+                    position = ContentEdge.Bottom,
+                    offset = 80.dp,
+                    alignment = Alignment.CenterHorizontally
                 ) {
+                    val singleItemWidth = 90.dp
+                    val capsuleWidth = singleItemWidth * navItems.size
 
-                    // 100% manually controlled bottom floating Orbiter.
-                    // In alpha14, although EnableXrComponentOverrides can automatically adapt the
-                    // NavigationSuiteScaffold's navigationRail / navigationBar inside the App,
-                    // it completely fails to control the SpatialPanel's dimensions.
-                    // The SpatialPanel will be automatically forced to its maximum size.
-                    Orbiter(
-                        position = ContentEdge.Bottom,
-                        offset = 80.dp, // Floating gap. Setting it to 48.dp still covers the main panel
-                        alignment = Alignment.CenterHorizontally
+                    NavigationBar(
+                        modifier = Modifier
+                            .width(capsuleWidth)
+                            .clip(RoundedCornerShape(32.dp)),
+                        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
                     ) {
-                        // Define a comfortable touch target width for each navigation bar button
-                        val singleItemWidth = 90.dp
-                        // Dynamically calculate the total width of the capsule
-                        val capsuleWidth = singleItemWidth * navItems.size
-
-                        NavigationBar(
-                            modifier = Modifier
-                                .width(capsuleWidth) // Tech-inspired capsule shape
-                                .clip(RoundedCornerShape(32.dp)),
-                            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
-                        ) {
-
-                            navItems.forEach { item ->
-                                NavigationBarItem(
-                                    icon = { Icon(item.icon, contentDescription = item.label) },
-                                    label = { Text(item.label) },
-                                    selected = item.isSelected,
-                                    onClick = {
-                                        // Navigate to the corresponding route on click
-                                        navController.navigate(item.route) {
-                                            popUpTo(navController.graph.startDestinationId) { saveState = true }
-                                            launchSingleTop = true
-                                            restoreState = true
-                                        }
+                        navItems.forEach { item ->
+                            NavigationBarItem(
+                                icon = { Icon(item.icon, contentDescription = item.label) },
+                                label = { Text(item.label) },
+                                selected = item.isSelected,
+                                onClick = {
+                                    navController.navigate(item.route) {
+                                        popUpTo(navController.graph.startDestinationId) { saveState = true }
+                                        launchSingleTop = true
+                                        restoreState = true
                                     }
-                                )
-                            }
+                                }
+                            )
                         }
                     }
-                    App(
-                        navController = navController,
-                        showNavigationBar = false
-                    )
-
                 }
+                App(
+                    navController = navController,
+                    showNavigationBar = false
+                )
             }
         }
     }
