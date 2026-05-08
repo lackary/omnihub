@@ -11,6 +11,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -57,6 +60,8 @@ fun XrSpatialLayout() {
     val panelHeight = 800.dp
     val sidePanelWidth = 1000.dp
 
+    var isPhotoPanelOpen by remember { mutableStateOf(false) }
+
     CompositionLocalProvider(
         LocalXrNavigation provides { event ->
             session?.let { xrSession ->
@@ -98,14 +103,18 @@ fun XrSpatialLayout() {
                 }
 
                 // Create ActivityPanelEntity
-                val activityPanelEntity = ActivityPanelEntity.create(
-                    session = xrSession,
-                    pixelDimensions = panelSize,
-                    name = panelName,
-                    pose = launchPose
-                )
-
-                activityPanelEntity.startActivity(intent)
+                if (panelName == "PhotoStackPanel" && isPhotoPanelOpen) {
+                    context.startActivity(intent)
+                } else {
+                    val activityPanelEntity = ActivityPanelEntity.create(
+                        session = xrSession,
+                        pixelDimensions = panelSize,
+                        name = panelName,
+                        pose = launchPose
+                    )
+                    activityPanelEntity.startActivity(intent)
+                    if (panelName == "PhotoStackPanel") isPhotoPanelOpen = true
+                }
             }
         }
     ) {

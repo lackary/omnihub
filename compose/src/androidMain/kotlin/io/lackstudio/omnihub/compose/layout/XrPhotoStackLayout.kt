@@ -12,13 +12,19 @@ import androidx.compose.runtime.setValue
 import io.lackstudio.omnihub.compose.ui.gallery.PhotoStackScreen
 import io.lackstudio.omnihub.compose.ui.gallery.StackedPhoto
 import io.lackstudio.omnihub.compose.ui.navigation.models.PhotoNavData
+import io.lackstudio.omnihub.compose.utils.logging.rememberLogger
 
 @Composable
 fun XrPhotoStackLayout(navData: PhotoNavData) {
+    val logger = rememberLogger("XrPhotoStackLayout")
+    val layoutId = remember { java.util.UUID.randomUUID().toString().take(4) }
     val photoStack = remember { mutableStateListOf<StackedPhoto>() }
     var currentPhotoIndex by remember { mutableIntStateOf(0) }
 
     LaunchedEffect(navData.photoId) {
+        // Logging: Print Layout instance ID, incoming photoId, and current stack size
+        logger.d{"[Debug XR] LayoutInstance:$layoutId | IncomingId:${navData.photoId} | CurrentStackSize:${photoStack.size}"}
+
         val newPhoto = StackedPhoto(navData.photoId, navData.thumbUrl, navData.ratio)
         if (!photoStack.any { it.id == navData.photoId }) {
             photoStack.add(newPhoto)

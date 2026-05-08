@@ -17,12 +17,12 @@ class PhotoStackActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // 處理初始 Intent
+        // Handle initial Intent
         parseIntent(intent)
 
         setContent {
 
-            // 🚀 觀察狀態流，當有新 Intent 進來時，Compose 會自動重組
+            // 🚀 Observe the state flow; when a new Intent arrives, Compose will automatically recompose
             val navData by navDataFlow.collectAsState()
 
             navData?.let { data ->
@@ -35,10 +35,12 @@ class PhotoStackActivity : ComponentActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
+        parseIntent(intent)
     }
 
     private fun parseIntent(intent: Intent) {
         val navData = PhotoNavData.fromIntent(intent)
+        println("PhotoStackActivity photoId: ${navData?.photoId} ")
         if (navData != null) {
             navDataFlow.value = navData
         }

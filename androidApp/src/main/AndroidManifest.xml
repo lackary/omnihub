@@ -36,6 +36,7 @@
                 android:name=".PhotoStackActivity"
                 android:exported="false"
                 android:theme="@style/Theme.OmniHub"
+                android:launchMode="singleTask"
                 android:resizeableActivity="true">
             <property
                     android:name="android.window.PROPERTY_XR_ACTIVITY_START_MODE"
@@ -47,6 +48,7 @@
                 android:name=".UserDetailActivity"
                 android:exported="false"
                 android:theme="@style/Theme.OmniHub"
+                android:launchMode="singleTask"
                 android:resizeableActivity="true">
             <property
                     android:name="android.window.PROPERTY_XR_ACTIVITY_START_MODE"
