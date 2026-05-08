@@ -1,6 +1,5 @@
 package io.lackstudio.omnihub.compose.layout
 
-import android.app.Activity
 import android.content.Intent
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -37,6 +36,8 @@ import androidx.xr.scenecore.ActivityPanelEntity
 import io.lackstudio.omnihub.compose.ui.App
 import io.lackstudio.omnihub.compose.ui.navigation.XrNavEvent
 import io.lackstudio.omnihub.compose.ui.navigation.getAppNavItems
+import io.lackstudio.omnihub.compose.ui.navigation.models.PhotoNavData
+import io.lackstudio.omnihub.compose.ui.navigation.models.PhotoNavData.Companion.putPhotoNavData
 import io.lackstudio.omnihub.compose.utils.LocalXrNavigation
 
 @Composable
@@ -71,11 +72,8 @@ fun XrSpatialLayout() {
                 // (e.g., 1800px will be forced by the system to render as 1.8m; we must face this reality)
                 val sidePhysicalWidth = sideWidthPx / 1000f
 
-                // 10cm gap
-                val gapInMeters = 0.1f
-
                 // (Main screen half) + (Side screen half) + (Gap)
-                val offsetX = (mainPhysicalWidth / 2f) + (sidePhysicalWidth / 2f) // + gapInMeters
+                val offsetX = (mainPhysicalWidth / 2f) + (sidePhysicalWidth / 2f)
 
                 println("Calculated side panel pixels: $sideWidthPx px, Physical offset: $offsetX m")
 
@@ -83,13 +81,15 @@ fun XrSpatialLayout() {
                 val (intent, panelName, launchPose) = when(event) {
                     is XrNavEvent.NavigateToPhoto -> {
                         val i = Intent().setClassName(context.packageName, "${context.packageName}.PhotoStackActivity").apply {
-                            putExtra("PHOTO_ID", event.id)
+                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            putPhotoNavData(PhotoNavData(event.id, event.thumbUrl, event.ratio))
                         }
                         val p = Pose(Vector3(offsetX, 0f, 0.15f), Quaternion.fromEulerAngles(0f, -25f, 0f))
                         Triple(i, "PhotoStackPanel", p)
                     }
                     is XrNavEvent.NavigateToUser -> {
                         val i = Intent().setClassName(context.packageName, "${context.packageName}.UserDetailActivity").apply {
+                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                             putExtra("USERNAME", event.username)
                         }
                         val p = Pose(Vector3(-offsetX, 0f, 0.15f), Quaternion.fromEulerAngles(0f, 25f, 0f))
