@@ -8,29 +8,41 @@ import androidx.compose.runtime.collectAsState
 import io.lackstudio.omnihub.compose.platform.PhotoStackEntry
 import io.lackstudio.omnihub.compose.ui.navigation.XrNavigationController
 
+/**
+ * PhotoStackActivity handles the display of multiple photos in a stacked view.
+ * 
+ * DESIGN DECISIONS:
+ * 1. STATELESS ACTIVITY: This activity does not manage its own state. It observes the global 
+ *    singleton [XrNavigationController.photoStackState]. This ensures the photo stack is preserved
+ *    even if the activity is recreated due to XR environment changes (e.g., panel layout shifts).
+ * 2. REACTIVE UPDATES: Instead of relying on Intent extras for every update, it reacts to 
+ *    global state changes. This avoids activity instance stacking and flickering.
+ * 3. SMART CAST FIX: We use `.collectAsState().value` to obtain a stable local reference for 
+ *    the compiler to perform smart casts on nullable state fields.
+ */
 class PhotoStackActivity : ComponentActivity() {
 
     private val activityId = System.identityHashCode(this)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        println("[Debug Lifecycle] PhotoStackActivity@$activityId onCreate")
+        println("[Debug Lifecycle] PhotoStackActivity@$activityId onCreate with flags: ${Integer.toHexString(intent.flags)}")
+        println("[Debug Lifecycle] PhotoStackActivity@$activityId isTaskRoot: $isTaskRoot, taskId: $taskId")
 
         // No need to parseIntent here anymore, because XrNavigationController.navigate handles data updates
 
         setContent {
-            // Read state from the global singleton
-            val photoStack = XrNavigationController.photoStack.collectAsState().value
-            val currentPhotoId = XrNavigationController.currentPhotoId.collectAsState().value
+            // Use direct value to avoid delegation and smart cast issues
+            val state = XrNavigationController.photoStackState.collectAsState().value
 
-            currentPhotoId?.let { photoId ->
-                if (photoStack.isNotEmpty()) {
+            state.currentPhotoId?.let { photoId ->
+                if (state.photos.isNotEmpty()) {
                     PhotoStackEntry(
-                        photoStack = photoStack,
+                        photoStack = state.photos,
                         currentPhotoId = photoId,
                         onClosePhoto = { closedId ->
                             XrNavigationController.removePhotoFromStack(closedId)
-                            if (XrNavigationController.photoStack.value.isEmpty()) {
+                            if (XrNavigationController.photoStackState.value.photos.isEmpty()) {
                                 finish()
                             }
                         }

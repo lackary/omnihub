@@ -9,11 +9,22 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.OmniHub">
+        <!--
+            XR NAVIGATION CONFIGURATION:
+            1. configChanges: We intercept almost all configuration changes to prevent the system
+               from destroying and restarting activities during XR panel layout shifts, orientation
+               changes, or UI mode switches. This ensures a smooth, flicker-free experience.
+            2. launchMode: 'singleTask' for MainActivity and 'singleTop' for panels ensures
+               instance reuse where possible.
+            3. resizeableActivity: Essential for stable activity behavior in multi-window/XR environments.
+        -->
         <activity
             android:name=".MainActivity"
             android:exported="true"
             android:theme="@style/Theme.OmniHub"
-            android:launchMode="singleTask">
+            android:launchMode="singleTask"
+            android:resizeableActivity="true"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|density|uiMode|layoutDirection|keyboardHidden|keyboard">
             <property
                 android:name="android.window.PROPERTY_XR_ACTIVITY_START_MODE"
                 android:value="XR_ACTIVITY_START_MODE_HOME_SPACE_MANAGED" />
@@ -37,7 +48,8 @@
                 android:exported="false"
                 android:theme="@style/Theme.OmniHub"
                 android:launchMode="singleTop"
-                android:resizeableActivity="true">
+                android:resizeableActivity="true"
+                android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|density|uiMode|layoutDirection|keyboardHidden|keyboard">
             <property
                     android:name="android.window.PROPERTY_XR_ACTIVITY_START_MODE"
                     android:value="XR_ACTIVITY_START_MODE_HOME_SPACE_MANAGED" />
@@ -49,7 +61,8 @@
                 android:exported="false"
                 android:theme="@style/Theme.OmniHub"
                 android:launchMode="singleTop"
-                android:resizeableActivity="true">
+                android:resizeableActivity="true"
+                android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|density|uiMode|layoutDirection|keyboardHidden|keyboard">
             <property
                     android:name="android.window.PROPERTY_XR_ACTIVITY_START_MODE"
                     android:value="XR_ACTIVITY_START_MODE_HOME_SPACE_MANAGED" />
