@@ -7,7 +7,7 @@ import androidx.xr.compose.platform.LocalSession
 import androidx.xr.compose.platform.LocalSpatialCapabilities
 import androidx.xr.scenecore.scene
 import io.lackstudio.omnihub.compose.layout.XrPhotoStackLayout
-import io.lackstudio.omnihub.compose.layout.XrSpatialLayout
+import io.lackstudio.omnihub.compose.layout.XrAppLayout
 import io.lackstudio.omnihub.compose.layout.XrUserDetailLayout
 import io.lackstudio.omnihub.compose.ui.App
 import io.lackstudio.omnihub.compose.ui.navigation.models.PhotoNavData
@@ -24,7 +24,7 @@ actual fun AppEntry() {
     if (isSpatialUiEnabled) {
         Log.d("AppEntry","xr")
         // === XR Mode ===
-        XrSpatialLayout()
+        XrAppLayout()
     } else {
         Log.d("AppEntry","mobile")
         // === Mobile Mode ===

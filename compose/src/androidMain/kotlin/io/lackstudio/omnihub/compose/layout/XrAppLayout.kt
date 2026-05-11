@@ -34,7 +34,7 @@ import io.lackstudio.omnihub.compose.ui.navigation.getAppNavItems
 import io.lackstudio.omnihub.compose.utils.LocalXrNavigation
 
 @Composable
-fun XrSpatialLayout() {
+fun XrAppLayout() {
     val context = LocalContext.current
     val session = LocalSession.current
     val density = LocalDensity.current
