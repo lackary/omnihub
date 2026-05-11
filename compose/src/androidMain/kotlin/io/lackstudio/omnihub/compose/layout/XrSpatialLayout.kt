@@ -1,6 +1,5 @@
 package io.lackstudio.omnihub.compose.layout
 
-import android.content.Intent
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
@@ -10,10 +9,8 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -31,21 +28,24 @@ import androidx.xr.compose.subspace.SpatialPanel
 import androidx.xr.compose.subspace.layout.SubspaceModifier
 import androidx.xr.compose.subspace.layout.height
 import androidx.xr.compose.subspace.layout.width
-import androidx.xr.runtime.math.IntSize2d
-import androidx.xr.runtime.math.Pose
-import androidx.xr.runtime.math.Quaternion
-import androidx.xr.runtime.math.Vector3
-import androidx.xr.scenecore.ActivityPanelEntity
 import io.lackstudio.omnihub.compose.ui.App
-import io.lackstudio.omnihub.compose.ui.navigation.XrNavEvent
+import io.lackstudio.omnihub.compose.ui.navigation.XrNavigationController
 import io.lackstudio.omnihub.compose.ui.navigation.getAppNavItems
-import io.lackstudio.omnihub.compose.ui.navigation.models.PhotoNavData
-import io.lackstudio.omnihub.compose.ui.navigation.models.PhotoNavData.Companion.putPhotoNavData
 import io.lackstudio.omnihub.compose.utils.LocalXrNavigation
 
 @Composable
 fun XrSpatialLayout() {
     val context = LocalContext.current
+    val session = LocalSession.current
+    val density = LocalDensity.current
+
+    // 🚀 Listen for global navigation requests from other activities/panels
+    LaunchedEffect(session) {
+        XrNavigationController.navRequests.collect { event ->
+            println("[Debug XR] Received proxy request in Main: $event")
+            XrNavigationController.navigate(context, session, density, event)
+        }
+    }
 
     // Declare NavController at the top level so the Orbiter can use it
     val navController = rememberNavController()
@@ -53,69 +53,11 @@ fun XrSpatialLayout() {
     val currentDestination = navBackStackEntry?.destination
 
     val navItems = getAppNavItems(currentDestination)
-    val session = LocalSession.current
-
-    val density = LocalDensity.current
-    val mainPanelWidth = 1000.dp
-    val panelHeight = 800.dp
-    val sidePanelWidth = 1000.dp
-
-    var isPhotoPanelOpen by remember { mutableStateOf(false) }
 
     CompositionLocalProvider(
         LocalXrNavigation provides { event ->
-            session?.let { xrSession ->
-                // 1000.dp.value returns Float type 1000f
-                val sideWidthPx = with(density) { sidePanelWidth.roundToPx() }
-                val sideHeightPx = with(density) { panelHeight.roundToPx() }
-                val panelSize = IntSize2d(sideWidthPx, sideHeightPx)
-
-                // Main panel (Native API): Convert dp directly to meters (1000dp -> 1.0m)
-                val mainPhysicalWidth = mainPanelWidth.value / 1000f
-
-                // Side panel (Legacy API): The system forces pixels to be treated as physical size, so we must calculate using Px!
-                // (e.g., 1800px will be forced by the system to render as 1.8m; we must face this reality)
-                val sidePhysicalWidth = sideWidthPx / 1000f
-
-                // (Main screen half) + (Side screen half) + (Gap)
-                val offsetX = (mainPhysicalWidth / 2f) + (sidePhysicalWidth / 2f)
-
-                println("Calculated side panel pixels: $sideWidthPx px, Physical offset: $offsetX m")
-
-                // Determine Intent, panel name, and initial pose based on the event
-                val (intent, panelName, launchPose) = when(event) {
-                    is XrNavEvent.NavigateToPhoto -> {
-                        val i = Intent().setClassName(context.packageName, "${context.packageName}.PhotoStackActivity").apply {
-                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                            putPhotoNavData(PhotoNavData(event.id, event.thumbUrl, event.ratio))
-                        }
-                        val p = Pose(Vector3(offsetX, 0f, 0.15f), Quaternion.fromEulerAngles(0f, -25f, 0f))
-                        Triple(i, "PhotoStackPanel", p)
-                    }
-                    is XrNavEvent.NavigateToUser -> {
-                        val i = Intent().setClassName(context.packageName, "${context.packageName}.UserDetailActivity").apply {
-                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                            putExtra("USERNAME", event.username)
-                        }
-                        val p = Pose(Vector3(-offsetX, 0f, 0.15f), Quaternion.fromEulerAngles(0f, 25f, 0f))
-                        Triple(i, "UserDetailPanel", p)
-                    }
-                }
-
-                // Create ActivityPanelEntity
-                if (panelName == "PhotoStackPanel" && isPhotoPanelOpen) {
-                    context.startActivity(intent)
-                } else {
-                    val activityPanelEntity = ActivityPanelEntity.create(
-                        session = xrSession,
-                        pixelDimensions = panelSize,
-                        name = panelName,
-                        pose = launchPose
-                    )
-                    activityPanelEntity.startActivity(intent)
-                    if (panelName == "PhotoStackPanel") isPhotoPanelOpen = true
-                }
-            }
+            println("[Debug XR] LocalXrNavigation event: $event")
+            XrNavigationController.navigate(context, session, density, event)
         }
     ) {
         Subspace {
