@@ -11,9 +11,11 @@
         android:theme="@style/Theme.OmniHub">
         <!--
             XR NAVIGATION CONFIGURATION:
-            1. configChanges: We intercept almost all configuration changes to prevent the system
-               from destroying and restarting activities during XR panel layout shifts, orientation
-               changes, or UI mode switches. This ensures a smooth, flicker-free experience.
+            1. configChanges: While our state-driven navigation (in XrNavigationController) fixed the
+               flickering caused by redundant activity starts, we still keep these intercepts to
+               prevent activity destruction during spatial environment changes. This ensures that
+               if a user manually resizes a panel or changes UI modes, the activity stays alive
+               and maintains its transient UI state (scroll positions, animations, etc.).
             2. launchMode: 'singleTask' for MainActivity and 'singleTop' for panels ensures
                instance reuse where possible.
             3. resizeableActivity: Essential for stable activity behavior in multi-window/XR environments.
