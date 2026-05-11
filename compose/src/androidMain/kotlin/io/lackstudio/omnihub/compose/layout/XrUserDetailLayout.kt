@@ -11,12 +11,14 @@ import androidx.compose.ui.Modifier
 import io.lackstudio.omnihub.compose.ui.gallery.UserDetailScreen
 import io.lackstudio.omnihub.compose.ui.navigation.XrNavigationController
 import io.lackstudio.omnihub.compose.utils.LocalXrNavigation
+import io.lackstudio.omnihub.compose.utils.logging.rememberLogger
 
 @Composable
 fun XrUserDetailLayout(username: String) {
+    val logger = rememberLogger("XrUserDetailLayout")
     CompositionLocalProvider(
         LocalXrNavigation provides { event ->
-            println("[Debug XR UserDetail] Event received: $event")
+            logger.d{ "[XR] Event received: $event" }
             // Forward events to XrNavigationController (just like PhotoStack does)
             XrNavigationController.proxyNavigate(event)
         }

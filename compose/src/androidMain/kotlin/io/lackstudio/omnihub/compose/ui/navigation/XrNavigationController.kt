@@ -12,6 +12,7 @@ import androidx.xr.runtime.math.Quaternion
 import androidx.xr.runtime.math.Vector3
 import androidx.xr.scenecore.ActivityPanelEntity
 import io.lackstudio.omnihub.compose.ui.navigation.models.PhotoNavData
+import io.lackstudio.omnihub.compose.utils.logging.AppLog
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asSharedFlow
@@ -37,6 +38,7 @@ import kotlinx.coroutines.flow.update
  *    (e.g., MainActivity recreation) to prevent stale references to disposed panels.
  */
 object XrNavigationController {
+    private val logger = AppLog.withTag("XrNavigationController")
 
     private val _openedPanels = MutableStateFlow<Set<String>>(emptySet())
     val openedPanels = _openedPanels.asStateFlow()
@@ -55,7 +57,7 @@ object XrNavigationController {
     private var currentSession: Session? = null
 
     fun navigate(context: Context, session: Session?, density: Density, event: XrNavEvent) {
-        println("[Debug XR] navigate called with event: $event")
+        logger.d{ "[XR] navigate called with event: $event" }
 
         // Update Global State First
         when (event) {
@@ -65,14 +67,14 @@ object XrNavigationController {
 
         // If session changed (e.g., MainActivity recreated), clear invalid panel references
         if (session != currentSession) {
-            println("[Debug XR] Session changed, clearing panelsMap")
+            logger.d { "[XR] Session changed, clearing panelsMap" }
             panelsMap.clear()
             _openedPanels.value = emptySet()
             currentSession = session
         }
 
         if (session == null) {
-            println("[Debug XR] Session is null, aborting navigate")
+            logger.d { "[XR] Session is null, aborting navigate" }
             return
         }
 
@@ -91,7 +93,7 @@ object XrNavigationController {
             // 🚀 IMPORTANT: If panel exists, we've already updated the Global State above.
             // The running Activity will automatically recompose. 
             // Calling startActivity here causes flickering and multiple instances.
-            println("[Debug XR] Using existing panel for $panelName, state updated.")
+            logger.d { "[XR] Using existing panel for $panelName, state updated." }
             return
         }
 
@@ -111,25 +113,24 @@ object XrNavigationController {
         }
 
         try {
-            println("[Debug XR] Creating new ActivityPanelEntity for $panelName")
+            logger.d { "[XR] Creating new ActivityPanelEntity for $panelName" }
             val panel = ActivityPanelEntity.create(session, panelSize, panelName, launchPose)
             panel.startActivity(intent)
             panelsMap[panelName] = panel
             _openedPanels.update { it + panelName }
         } catch (e: Exception) {
-            println("[Debug XR] Failed to create panel: ${e.message}")
-            e.printStackTrace()
+            logger.e(e) { "[XR] Failed to create panel: ${e.message}" }
         }
     }
 
     fun markPanelClosed(panelName: String) {
-        println("[Debug XR] markPanelClosed: $panelName")
+        logger.d { "[XR] markPanelClosed: $panelName" }
         panelsMap.remove(panelName)
         _openedPanels.update { it - panelName }
     }
 
     fun proxyNavigate(event: XrNavEvent) {
-        println("[Debug XR] proxyNavigate emitting event: $event")
+        logger.d { "[XR] proxyNavigate emitting event: $event" }
         _navRequests.tryEmit(event)
     }
 

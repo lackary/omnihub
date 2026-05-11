@@ -8,6 +8,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import io.lackstudio.omnihub.compose.platform.UserDetailEntry
 import io.lackstudio.omnihub.compose.ui.navigation.XrNavigationController
+import io.lackstudio.omnihub.compose.utils.logging.AppLog
 import kotlinx.coroutines.flow.MutableStateFlow
 
 /**
@@ -23,10 +24,11 @@ import kotlinx.coroutines.flow.MutableStateFlow
 class UserDetailActivity : ComponentActivity() {
 
     private val activityId = System.identityHashCode(this)
+    private val logger = AppLog.withTag("UserDetailActivity")
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        println("[Debug Lifecycle] UserDetailActivity@$activityId onCreate")
+        logger.d{ "[Debug Lifecycle] UserDetailActivity@$activityId onCreate" }
 
         setContent {
             // Read state from the global singleton instead of local Flow/Intent
@@ -40,13 +42,13 @@ class UserDetailActivity : ComponentActivity() {
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
-        println("[Debug Lifecycle] UserDetailActivity@$activityId onNewIntent")
+        logger.d{ "[Debug Lifecycle] UserDetailActivity@$activityId onNewIntent" }
         setIntent(intent)
     }
 
     override fun onDestroy() {
         super.onDestroy()
-        println("[Debug Lifecycle] UserDetailActivity@$activityId onDestroy")
+        logger.d { "[Debug Lifecycle] UserDetailActivity@$activityId onDestroy" }
         if (!isChangingConfigurations) {
             XrNavigationController.markPanelClosed("UserDetailPanel")
         }

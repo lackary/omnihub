@@ -32,9 +32,11 @@ import io.lackstudio.omnihub.compose.ui.App
 import io.lackstudio.omnihub.compose.ui.navigation.XrNavigationController
 import io.lackstudio.omnihub.compose.ui.navigation.getAppNavItems
 import io.lackstudio.omnihub.compose.utils.LocalXrNavigation
+import io.lackstudio.omnihub.compose.utils.logging.rememberLogger
 
 @Composable
 fun XrAppLayout() {
+    val logger = rememberLogger("XrAppLayout")
     val context = LocalContext.current
     val session = LocalSession.current
     val density = LocalDensity.current
@@ -42,7 +44,7 @@ fun XrAppLayout() {
     // 🚀 Listen for global navigation requests from other activities/panels
     LaunchedEffect(session) {
         XrNavigationController.navRequests.collect { event ->
-            println("[Debug XR] Received proxy request in Main: $event")
+            logger.d{ "[XR] Received proxy request in Main: $event" }
             XrNavigationController.navigate(context, session, density, event)
         }
     }
@@ -56,7 +58,7 @@ fun XrAppLayout() {
 
     CompositionLocalProvider(
         LocalXrNavigation provides { event ->
-            println("[Debug XR] LocalXrNavigation event: $event")
+            logger.d{ "[XR] LocalXrNavigation event: $event" }
             XrNavigationController.navigate(context, session, density, event)
         }
     ) {

@@ -7,6 +7,7 @@ import androidx.activity.compose.setContent
 import androidx.compose.runtime.collectAsState
 import io.lackstudio.omnihub.compose.platform.PhotoStackEntry
 import io.lackstudio.omnihub.compose.ui.navigation.XrNavigationController
+import io.lackstudio.omnihub.compose.utils.logging.AppLog
 
 /**
  * PhotoStackActivity handles the display of multiple photos in a stacked view.
@@ -23,11 +24,12 @@ import io.lackstudio.omnihub.compose.ui.navigation.XrNavigationController
 class PhotoStackActivity : ComponentActivity() {
 
     private val activityId = System.identityHashCode(this)
+    private val logger = AppLog.withTag("PhotoStackActivity")
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        println("[Debug Lifecycle] PhotoStackActivity@$activityId onCreate with flags: ${Integer.toHexString(intent.flags)}")
-        println("[Debug Lifecycle] PhotoStackActivity@$activityId isTaskRoot: $isTaskRoot, taskId: $taskId")
+        logger.d { "[Lifecycle] @$activityId onCreate with flags: ${Integer.toHexString(intent.flags)}" }
+        logger.d { "[Lifecycle] @$activityId isTaskRoot: $isTaskRoot, taskId: $taskId" }
 
         // No need to parseIntent here anymore, because XrNavigationController.navigate handles data updates
 
@@ -54,14 +56,14 @@ class PhotoStackActivity : ComponentActivity() {
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
-        println("[Debug Lifecycle] PhotoStackActivity@$activityId onNewIntent")
+        logger.d { "[Lifecycle] @$activityId onNewIntent" }
         setIntent(intent)
         // Although the global singleton is already updated, we keep this for potential extensibility (e.g., deep links)
     }
 
     override fun onDestroy() {
         super.onDestroy()
-        println("[Debug Lifecycle] PhotoStackActivity@$activityId onDestroy")
+        logger.d { "[Lifecycle] @$activityId onDestroy" }
         if (!isChangingConfigurations) {
             XrNavigationController.markPanelClosed("PhotoStackPanel")
         }

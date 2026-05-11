@@ -36,12 +36,15 @@ fun XrPhotoStackLayout(
     }
 
     LaunchedEffect(layoutId, currentPhotoId) {
-        logger.d{"[Debug XR] LayoutInstance:$layoutId | CurrentId:$currentPhotoId | StackSize:${photoStack.size}"}
+        logger.d{ "[XR] LayoutInstance:$layoutId |" +
+                "CurrentId:$currentPhotoId | " +
+                "StackSize:${photoStack.size}"
+        }
     }
 
     CompositionLocalProvider(
         LocalXrNavigation provides { event ->
-            println("[Debug XR PhotoStack] Event received: $event")
+            logger.d{ "[XR] Event received: $event" }
             // 🚀 Since PhotoStackActivity doesn't have a Session, we forward the request to MainActivity for handling
             XrNavigationController.proxyNavigate(event)
         }
