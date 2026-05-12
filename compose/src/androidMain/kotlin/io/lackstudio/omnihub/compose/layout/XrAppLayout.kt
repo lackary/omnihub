@@ -1,7 +1,14 @@
 package io.lackstudio.omnihub.compose.layout
 
+import android.app.Activity
+import android.content.pm.ApplicationInfo
+import android.os.Handler
+import android.os.Looper
+import kotlin.system.exitProcess
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
@@ -77,7 +84,7 @@ fun XrAppLayout() {
                     alignment = Alignment.CenterHorizontally
                 ) {
                     val singleItemWidth = 90.dp
-                    val capsuleWidth = singleItemWidth * navItems.size
+                    val capsuleWidth = singleItemWidth * (navItems.size + 1)
 
                     NavigationBar(
                         modifier = Modifier
@@ -99,6 +106,29 @@ fun XrAppLayout() {
                                 }
                             )
                         }
+
+                        // Close Item
+                        NavigationBarItem(
+                            icon = {
+                                Icon(Icons.Filled.Close, contentDescription = "Close")
+                            },
+                            label = {
+                                Text("Close")
+                            },
+                            selected = false,
+                            onClick = {
+                                // Release mode: Close all Activities (finishAffinity)
+                                (context as? Activity)?.finishAffinity()
+                                val isDebug = (context.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0
+                                if (isDebug) {
+                                    // Debug mode: Simulate Android Studio's "Stop" button by
+                                    // killing the process directly
+                                    Handler(
+                                        Looper.getMainLooper()
+                                    ).postDelayed({ exitProcess(0) }, 200)
+                                }
+                            }
+                        )
                     }
                 }
                 App(

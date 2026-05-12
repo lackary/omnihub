@@ -35,7 +35,12 @@ class UserDetailActivity : ComponentActivity() {
             val username by XrNavigationController.currentUser.collectAsState()
             
             username?.let {
-                UserDetailEntry(it)
+                UserDetailEntry(
+                    username = it,
+                    onClose = {
+                        finish()
+                    }
+                )
             }
         }
     }

@@ -14,7 +14,10 @@ import io.lackstudio.omnihub.compose.utils.LocalXrNavigation
 import io.lackstudio.omnihub.compose.utils.logging.rememberLogger
 
 @Composable
-fun XrUserDetailLayout(username: String) {
+fun XrUserDetailLayout(
+    username: String,
+    onClose: () -> Unit = {}
+) {
     val logger = rememberLogger("XrUserDetailLayout")
     CompositionLocalProvider(
         LocalXrNavigation provides { event ->
@@ -29,7 +32,7 @@ fun XrUserDetailLayout(username: String) {
                     key(username) {
                         UserDetailScreen(
                             username = username,
-                            onBack = { /* activity will be closed */ },
+                            onBack = onClose,
                             onNavigateToFeature = { },
                             sharedTransitionScope = this@SharedTransitionLayout,
                             animatedVisibilityScope = this@AnimatedVisibility

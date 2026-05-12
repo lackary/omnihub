@@ -45,6 +45,9 @@ fun PhotoStackEntry(
 }
 
 @Composable
-fun UserDetailEntry(username: String) {
-    XrUserDetailLayout(username)
+fun UserDetailEntry(
+    username: String,
+    onClose: () -> Unit = {}
+) {
+    XrUserDetailLayout(username, onClose)
 }
