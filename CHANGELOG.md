@@ -1,3 +1,11 @@
+## [0.17.1](https://github.com/lackary/omnihub/compare/v0.17.0...v0.17.1) (2026-05-13)
+
+
+### Bug Fixes
+
+* **deps:** update AndroidX XR libraries and migrate Orbiter API ([903b9f8](https://github.com/lackary/omnihub/commit/903b9f8fcab11529f8a5a996d661611936ccdba2))
+* **xr:** update to XR Alpha 11 and refine panel navigation ([4189e40](https://github.com/lackary/omnihub/commit/4189e400b6451fdb80e586c81112357c9eb4cc1c))
+
 # [0.17.0](https://github.com/lackary/omnihub/compare/v0.16.7...v0.17.0) (2026-05-13)
 
 
