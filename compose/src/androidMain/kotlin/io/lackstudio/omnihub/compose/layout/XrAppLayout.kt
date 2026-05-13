@@ -30,12 +30,15 @@ import androidx.navigation.compose.rememberNavController
 import androidx.xr.compose.platform.LocalSession
 import androidx.xr.compose.spatial.ContentEdge
 import androidx.xr.compose.spatial.Orbiter
+import androidx.xr.compose.spatial.OrbiterAnchorPoint
+import androidx.xr.compose.spatial.OrbiterDefaults
 import androidx.xr.compose.spatial.Subspace
 import androidx.xr.compose.subspace.MovePolicy
 import androidx.xr.compose.subspace.SpatialPanel
 import androidx.xr.compose.subspace.layout.SubspaceModifier
 import androidx.xr.compose.subspace.layout.height
 import androidx.xr.compose.subspace.layout.width
+import androidx.xr.compose.unit.DpVolumeOffset
 import androidx.xr.runtime.math.IntSize2d
 import io.lackstudio.omnihub.compose.ui.App
 import io.lackstudio.omnihub.compose.ui.navigation.XrNavigationController
@@ -93,9 +96,10 @@ fun XrAppLayout() {
                 dragPolicy = MovePolicy()
             ) {
                 Orbiter(
-                    position = ContentEdge.Bottom,
-                    offset = 80.dp,
-                    alignment = Alignment.CenterHorizontally
+                    anchorPoint = OrbiterAnchorPoint.Bottom,
+                    // center position x = 0.dp, y = 0.dp
+                    offset = DpVolumeOffset(0.dp, 0.dp, OrbiterDefaults.Elevation),
+                    shape = OrbiterDefaults.Shape
                 ) {
                     val singleItemWidth = 90.dp
                     val capsuleWidth = singleItemWidth * (navItems.size + 1)
