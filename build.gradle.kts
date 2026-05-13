@@ -9,6 +9,9 @@ plugins {
     alias(libs.plugins.compose.compiler) apply false
     alias(libs.plugins.kotlin.multiplatform) apply false
     alias(libs.plugins.kotlin.cocoapods) apply false
+    alias(libs.plugins.kotlin.serialization) apply false
+    alias(libs.plugins.kotlin.parcelize) apply false
+    alias(libs.plugins.buildkonfig) apply false
 }
 
 tasks.register("setBuildVersion") {
