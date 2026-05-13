@@ -18,6 +18,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -29,12 +30,16 @@ import androidx.navigation.compose.rememberNavController
 import androidx.xr.compose.platform.LocalSession
 import androidx.xr.compose.spatial.ContentEdge
 import androidx.xr.compose.spatial.Orbiter
+import androidx.xr.compose.spatial.OrbiterAnchorPoint
+import androidx.xr.compose.spatial.OrbiterDefaults
 import androidx.xr.compose.spatial.Subspace
 import androidx.xr.compose.subspace.MovePolicy
 import androidx.xr.compose.subspace.SpatialPanel
 import androidx.xr.compose.subspace.layout.SubspaceModifier
 import androidx.xr.compose.subspace.layout.height
 import androidx.xr.compose.subspace.layout.width
+import androidx.xr.compose.unit.DpVolumeOffset
+import androidx.xr.runtime.math.IntSize2d
 import io.lackstudio.omnihub.compose.ui.App
 import io.lackstudio.omnihub.compose.ui.navigation.XrNavigationController
 import io.lackstudio.omnihub.compose.ui.navigation.getAppNavItems
@@ -47,12 +52,16 @@ fun XrAppLayout() {
     val context = LocalContext.current
     val session = LocalSession.current
     val density = LocalDensity.current
+    val panelHeight = 800.dp
+    val mainPanelWidth = 1000.dp
 
-    // 🚀 Listen for global navigation requests from other activities/panels
+    // Listen for global navigation requests from other activities/panels
     LaunchedEffect(session) {
         XrNavigationController.navRequests.collect { event ->
-            logger.d{ "[XR] Received proxy request in Main: $event" }
-            XrNavigationController.navigate(context, session, density, event)
+            logger.d{ "[XR] Received proxy request in Main event: $event, density: $density" }
+            XrNavigationController.navigate(
+                context, session, density, event, mainPanelWidth, panelHeight
+            )
         }
     }
 
@@ -63,25 +72,34 @@ fun XrAppLayout() {
 
     val navItems = getAppNavItems(currentDestination)
 
+    // Convert Dp to Px via Density and create IntSize2d
+    val mainPanelSizePx = remember(density, mainPanelWidth, panelHeight) {
+        val widthPx = with(density) { mainPanelWidth.roundToPx() }
+        val heightPx = with(density) { panelHeight.roundToPx() }
+        IntSize2d(widthPx, heightPx)
+    }
+
+    logger.d { "mainPanelSizePx: $mainPanelSizePx " }
+
     CompositionLocalProvider(
         LocalXrNavigation provides { event ->
-            logger.d{ "[XR] LocalXrNavigation event: $event" }
-            XrNavigationController.navigate(context, session, density, event)
+            logger.d{ "[XR] LocalXrNavigation event: $event, density: $density" }
+            XrNavigationController.navigate(
+                context, session, density, event, mainPanelWidth, panelHeight
+            )
         }
     ) {
         Subspace {
             // Main Application Panel at Center (0,0,0)
-            val panelHeight = 800.dp
-            val mainPanelWidth = 1000.dp
-
             SpatialPanel(
                 modifier = SubspaceModifier.width(mainPanelWidth).height(panelHeight),
                 dragPolicy = MovePolicy()
             ) {
                 Orbiter(
-                    position = ContentEdge.Bottom,
-                    offset = 80.dp,
-                    alignment = Alignment.CenterHorizontally
+                    anchorPoint = OrbiterAnchorPoint.Bottom,
+                    // center position x = 0.dp, y = 0.dp
+                    offset = DpVolumeOffset(0.dp, 0.dp, OrbiterDefaults.Elevation),
+                    shape = OrbiterDefaults.Shape
                 ) {
                     val singleItemWidth = 90.dp
                     val capsuleWidth = singleItemWidth * (navItems.size + 1)
