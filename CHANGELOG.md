@@ -1,3 +1,21 @@
+# [0.17.0](https://github.com/lackary/omnihub/compare/v0.16.7...v0.17.0) (2026-05-13)
+
+
+### Bug Fixes
+
+* **xr:** implement surround spatial layout for activity panels ([827d416](https://github.com/lackary/omnihub/commit/827d416ea3b124778cf301435041947b555d8aa4)), closes [hi#fidelity](https://github.com/hi/issues/fidelity)
+* **xr:** resolve photo stacking failure by optimizing activity panel reuse ([5fca51c](https://github.com/lackary/omnihub/commit/5fca51ca84f5bc5b43823a968f97e605361254f8))
+
+
+### Features
+
+* **logging:** integrate Kermit logging across components XR ([1456ef4](https://github.com/lackary/omnihub/commit/1456ef4b73fb96c791c4b97e601c015dd8b55f51))
+* **navigation:** implement PhotoNavData and improve PhotoStackActivity intent handling ([bd6a934](https://github.com/lackary/omnihub/commit/bd6a934322b5ddf83b916151ed5a59c31eb02ff3))
+* **ui:** implement explicit close actions for main app and user detail panel ([db2a705](https://github.com/lackary/omnihub/commit/db2a7051e7645014b6d48250cac20e5a4c04599e))
+* **xr:** centralize navigation management via XrNavigationController ([ae2aa51](https://github.com/lackary/omnihub/commit/ae2aa51a297692860fd70ba045c82095c588826f))
+* **xr:** establish navigation infrastructure for User Detail panel ([c7b7a6b](https://github.com/lackary/omnihub/commit/c7b7a6b51a93454f9114c1a7dcade94273e80dcf))
+* **xr:** transition to multi-activity architecture for spatial layouts ([7bc84a8](https://github.com/lackary/omnihub/commit/7bc84a8f3c9ab37b604e1b43a0505f0c3bf9ee1b))
+
 ## [0.16.7](https://github.com/lackary/omnihub/compare/v0.16.6...v0.16.7) (2026-05-11)
 
 
