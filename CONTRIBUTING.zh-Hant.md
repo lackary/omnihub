@@ -36,83 +36,59 @@
 
 ### 2. Commit 訊息規範
 
-我們遵循 **[Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/zh-hans/)** 規範，這有助於自動產生版本日誌和版本號。請確保您的每個 Commit 訊息都遵循以下格式：
+我們遵循 **[Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/zh-hans/)** 規範，這有助於自動產生版本日誌和版本號。
+
+#### 結構
+每個 Commit 訊息都必須遵循以下結構：
 
 ```text
-<type>(<scope>): <description>
-[optional body]
+<type>(<scope>): <subject>
 
-[optional footer(s)]
+Why:
+- 解釋變更的動機或「為什麼」要進行此變動。
+
+What:
+- 以列點方式列出關鍵的技術變更。
+
+[可選的頁腳 (footer)]
 ```
 
-* **`type` (類型):** 必需，用於說明 Commit 的主要目的。常見類型如下：
-  * `feat`: 新增功能 (feature)
-  * `fix`: 修復 Bug
-  * `docs`: 文件變更
-  * `style`: 格式變動 (不影響程式碼邏輯，如空格、分號)
-  * `refactor`: 程式碼重構 (不新增功能或修復 Bug)
-  * `perf`: 效能優化
-  * `test`: 新增或修改測試
-  * `chore`: 日常維護、建置流程或輔助工具的變動
+* **`type` (類型):** 必需。說明 Commit 的主要目的（例如：`feat`, `fix`, `docs`, `chore`, `refactor`）。
+* **`scope` (範圍):** 可選。說明本次變動影響的程式碼範圍。
+* **`subject` (主題):** 必需。簡短描述本次變動。
+* **`Why` 區段:** 必需。解釋變更背後的「原因」。
+* **`What` 區段:** 必需。以列點方式列出技術變更。
 
-* **`scope` (範圍):** 可選，用於說明本次變動影響的範圍，例如 `(login)` 或 `(api)`。
-* **`subject` (主題):** 必需，簡短描述本次變動。
+#### 範例
 
-**範例：**
-
+**標準 Commit：**
 ```text
-feat(login): 新增使用者登入按鈕
-fix(api): 修正 API 傳回 500 的問題
-chore(ci): 編輯 workflow yml
+feat(auth): implement biometric login support
+
+Why:
+- To enhance security and provide a faster login experience for users with capable devices.
+
+What:
+- Integrated Android BiometricPrompt API.
+- Added BiometricManager check in LoginViewModel.
+- Created AuthRepository interface for biometric token storage.
 ```
 
-**破壞性變更（Breaking Changes）:**
-如果您的變動包含任何**破壞向後相容性**的內容，您必須明確標記此變更。
-這會觸發一次 major 的更新，並遵循 [Semantic Versioning](https://semver.org/). 規範。
-請在 Commit 標題的 `<type>` 或 `<scope>` 後方加上 `!`。
-
-**範例：**
-
+**破壞性變更 (Breaking Change)：**
+在 `<type>` 或 `<scope>` 後方加上 `!`，並在頁腳包含 `BREAKING CHANGE`。
 ```text
-feat(api)!: 移除舊的使用者端
+feat(api)!: migrate to GraphQL for user profiles
+
+Why:
+- Existing REST endpoints are deprecated and do not support the new nested profile data structure.
+
+What:
+- Removed UserProfileResponse.kt DTO.
+- Added Apollo Kotlin client dependency.
+- Implemented GetUserProfile.graphql query.
+
+BREAKING CHANGE: All REST-based profile lookups will fail. Use the new GraphQL-based service instead.
 ```
-
-**Commit 本文 (Body)**
-`body` 是可選的，用於提供關於本次 Commit 的詳細描述。當你的變更需要更多上下文時，可以使用它。
-
-* **目的：** 解釋「**為什麼**」這個變更很重要，以及它「**如何**」解決了問題。
-* **格式：** 本文應該在主題行之後空一行開始。當變動包含多個項目時，建議使用**無序列表**來分點說明，以提高可讀性。
-
-**範例：**
-
-```text
-fix(checkout): 修正結帳頁面多個 Bug
-
-- 修正當使用者在結帳頁面更改數量時，總價沒有即時更新的問題。
-- 修正當購物車中沒有商品時，結帳按鈕仍然可點擊的 Bug。
-- 增加了表單驗證，確保使用者輸入的地址和電話格式正確。
-```
-
-**頁腳 (Footer)**
-`footer` 是可選的，用於連結 **Issue** 或**標記破壞性變更**。每個頁腳都應該有一個標頭，後面跟著一個主題，並在結尾處加上換行。
-
-* **目的：** 提供結構化的元數據，例如 Issue 參考。
-* **格式：** 頁腳應該在本文之後空一行開始。
-
-**常見用途：**
-
-* **參考 Issue：** 用來關聯本次 Commit 所修復或相關的 Issue。
-  **範例：** `Close #123`
-* **破壞性變更（Breaking Changes）:** 您也可以在 Commit 描述的結尾，加上 `BREAKING CHANGE:` 來提供更詳細的說明。
-  **範例：**
-
-  ```text
-  refactor!: 修正密碼驗證邏輯
-
-  這個修正改變了密碼加密演算法，所有使用者都需要重設密碼才能登入。
-
-  BREAKING CHANGE: 所有舊版密碼將失效，使用者需重新設定。
-  ```
 
 ### 3. Pull Request (PR) 指南
 

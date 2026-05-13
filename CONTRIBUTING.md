@@ -36,84 +36,59 @@ Please create your feature branch from the `main` branch. We recommend the follo
 
 ### 2. Commit Message Convention
 
-We follow the **[Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/)** specification. This helps us automatically generate release notes and version numbers. Please ensure each of your commit messages adheres to the following format:
+We follow the **[Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/)** specification. This helps us automatically generate release notes and version numbers.
+
+#### Structure
+Each commit message must adhere to the following structure:
 
 ```text
-<type>(<scope>): <description>
+<type>(<scope>): <subject>
 
-[optional body]
+Why:
+- Explain the motivation or the "reason why" behind the change.
+
+What:
+- List the key technical changes in bullet points.
 
 [optional footer(s)]
 ```
 
-- **`type`:** Required. Describes the main purpose of the commit. Common types are:
-  - `feat`: A new feature
-  - `fix`: A bug fix
-  - `docs`: Documentation changes
-  - `style`: Formatting, semicolons, etc. (no code changes)
-  - `refactor`: Code refactoring (neither adds a feature nor fixes a bug)
-  - `perf`: A code change that improves performance
-  - `test`: Adding or correcting tests
-  - `chore`: Changes to the build process or auxiliary tools and libraries
-
-- **`scope`:** Optional. Describes the part of the codebase affected by the change (e.g., `(login)` or `(api)`).
+- **`type`:** Required. Describes the main purpose of the commit (e.g., `feat`, `fix`, `docs`, `chore`, `refactor`).
+- **`scope`:** Optional. Describes the part of the codebase affected.
 - **`subject`:** Required. A short, concise description of the change.
+- **`Why` section:** Required. Explains the "reason why" behind the change.
+- **`What` section:** Required. Lists technical changes in bullet points.
 
-**Examples:**
+#### Examples
 
+**Standard Commit:**
 ```text
-feat(module): create xxx module
-fix(api): fix 500 server error
-chore(ci): edit workflow yml
+feat(auth): implement biometric login support
+
+Why:
+- To enhance security and provide a faster login experience for users with capable devices.
+
+What:
+- Integrated Android BiometricPrompt API.
+- Added BiometricManager check in LoginViewModel.
+- Created AuthRepository interface for biometric token storage.
 ```
 
-**Breaking Changes:**
-If your changes include any content that **breaks backward compatibility**, you must explicitly mark this change.
-This will trigger a major version update and follows the [Semantic Versioning](https://semver.org/) specification.
-Add a `!` after the `<type>` or `<scope>` in the commit header.
-
-**Example:**
-
+**Breaking Change:**
+Add a `!` after the `<type>` or `<scope>` and include `BREAKING CHANGE` in the footer.
 ```text
-feat(api)!: remove old user client
+feat(api)!: migrate to GraphQL for user profiles
+
+Why:
+- Existing REST endpoints are deprecated and do not support the new nested profile data structure.
+
+What:
+- Removed UserProfileResponse.kt DTO.
+- Added Apollo Kotlin client dependency.
+- Implemented GetUserProfile.graphql query.
+
+BREAKING CHANGE: All REST-based profile lookups will fail. Use the new GraphQL-based service instead.
 ```
-
-**Commit Body**
-The `body` is optional and is used to provide a detailed description of the commit. Use it when your changes require more context.
-
-- **Purpose:** Explain **why** this change is important and **how** it solves the problem.
-- **Format:** The body should start after a blank line following the subject line. When the change involves multiple items, it is recommended to use an **unordered list** for better readability.
-
-**Example:**
-
-```text
-fix(checkout): resolve multiple bugs on the checkout page
-
-- Fixed an issue where the total price did not update in real-time when the user changed quantities on the checkout page.
-- Fixed a bug where the checkout button was still clickable when there were no items in the shopping cart.
-- Added form validation to ensure the address and phone number formats entered by the user are correct.
-```
-
-**Footer**
-The `footer` is optional and is used to link **Issues** or **mark breaking changes**. Each footer should have a token, followed by a subject, and end with a newline.
-
-- **Purpose:** Provide structured metadata, such as Issue references.
-- **Format:** The footer should start after a blank line following the body.
-
-**Common Uses:**
-
-- **Referencing Issues:** Used to associate the commit with the Issues it fixes or relates to.
-  **Example:** `Close #123`
-- **Breaking Changes:** You can also add `BREAKING CHANGE:` at the end of the commit description to provide more detailed information.
-  **Example:**
-
-  ```text
-  refactor!: correct password validation logicThis
-
-  fix changes the password encryption algorithm. All users will need to reset their passwords to log in.
-
-  BREAKING CHANGE: All old passwords will become invalid; users need to reset them.
-  ```
 
 ### 3. Pull Request (PR) Guidelines
 
