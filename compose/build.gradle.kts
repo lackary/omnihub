@@ -54,9 +54,9 @@ buildkonfig {
 
 kotlin {
 
-    androidLibrary {
+    android {
         namespace = modulePackageName
-        compileSdk = libs.versions.android.targetSdk.get().toInt()
+        compileSdk = libs.versions.android.compileSdk.get().toInt()
         minSdk = libs.versions.android.minSdk.get().toInt()
 
         withJava() //  Opt-in to enable Java source compilation
@@ -189,33 +189,6 @@ kotlin {
         }
     }
 }
-
-//android {
-//    namespace = appPackageName
-//    compileSdk = libs.versions.android.compileSdk.get().toInt()
-//
-//    defaultConfig {
-//        applicationId = appPackageName
-//        minSdk = libs.versions.android.minSdk.get().toInt()
-//        targetSdk = libs.versions.android.targetSdk.get().toInt()
-//        versionCode = appBuildNumber
-//        versionName = project.version.toString()
-//    }
-//    packaging {
-//        resources {
-//            excludes += "/META-INF/{AL2.0,LGPL2.1}"
-//        }
-//    }
-//    buildTypes {
-//        getByName("release") {
-//            isMinifyEnabled = false
-//        }
-//    }
-//    compileOptions {
-//        sourceCompatibility = JavaVersion.VERSION_21
-//        targetCompatibility = JavaVersion.VERSION_21
-//    }
-//}
 
 //dependencies {
 //    debugImplementation(compose.uiTooling)
