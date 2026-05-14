@@ -35,7 +35,7 @@ This project strictly adheres to **Clean Architecture** and the **MVI (Model-Vie
     - Follow the State Hoisting principle.
     - Use `composeResources` for multi-language support.
 - **Language Preference:**
-    - While code is in English, please provide explanations and comments in **Traditional Chinese** (繁體中文).
+    - Please provide all explanations and comments in **English**.
 
 ## 4. Project Specifics
 - **Android XR Support:** The project includes XR-specific layouts (e.g., `XrAppLayout` in `androidMain`). Be mindful of platform compatibility when modifying navigation or top-level UI.
