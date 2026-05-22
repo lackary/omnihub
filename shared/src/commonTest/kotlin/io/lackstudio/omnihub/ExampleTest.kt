@@ -15,7 +15,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.runComposeUiTest
 import kotlin.test.Test
 
-class ExampleTest {
+class ExampleTest : BaseComposeTest() {
 
     @OptIn(ExperimentalTestApi::class)
     @Test

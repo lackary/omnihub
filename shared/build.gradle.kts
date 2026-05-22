@@ -149,6 +149,19 @@ kotlin {
             implementation(libs.ktor.client.android)
             implementation(project.dependencies.platform(libs.androidx.compose.bom))
         }
+//        androidHostTest.dependencies {
+//            implementation(libs.robolectric)
+//            implementation(libs.androidx.compose.ui.test.junit4)
+//            implementation(libs.androidx.test.ext.junit)
+//        }
+        val androidHostTest by getting {
+            dependencies {
+                implementation(libs.robolectric)
+                implementation(libs.androidx.compose.ui.test.junit4)
+                implementation(libs.androidx.test.ext.junit)
+                implementation(libs.androidx.compose.ui.test.manifest)
+            }
+        }
         commonMain.dependencies {
             implementation(libs.compose.runtime)
             implementation(libs.compose.foundation)
