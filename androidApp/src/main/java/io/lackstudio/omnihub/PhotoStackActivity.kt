@@ -5,9 +5,9 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.runtime.collectAsState
-import io.lackstudio.omnihub.compose.platform.PhotoStackEntry
-import io.lackstudio.omnihub.compose.ui.navigation.XrNavigationController
-import io.lackstudio.omnihub.compose.utils.logging.AppLog
+import io.lackstudio.omnihub.platform.PhotoStackEntry
+import io.lackstudio.omnihub.ui.navigation.XrNavigationController
+import io.lackstudio.omnihub.utils.logging.AppLog
 
 /**
  * PhotoStackActivity handles the display of multiple photos in a stacked view.
