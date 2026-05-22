@@ -178,6 +178,9 @@ kotlin {
             implementation(libs.compose.ui.test)
             implementation(libs.kotlin.test)
         }
+        jvmTest.dependencies {
+            implementation(compose.desktop.currentOs)
+        }
         wasmJsMain.dependencies {
             implementation(libs.kotlin.wrappers.browser)
         }
