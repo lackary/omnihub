@@ -12,7 +12,7 @@ plugins:
         ./gradlew setBuildVersion 
         -PnewVersion=${nextRelease.version} 
         -PbuildNumber=${process.env.GITHUB_RUN_NUMBER} 
-        && ./gradlew :compose:podspec
+        && ./gradlew :shared:podspec
         && ./setup_ios.sh
 
   # Include gradle.properties and Config.xcconfig in the Git commit
@@ -21,7 +21,7 @@ plugins:
         - "CHANGELOG.md"
         - "gradle.properties"
         - "iosApp/Configuration/Config.xcconfig"
-        - "compose/Compose.podspec"
+        - "shared/Shared.podspec"
         - "iosApp/Podfile.lock"
       message: "chore(release): ${nextRelease.version} [skip ci]\n\n${nextRelease.notes}"
 
