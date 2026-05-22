@@ -6,9 +6,9 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import io.lackstudio.omnihub.compose.platform.UserDetailEntry
-import io.lackstudio.omnihub.compose.ui.navigation.XrNavigationController
-import io.lackstudio.omnihub.compose.utils.logging.AppLog
+import io.lackstudio.omnihub.platform.UserDetailEntry
+import io.lackstudio.omnihub.ui.navigation.XrNavigationController
+import io.lackstudio.omnihub.utils.logging.AppLog
 import kotlinx.coroutines.flow.MutableStateFlow
 
 /**

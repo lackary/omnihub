@@ -1,0 +1,445 @@
+package io.lackstudio.omnihub.ui.gallery
+
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.AnimatedVisibilityScope
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionLayout
+import androidx.compose.animation.SharedTransitionScope
+import androidx.compose.foundation.focusable
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.AccountCircle
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.isCtrlPressed
+import androidx.compose.ui.input.key.isMetaPressed
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.flowWithLifecycle
+import coil3.compose.AsyncImage
+import io.lackstudio.omnifeed.ui.state.AppUiState
+import io.lackstudio.omnihub.platform.isPullToRefreshSupported
+import io.lackstudio.omnihub.ui.components.AvatarAction
+import io.lackstudio.omnihub.ui.components.CommonTopBarActions
+import io.lackstudio.omnihub.ui.components.MonitorErrorStates
+import io.lackstudio.omnihub.ui.components.RefreshAction
+import io.lackstudio.omnihub.ui.components.SearchAction
+import io.lackstudio.omnihub.ui.components.WebLinkAction
+import io.lackstudio.omnihub.ui.navigation.Feature
+import io.lackstudio.omnihub.ui.navigation.rememberGalleryNavigator
+import io.lackstudio.omnihub.utils.UnsplashLinks
+import io.lackstudio.omnihub.utils.logging.rememberLogger
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.launch
+import omnihub.shared.generated.resources.Res
+import omnihub.shared.generated.resources.back
+import omnihub.shared.generated.resources.gallery_title
+import omnihub.shared.generated.resources.ic_unsplash
+import org.jetbrains.compose.resources.painterResource
+import org.jetbrains.compose.resources.stringResource
+import org.koin.compose.viewmodel.koinViewModel
+
+const val tag = "GalleryScreen"
+
+// Stateful Composable (Used for App navigation)
+// Responsible for communicating with Koin and ViewModel
+@OptIn(ExperimentalSharedTransitionApi::class)
+@Composable
+fun GalleryScreen(
+    onNavigateToFeature: (Feature) -> Unit,
+    onBack: () -> Unit,
+    viewModel: GalleryViewModel = koinViewModel(),
+    sharedTransitionScope: SharedTransitionScope,
+    animatedVisibilityScope: AnimatedVisibilityScope
+) {
+    val logger = rememberLogger(tag)
+    val navigator = rememberGalleryNavigator(onNavigateToFeature)
+    // Collect ViewModel state
+    val state by viewModel.state.collectAsStateWithLifecycle()
+    val sideEffectFlow = viewModel.sideEffect
+
+    // Triggered when the page becomes "Resume" (visible and interactive)
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
+        logger.d { "App returned to foreground, you can perform desired actions" }
+    }
+
+    LaunchedEffect(Unit) {
+        logger.d { "Screen Launched" }
+    }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            logger.d { "Screen Disposed" }
+        }
+    }
+
+    MonitorErrorStates(
+        tag = tag,
+        "Photos" to state.photosState,
+        "Collections" to state.collectionsState,
+        "Topics" to state.topicsState,
+    )
+
+    // SideEffect Log
+    LaunchedEffect(sideEffectFlow) {
+        sideEffectFlow.collect { effect ->
+            logger.d { "SideEffect: $effect" }
+        }
+    }
+
+    // Forward state and events to pure UI Composable
+    GalleryScreenContent(
+        state = state,
+        // Pass SideEffect Flow (receive ViewModel one-time events)
+        sideEffectFlow = sideEffectFlow,
+        onItemClick = navigator::navigateToPhoto,
+        onUserClick = navigator::navigateToUser,
+        onEvent = { event ->
+            logger.d { "Event: $event" }
+            viewModel.handleIntent(event)
+
+        }, // Pass events back to ViewModel
+        onNavigateToFeature = onNavigateToFeature,
+        onBack = onBack,
+        sharedTransitionScope = sharedTransitionScope,
+        animatedVisibilityScope = animatedVisibilityScope
+    )
+}
+
+// Stateless Composable (Pure UI)
+// No ViewModel here, purely relies on passed parameters
+// This function can be safely called by Preview
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalSharedTransitionApi::class)
+@Composable
+fun GalleryScreenContent(
+    state: GalleryUiState,          // Receive pure data state
+    sideEffectFlow: Flow<GallerySideEffect>, // Receive onetime event
+    onItemClick: (GalleryDisplayable) -> Unit,
+    onUserClick: (String) -> Unit,
+    onEvent: (GalleryIntent) -> Unit, // Receive event callbacks
+    onNavigateToFeature: (Feature) -> Unit,
+    onBack: () -> Unit,
+    sharedTransitionScope: SharedTransitionScope,
+    animatedVisibilityScope: AnimatedVisibilityScope
+) {
+    // UI internal State (e.g., Pager, Scroll, Search) can be kept here
+    val tabs = GalleryTab.entries
+    val coroutineScope = rememberCoroutineScope() // Used to handle Tab click animation
+    val snackbarHostState = remember { SnackbarHostState() }
+    var isSearching by remember { mutableStateOf(false) }
+
+    val lifecycleOwner = LocalLifecycleOwner.current
+    val uriHandler = LocalUriHandler.current
+
+    // Observe SideEffect and ensure Snackbar events are received only when in foreground
+    // Use flowWithLifecycle to bind lifecycle
+    // Safety: When the App goes to background (STOPPED), collection is automatically "paused" to avoid wasting resources on UI actions.
+    // Auto-resume: When the App returns to foreground (STARTED), it automatically "continues" collecting previously buffered events.
+    // State selection: Use STARTED to mean "receive as long as the user can see the App" (including split-screen, multi-window mode).
+    // (If RESUMED is used, the App without focus in split-screen won't receive messages, leading to poor UX)
+    LaunchedEffect(sideEffectFlow, lifecycleOwner) {
+        sideEffectFlow
+            .flowWithLifecycle(lifecycleOwner.lifecycle, Lifecycle.State.STARTED)
+            .collect { effect ->
+                when (effect) {
+                    is GallerySideEffect.ShowSnackbar -> {
+                        snackbarHostState.showSnackbar(
+                            message = effect.message,
+                            duration = SnackbarDuration.Short
+                        )
+                    }
+                    is GallerySideEffect.OpenUrl -> {
+                        uriHandler.openUri(effect.url)
+                    }
+                }
+            }
+    }
+    val currentTab by rememberUpdatedState(state.currentTab)
+    // create pager state
+    val pagerState = rememberPagerState(
+        initialPage = state.currentTab.ordinal, // Initial position
+        pageCount = { GalleryTab.entries.size }
+    )
+
+    // Sync Pager state with ViewModel when user swipes
+    LaunchedEffect(pagerState) {
+        // We listen to both currentPage and isScrollInProgress
+        snapshotFlow { pagerState.currentPage }
+            .collect { page ->
+                val targetTab = GalleryTab.getByIndex(page)
+                if (currentTab != targetTab) {
+                    onEvent(GalleryIntent.SelectTab(targetTab))
+                }
+            }
+    }
+
+    // Create FocusRequester
+    val focusRequester = remember { FocusRequester() }
+    // Automatically request focus when entering the screen
+    LaunchedEffect(Unit) {
+        focusRequester.requestFocus()
+    }
+
+    // Get whether the current Tab is refreshing
+    // Since state.refreshingStatus is a Map, if not found, default to false
+    val isCurrentTabRefreshing = state.refreshingStatus[state.currentTab] ?: false
+    val onRefreshAction = {
+        // Only send the event if the current Tab is not refreshing
+        if (!isCurrentTabRefreshing) {
+            onEvent(GalleryIntent.Refresh)
+        }
+    }
+
+    Scaffold(
+        // Add keyboard listener
+        // This allows refreshing by pressing F5 or Ctrl+R when this Screen gains focus
+        modifier = Modifier
+            .focusRequester(focusRequester)
+            .focusable()
+            .onPreviewKeyEvent { keyEvent ->
+            if (keyEvent.type == KeyEventType.KeyDown) {
+                //  Support F5
+                if (keyEvent.key == Key.F5) {
+                    onRefreshAction()
+                    return@onPreviewKeyEvent true
+                }
+                // Support Ctrl+R (Windows/Linux) or Cmd+R (Mac)
+                if (keyEvent.key == Key.R && (keyEvent.isCtrlPressed || keyEvent.isMetaPressed)) {
+                    onRefreshAction()
+                    return@onPreviewKeyEvent true
+                }
+            }
+            false
+        },
+        topBar = {
+            TopAppBar(
+                title = {
+                    Text(
+                        text = stringResource(Res.string.gallery_title),
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+                },
+                navigationIcon = {
+                    IconButton(onClick = { onBack() }) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = stringResource(Res.string.back)
+                        )
+                    }
+                },
+                actions = {
+                    CommonTopBarActions(
+                        isRefreshing = isCurrentTabRefreshing,
+                        onRefresh = onRefreshAction,
+                        prependActions = {
+                            SearchAction(
+                                onClick = {/* TODO: Implement Search */ isSearching = !isSearching}
+                            )
+                        },
+                        appendActions = {
+                            // External link
+                            WebLinkAction(
+                                url = UnsplashLinks.home(),
+                                icon = painterResource(Res.drawable.ic_unsplash),
+                                contentDescription = "View on Unsplash"
+                            )
+
+                            // User account / loggin
+                            AvatarAction(
+                                avatarUrl = state.meProfile?.profileImage?.small,
+                                isAuthenticating = state.isAuthenticating,
+                                onClick = {
+                                    state.meProfile?.let {
+                                        onNavigateToFeature(Feature.User(it.username))
+                                    } ?: onEvent(GalleryIntent.Login)
+                                }
+                            )
+                        }
+                    )
+
+                }
+            )
+        },
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
+    ) { paddingValues ->
+
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+        ) {
+            // TabRow logic
+            PrimaryTabRow(
+                selectedTabIndex = pagerState.currentPage,
+                containerColor = MaterialTheme.colorScheme.surface,
+                contentColor = MaterialTheme.colorScheme.primary,
+                divider = { HorizontalDivider() }
+            ) {
+                tabs.forEachIndexed { index, tab ->
+                    Tab(
+                        selected = pagerState.currentPage == index,
+                        onClick = {
+                            coroutineScope.launch {
+                                pagerState.animateScrollToPage(index)
+                            }
+                        },
+                        text = { Text(tab.title) },
+                        icon = { Icon(tab.icon, contentDescription = null) }
+                    )
+                }
+            }
+
+            // Pager Content
+            HorizontalPager(
+                state = pagerState,
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.Top, // Ensure content starts from the top
+                // Keep the state of 1 page on each side to avoid resetting scroll position when switching
+                beyondViewportPageCount = 1
+            ) { pageIndex ->
+                val tab = tabs[pageIndex]
+                val isEndOfList = state.endOfListStatus[tab] ?: false
+                val isRefreshing = state.refreshingStatus[tab] ?: false
+                val currentError = state.appendError[tab]?.takeIf { it.isNotBlank() }
+
+                when (tabs[pageIndex]) {
+                    GalleryTab.Photos -> {
+                        GalleryPagedSection(
+                            state = state.photosState,
+                            isRefreshing = isRefreshing,
+                            onRefresh = { onEvent(GalleryIntent.Refresh) },
+                            isEndOfList = isEndOfList,
+                            appendError = currentError,
+                            emptyMessage = "No photos found.",
+                            onLoadMore = { onEvent(GalleryIntent.LoadMore) },
+                            onItemClick = onItemClick,
+                            onUserClick = onUserClick,
+                            sharedTransitionScope = sharedTransitionScope,
+                            animatedVisibilityScope = animatedVisibilityScope
+                        )
+                    }
+                    GalleryTab.Collections -> {
+                        GalleryPagedSection(
+                            state = state.collectionsState,
+                            isRefreshing = isRefreshing,
+                            onRefresh = { onEvent(GalleryIntent.Refresh) },
+                            isEndOfList = isEndOfList,
+                            appendError = currentError,
+                            emptyMessage = "No collections found",
+                            onLoadMore = { onEvent(GalleryIntent.LoadMore) },
+                            onItemClick = { item ->
+                                onNavigateToFeature(Feature.Collection(item.displayId, item.displayTitle))
+                            },
+                            onUserClick = onUserClick,
+                            sharedTransitionScope = sharedTransitionScope,
+                            animatedVisibilityScope = animatedVisibilityScope
+                        )
+                    }
+                    GalleryTab.Topics -> {
+                        TopicPagedSection(
+                            state = state.topicsState,
+                            isRefreshing = isRefreshing,
+                            onRefresh = { onEvent(GalleryIntent.Refresh) },
+                            isEndOfList = isEndOfList,
+                            appendError = currentError,
+                            emptyMessage = "No topics found",
+                            onLoadMore = { onEvent(GalleryIntent.LoadMore) },
+                            onTopicClick = { id, title ->
+                                onNavigateToFeature(Feature.Topic(idOrSlug = id, title = title))
+                            }
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+// Add this function specifically for preview
+@OptIn(ExperimentalSharedTransitionApi::class)
+@Preview(name = "Mobile", widthDp = 360, heightDp = 640)
+@Preview(name = "Desktop", widthDp = 1024, heightDp = 768)
+@Composable
+fun GalleryScreenPreview() {
+    // Create dummy data
+    val dummyState = GalleryUiState(
+        photosState = AppUiState.Success(
+            data = listOf(
+                GalleryPhoto(
+                    "1",
+                    "https://picsum.photos/seed/photo0/300/400",
+                    "Preview Photo 1",
+                    "",
+                    "username1",
+                    name = "name1",
+                    1,
+                    "",
+                    0,
+                    0),
+                GalleryPhoto(
+                    "2",
+                    "https://picsum.photos/seed/photo1/300/400",
+                    "Preview Photo 2",
+                    "",
+                    "username2",
+                    name = "name2",
+                    1,
+                    "",
+                    0,
+                    0
+                )
+            )
+        )
+    )
+
+    // 1. Create shared transition layout
+    SharedTransitionLayout {
+        // 2. Create visibility scope (set to true to make it immediately visible)
+        AnimatedVisibility(visible = true) {
+            GalleryScreenContent(
+                state = dummyState,
+                sideEffectFlow = emptyFlow(),
+                onItemClick = {},
+                onUserClick = {},
+                onEvent = {},
+                onNavigateToFeature = {},
+                onBack = {},
+                // 3. Pass the Scope from the environment
+                sharedTransitionScope = this@SharedTransitionLayout,
+                animatedVisibilityScope = this // this refers to AnimatedVisibilityScope
+            )
+        }
+    }
+}
