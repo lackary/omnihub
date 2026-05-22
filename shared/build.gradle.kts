@@ -59,20 +59,21 @@ kotlin {
         compileSdk = libs.versions.android.compileSdk.get().toInt()
         minSdk = libs.versions.android.minSdk.get().toInt()
 
-        withJava() //  Opt-in to enable Java source compilation
-        withHostTestBuilder {}.configure {}
-        withDeviceTestBuilder {
-            sourceSetTreeName = "test"
-        }
-
         // Set the Kotlin compilation target version
         compilerOptions {
-            jvmTarget.set(JvmTarget.JVM_21)
+            jvmTarget = JvmTarget.JVM_21
         }
 
         // Enable Android resource processing, default is false
         androidResources {
             enable = true
+        }
+
+        withJava() //  Opt-in to enable Java source compilation
+        withHostTest {
+            isIncludeAndroidResources = true
+        }
+        withDeviceTest {
         }
     }
     
@@ -135,6 +136,7 @@ kotlin {
     
     sourceSets {
         androidMain.dependencies {
+            implementation(libs.compose.ui.tooling.preview)
             implementation(libs.androidx.activity.compose)
             implementation(libs.androidx.compose.ui.tooling)
             implementation(libs.androidx.xr.runtime)
@@ -173,61 +175,17 @@ kotlin {
             implementation(libs.omnifeed.unsplash)
         }
         commonTest.dependencies {
+            implementation(libs.compose.ui.test)
             implementation(libs.kotlin.test)
         }
-        iosMain.dependencies {
-            implementation(libs.ktor.client.darwin)
-        }
-        jvmMain.dependencies {
-            implementation(compose.desktop.currentOs)
-            implementation(libs.kotlinx.coroutines.swing)
-            implementation(libs.ktor.client.cio)
-        }
         wasmJsMain.dependencies {
-            implementation(libs.ktor.client.js)
+            implementation(libs.kotlin.wrappers.browser)
         }
     }
 }
 
-//dependencies {
-//    debugImplementation(compose.uiTooling)
-//}
-
-compose.desktop {
-    application {
-        mainClass = "$modulePackageName.MainKt"
-
-        nativeDistributions {
-            targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
-            packageName = "io.lackstudio.omnihub"
-            packageVersion = project.version.toString()
-
-            macOS {
-                // If the project version starts with 0. (e.g. 0.2.0), DMG is forced to set to 1.0.0 to avoid errors
-                // If the project version is already 1.0.0 or higher, use the project version directly
-                val verStr = project.version.toString()
-                dmgPackageVersion = if (verStr.startsWith("0.")) "1.0.0" else verStr
-
-                macOS {
-                    infoPlist {
-                        extraKeysRawXml = """
-                        <key>CFBundleURLTypes</key>
-                        <array>
-                            <dict>
-                                <key>CFBundleURLName</key>
-                                <string>io.lackstudio.omnihub</string>
-                                <key>CFBundleURLSchemes</key>
-                                <array>
-                                    <string>omnihub</string>
-                                </array>
-                            </dict>
-                        </array>
-                    """.trimIndent()
-                    }
-                }
-            }
-        }
-    }
+dependencies {
+    androidRuntimeClasspath(libs.compose.ui.tooling)
 }
 
 // Force exclusion of unstable JogAmp dependencies from the test Runtime Classpath

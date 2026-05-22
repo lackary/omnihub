@@ -14,14 +14,14 @@ fun main() {
 
     val currentUrl = window.location.href
     if (currentUrl.contains("code=")) {
-        // 接住回傳的 Code
+        // Catch the returned code
         DeepLinkBuffer.setDeepLink(currentUrl)
 
-        // (選用) 清理網址列，避免 F5 重整又觸發
+        // (Optional) Clear the URL to prevent re-triggering on page refresh
         val cleanUrl = window.location.origin + window.location.pathname
         window.history.replaceState(null, "", cleanUrl)
     }
-    println("web main")
+
     ComposeViewport {
         App()
     }
