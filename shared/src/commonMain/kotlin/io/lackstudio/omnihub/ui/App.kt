@@ -36,6 +36,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import io.lackstudio.omnihub.auth.DeepLinkBuffer
 import io.lackstudio.omnihub.ui.extensions.navigateToFeatureSmart
+import io.lackstudio.omnihub.ui.auth.LoginScreen
 import io.lackstudio.omnihub.ui.settings.SettingsScreen
 import io.lackstudio.omnihub.ui.gallery.CollectionDetailScreen
 import io.lackstudio.omnihub.ui.gallery.GalleryScreen
@@ -198,6 +199,16 @@ fun AppScreen(
                     composable<Screen.Settings> {
                         SettingsScreen(
                             onNavigateToFeature = onNavigate
+                        )
+                    }
+
+                    // Login Screen
+                    composable<Screen.Login> {
+                        LoginScreen(
+                            onNavigateToFeature = onNavigate,
+                            onBack = {
+                                navController.popBackStack()
+                            }
                         )
                     }
 

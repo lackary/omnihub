@@ -2,6 +2,7 @@ package io.lackstudio.omnihub.ui.navigation
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -22,13 +23,19 @@ fun getAppNavItems(navDestination: NavDestination?): List<NavItem> {
             label = "Home",
             icon = Icons.Filled.Home,
             route = Screen.Home,
-            isSelected = navDestination?.hasRoute<Screen.Settings>() == true
+            isSelected = navDestination?.hasRoute<Screen.Home>() == true
         ),
         NavItem(
             label = "Settings",
             icon = Icons.Filled.Settings,
             route = Screen.Settings,
             isSelected = navDestination?.hasRoute<Screen.Settings>() == true
+        ),
+        NavItem(
+            label = "Login",
+            icon = Icons.Filled.Person,
+            route = Screen.Login,
+            isSelected = navDestination?.hasRoute<Screen.Login>() == true
         )
     )
 }

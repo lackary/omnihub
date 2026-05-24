@@ -10,6 +10,9 @@ sealed interface Screen {
     @Serializable
     data object Settings : Screen
 
+    @Serializable
+    data object Login : Screen
+
 }
 
 // Destination for each feature module (where to navigate after clicking the list)
