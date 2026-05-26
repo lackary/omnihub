@@ -6,7 +6,6 @@ import org.robolectric.annotation.Config
 
 @RunWith(RobolectricTestRunner::class)
 @Config(
-    sdk = [35],
-    packageName = "io.lackstudio.omnihub.shared"
+    sdk = [35]
 )
 actual abstract class BaseComposeTest actual constructor()
