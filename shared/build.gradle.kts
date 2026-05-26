@@ -54,6 +54,10 @@ buildkonfig {
 
 kotlin {
 
+    compilerOptions {
+        freeCompilerArgs.add("-Xexpect-actual-classes")
+    }
+
     android {
         namespace = modulePackageName
         compileSdk = libs.versions.android.compileSdk.get().toInt()

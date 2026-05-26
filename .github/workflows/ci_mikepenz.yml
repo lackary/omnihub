@@ -53,7 +53,7 @@ concurrency:
 jobs:
   ci:
     name: Build and Test
-    runs-on: macos-latest
+    runs-on: macos-26
     env:
       UNSPLASH_ACCESS_KEY: ${{ secrets.UNSPLASH_ACCESS_KEY }}
       UNSPLASH_SECRET_KEY: ${{ secrets.UNSPLASH_SECRET_KEY }}
