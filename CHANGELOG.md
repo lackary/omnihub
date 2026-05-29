@@ -1,3 +1,10 @@
+## [0.17.3](https://github.com/lackary/omnihub/compare/v0.17.2...v0.17.3) (2026-05-29)
+
+
+### Bug Fixes
+
+* **gallery:** migrate to Sketch 4 to resolve cross-platform crashes ([cd15568](https://github.com/lackary/omnihub/commit/cd15568e6731b04e8a207483a1458be949a7ea9b))
+
 ## [0.17.2](https://github.com/lackary/omnihub/compare/v0.17.1...v0.17.2) (2026-05-26)
 
 
