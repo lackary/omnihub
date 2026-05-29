@@ -76,11 +76,10 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
-import coil3.compose.LocalPlatformContext
-import coil3.request.ImageRequest
-import coil3.request.crossfade
-import coil3.size.Size
-import com.brys.compose.blurhash.BlurHashImage
+import com.github.panpf.sketch.AsyncImage as SketchAsyncImage
+import com.github.panpf.sketch.request.ImageRequest as SketchImageRequest
+import com.github.panpf.sketch.LocalPlatformContext as SketchLocalPlatformContext
+import com.github.panpf.sketch.state.BlurHashStateImage
 import io.lackstudio.omnifeed.ui.state.AppUiState
 import io.lackstudio.omnihub.platform.isPullToRefreshSupported // Variable defined recently
 import io.lackstudio.omnihub.ui.extensions.pagingGridItems
@@ -357,21 +356,31 @@ fun TopicList(
 }
 
 @Composable
-fun PlaceholderBlurHash(
+fun UnsplashImage(
+    imageUrl: String?,
     blurHash: String?,
     modifier: Modifier = Modifier,
-    contentDescription: String = "",
+    contentDescription: String? = null,
     contentScale: ContentScale = ContentScale.Crop
 ) {
-    blurHash?.let {
-        BlurHashImage(
-            hash = blurHash,
-            contentDescription = contentDescription,
-            modifier = modifier
-        )
-    }?: Box(
-        modifier = modifier
-            .background(MaterialTheme.colorScheme.surfaceVariant)
+    SketchAsyncImage(
+        request = SketchImageRequest(SketchLocalPlatformContext.current, imageUrl) {
+            // If blurHash is available, automatically set it as the placeholder for loading and error states
+            if (!blurHash.isNullOrEmpty()) {
+                placeholder(BlurHashStateImage(blurHash))
+                error(BlurHashStateImage(blurHash))
+            }
+
+            // Enable crossfade animation to smoothly replace BlurHash after the image download is complete
+            crossfade()
+        },
+        contentDescription = contentDescription,
+        // If even BlurHash is missing, provide a default background color as a fallback
+        modifier = modifier.then(
+            if (blurHash.isNullOrEmpty()) Modifier.background(MaterialTheme.colorScheme.surfaceVariant)
+            else Modifier
+        ),
+        contentScale = contentScale
     )
 }
 
@@ -664,13 +673,9 @@ private fun GalleryCardImageContent(
         ) { page ->
             val photo = previews[page]
             Box(modifier = Modifier.fillMaxSize()) {
-                PlaceholderBlurHash(
+                UnsplashImage(
+                    imageUrl = photo.url,
                     blurHash = photo.blurHash,
-                    modifier = Modifier.fillMaxSize()
-                )
-                AsyncImage(
-                    model = photo.url,
-                    contentDescription = null,
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Crop
                 )
@@ -678,18 +683,9 @@ private fun GalleryCardImageContent(
         }
     } else {
         // [Single Image Mode]
-        PlaceholderBlurHash(
+        UnsplashImage(
+            imageUrl = singleItem.displayImageUrl,
             blurHash = singleItem.displayBlurHash,
-            contentDescription = "blur hash",
-            modifier = Modifier.fillMaxSize(),
-        )
-        AsyncImage(
-            model = ImageRequest.Builder(LocalPlatformContext.current)
-                .data(singleItem.displayImageUrl)
-                .size(Size.ORIGINAL)
-                .crossfade(true)
-                .build(),
-            contentDescription = singleItem.displayTitle,
             modifier = Modifier.fillMaxSize(),
             contentScale = ContentScale.Crop
         )
@@ -864,21 +860,11 @@ fun TopicCard(
             modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.Center // Title displayed in the center
         ) {
-
-            PlaceholderBlurHash(
-                topic.blurhash,
-                contentDescription = "topic blur hash",
-                modifier = Modifier.fillMaxSize()
-            )
-
-            // Background image
-            AsyncImage(
-                // Please confirm GalleryTopic data structure field name
-                // (e.g. topic.coverUrl or topic.urls.small)
-                model = topic.coverUrl,
-                contentDescription = null,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxSize()
+            UnsplashImage(
+                imageUrl = topic.coverUrl,
+                blurHash = topic.blurhash,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop
             )
 
             // Black semi-transparent overlay (makes white text clearer)
