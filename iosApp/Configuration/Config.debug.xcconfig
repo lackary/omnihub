@@ -1,0 +1,4 @@
+#include "Config.xcconfig"
+
+PRODUCT_NAME = OmniHub Dev
+PRODUCT_BUNDLE_IDENTIFIER = io.lackstudio.omnihub.dev

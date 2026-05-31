@@ -14,7 +14,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import io.lackstudio.omnihub.shared.BuildKonfig
 import io.lackstudio.omnihub.ui.navigation.Feature
+import io.lackstudio.omnihub.utils.logging.rememberLogger
 import omnihub.shared.generated.resources.Res
 import omnihub.shared.generated.resources.app_name
 import org.jetbrains.compose.resources.stringResource
@@ -24,12 +26,14 @@ import org.jetbrains.compose.resources.stringResource
 fun HomeScreen(
     onNavigateToFeature: (Feature) -> Unit
 ) {
+    val logger = rememberLogger("HomeScreen")
+    logger.d { "BuildKonfig.APP_NAME: ${BuildKonfig.APP_NAME}" }
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
                 title = {
                     Text(
-                        text = stringResource(Res.string.app_name),
+                        text = BuildKonfig.APP_NAME,
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold
                     )

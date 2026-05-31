@@ -1,8 +1,12 @@
 import SwiftUI
 import Shared
+import FirebaseCore
 
 @main
 struct iOSApp: App {
+
+    @UIApplicationDelegateAdaptor(OmniAppDelegate.self) var delegate
+
     var body: some Scene {
         WindowGroup {
             ContentView()

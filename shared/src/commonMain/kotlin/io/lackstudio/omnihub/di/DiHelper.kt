@@ -1,5 +1,6 @@
 package io.lackstudio.omnihub.di
 
+import io.lackstudio.omnifeed.auth.di.omnifeedAuthModule
 import io.lackstudio.omnifeed.core.OmniFeedConfig
 import io.lackstudio.omnifeed.core.UnsplashConfig
 import io.lackstudio.omnifeed.core.common.logging.createOmniFeedLogger
@@ -37,6 +38,7 @@ fun initKoin(config: KoinAppDeclaration? = null) {
                 tokenType = omniFeedConfig.unsplash.tokenType,
                 token = omniFeedConfig.unsplash.token
             ),
+            omnifeedAuthModule,
             authModule,
             appModule
         )

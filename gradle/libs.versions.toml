@@ -5,6 +5,10 @@ android-compileSdk = "36"
 android-minSdk = "30"
 android-targetSdk = "36"
 
+# Google
+googleServices = "4.4.4"
+googleFirebaseBom = "34.13.0"
+
 # Android
 androidxCore = "1.18.0"
 androidxAppcompat = "1.7.1"
@@ -39,6 +43,7 @@ robolectric = "4.16.1"
 
 # 3rd party
 koin = "4.2.1"
+gitliveFirebase = "2.4.0"
 kermit = "2.1.0"
 buildkonfig = "0.21.2"
 coil3 = "3.4.0"
@@ -112,12 +117,15 @@ coil-network-ktor = { module = "io.coil-kt.coil3:coil-network-ktor3", version.re
 panpf-sketch-compose = { module = "io.github.panpf.sketch4:sketch-compose", version.ref = "sketch" }
 panpf-sketch-http = { module  = "io.github.panpf.sketch4:sketch-http", version.ref = "sketch"}
 panpf-sketch-blurhash = { module = "io.github.panpf.sketch4:sketch-blurhash", version.ref = "sketch" }
+gitlive-firebase-auth = { group = "dev.gitlive", name = "firebase-auth", version.ref = "gitliveFirebase" }
+google-firebase-bom = { module = "com.google.firebase:firebase-bom", version.ref = "googleFirebaseBom" }
 
 # Self
 omnifeed = { module = "io.lackstudio.omnifeed:omnifeed", version.ref = "omnifeed" }
 omnifeed-core = { module = "io.lackstudio.omnifeed:omnifeed-core", version.ref = "omnifeed" }
 omnifeed-unsplash = { module = "io.lackstudio.omnifeed:omnifeed-unsplash", version.ref = "omnifeed" }
 omnifeed-ui = { module = "io.lackstudio.omnifeed:omnifeed-ui", version.ref = "omnifeed" }
+omnifeed-auth = { module = "io.lackstudio.omnifeed:omnifeed-auth", version.ref = "omnifeed" }
 
 # Test
 
@@ -128,6 +136,7 @@ androidLibrary = { id = "com.android.library", version.ref = "agp" }
 android-kotlin-multiplatform-library = { id = "com.android.kotlin.multiplatform.library", version.ref = "agp" }
 
 # Jetbrains
+kotlinAndroid = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 kotlin-parcelize = { id = "org.jetbrains.kotlin.plugin.parcelize", version.ref = "kotlin" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 kotlin-multiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
@@ -139,3 +148,4 @@ compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "
 
 # 3rd party
 buildkonfig = { id = "com.codingfeline.buildkonfig", version.ref = "buildkonfig" }
+gms-google-services = { id = "com.google.gms.google-services", version.ref = "googleServices" }

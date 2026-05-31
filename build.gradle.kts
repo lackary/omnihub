@@ -13,6 +13,7 @@ plugins {
     alias(libs.plugins.kotlin.parcelize) apply false
     alias(libs.plugins.kotlin.jvm) apply false
     alias(libs.plugins.buildkonfig) apply false
+    alias(libs.plugins.gms.google.services) apply false
 }
 
 tasks.register("setBuildVersion") {

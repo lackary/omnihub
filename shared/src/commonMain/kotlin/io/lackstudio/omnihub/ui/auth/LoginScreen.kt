@@ -1,5 +1,6 @@
 package io.lackstudio.omnihub.ui.auth
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -66,6 +67,9 @@ fun LoginScreen(
                 is AuthContract.Effect.ShowError -> {
                     // TODO: Show snackbar
                 }
+                AuthContract.Effect.ShowGoogleSignIn -> {
+                    // TODO: Trigger platform-specific Google Sign-In
+                }
             }
         }
     }
@@ -85,11 +89,12 @@ fun LoginScreenContent(
     onBack: () -> Unit
 ) {
     var passwordVisible by remember { mutableStateOf(false) }
+    var confirmPasswordVisible by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Login") },
+                title = { Text(if (state.isRegisterMode) "Create Account" else "Login") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(
@@ -110,7 +115,7 @@ fun LoginScreenContent(
             verticalArrangement = Arrangement.Center
         ) {
             Text(
-                text = "Welcome to OmniHub",
+                text = if (state.isRegisterMode) "Join OmniHub" else "Welcome back",
                 style = MaterialTheme.typography.headlineMedium,
                 modifier = Modifier.padding(bottom = 32.dp)
             )
@@ -146,10 +151,40 @@ fun LoginScreenContent(
                 enabled = !state.isLoading
             )
 
+            AnimatedVisibility(visible = state.isRegisterMode) {
+                Column {
+                    Spacer(modifier = Modifier.height(16.dp))
+                    OutlinedTextField(
+                        value = state.confirmPassword,
+                        onValueChange = { onEvent(AuthContract.Event.OnConfirmPasswordChanged(it)) },
+                        label = { Text("Confirm Password") },
+                        modifier = Modifier.fillMaxWidth(),
+                        visualTransformation = if (confirmPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                        leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
+                        trailingIcon = {
+                            IconButton(onClick = { confirmPasswordVisible = !confirmPasswordVisible }) {
+                                Icon(
+                                    imageVector = if (confirmPasswordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                                    contentDescription = null
+                                )
+                            }
+                        },
+                        enabled = !state.isLoading
+                    )
+                }
+            }
+
             Spacer(modifier = Modifier.height(24.dp))
 
             Button(
-                onClick = { onEvent(AuthContract.Event.OnLoginClicked) },
+                onClick = { 
+                    if (state.isRegisterMode) {
+                        onEvent(AuthContract.Event.OnRegisterClicked)
+                    } else {
+                        onEvent(AuthContract.Event.OnLoginClicked)
+                    }
+                },
                 modifier = Modifier.fillMaxWidth().height(50.dp),
                 shape = MaterialTheme.shapes.medium,
                 enabled = !state.isLoading
@@ -161,7 +196,7 @@ fun LoginScreenContent(
                         strokeWidth = 2.dp
                     )
                 } else {
-                    Text("Login")
+                    Text(if (state.isRegisterMode) "Register" else "Login")
                 }
             }
 
@@ -171,7 +206,6 @@ fun LoginScreenContent(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Google Login Button with latest Google Logo
             OutlinedButton(
                 onClick = { onEvent(AuthContract.Event.OnGoogleLoginClicked) },
                 modifier = Modifier.fillMaxWidth().height(50.dp),
@@ -203,10 +237,13 @@ fun LoginScreenContent(
             Spacer(modifier = Modifier.height(32.dp))
 
             TextButton(
-                onClick = { /* TODO: Register */ },
+                onClick = { onEvent(AuthContract.Event.OnToggleMode) },
                 enabled = !state.isLoading
             ) {
-                Text("Don't have an account? Sign Up")
+                Text(
+                    if (state.isRegisterMode) "Already have an account? Login" 
+                    else "Don't have an account? Sign Up"
+                )
             }
         }
     }

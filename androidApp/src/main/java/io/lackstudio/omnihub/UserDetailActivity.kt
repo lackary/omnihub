@@ -9,7 +9,6 @@ import androidx.compose.runtime.getValue
 import io.lackstudio.omnihub.platform.UserDetailEntry
 import io.lackstudio.omnihub.ui.navigation.XrNavigationController
 import io.lackstudio.omnihub.utils.logging.AppLog
-import kotlinx.coroutines.flow.MutableStateFlow
 
 /**
  * UserDetailActivity displays detailed information about a user.

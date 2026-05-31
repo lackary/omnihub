@@ -12,6 +12,7 @@ dependencies {
     implementation(compose.desktop.currentOs)
     implementation(libs.kotlinx.coroutines.swing)
     implementation(libs.compose.ui.tooling.preview)
+    implementation(libs.gitlive.firebase.auth)
 }
 
 compose.desktop {
