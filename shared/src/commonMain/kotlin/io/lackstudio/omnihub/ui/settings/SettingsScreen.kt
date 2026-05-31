@@ -1,11 +1,15 @@
 package io.lackstudio.omnihub.ui.settings
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -18,6 +22,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import io.lackstudio.omnihub.shared.BuildKonfig.APP_BUILD_NUMBER
@@ -30,34 +35,41 @@ fun SettingsScreen(
     onNavigateToFeature: (Feature) -> Unit
 ) {
     Scaffold(
+        modifier = Modifier
+            .widthIn(max = 600.dp) // Settings can be a bit wider
+            .fillMaxWidth(),
         topBar = {
-            TopAppBar(
-                title = { Text("Settings") } // "Account" title to indicate current screen
+            CenterAlignedTopAppBar(
+                title = {
+                    Text(
+                        text = "Settings",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
             )
         }
     ) { innerPadding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding) // Content padding to avoid overlap with TopAppBar
+                .padding(innerPadding)
                 .padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally // Center content horizontally
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
             // ... User profile information at the top ...
             Text("About", style = MaterialTheme.typography.titleLarge)
 
-            Spacer(modifier = Modifier.weight(1f)) // Push content to the bottom
+            Spacer(modifier = Modifier.weight(1f))
 
-            // --- Industry standard simple approach (Footer) ---
             VersionFooter(
                 versionName = APP_VERSION,
                 buildNumber = APP_BUILD_NUMBER
             )
 
-            Spacer(modifier = Modifier.height(24.dp)) // Bottom spacing
+            Spacer(modifier = Modifier.height(24.dp))
         }
     }
-
 }
 
 @Composable
@@ -99,11 +111,10 @@ fun VersionFooter(
     }
 }
 
-// Add this function specifically for preview
 @Preview
 @Composable
 fun AccountScreenPreview() {
     SettingsScreen (
-        onNavigateToFeature = {} // Provide an empty lambda to satisfy parameter requirements
+        onNavigateToFeature = {}
     )
 }

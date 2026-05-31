@@ -27,6 +27,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -36,7 +37,8 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import io.lackstudio.omnihub.auth.DeepLinkBuffer
 import io.lackstudio.omnihub.ui.extensions.navigateToFeatureSmart
-import io.lackstudio.omnihub.ui.auth.LoginScreen
+import io.lackstudio.omnihub.ui.account.LoginScreen
+import io.lackstudio.omnihub.ui.account.RegisterScreen
 import io.lackstudio.omnihub.ui.settings.SettingsScreen
 import io.lackstudio.omnihub.ui.gallery.CollectionDetailScreen
 import io.lackstudio.omnihub.ui.gallery.GalleryScreen
@@ -71,10 +73,20 @@ private fun AnimatedContentTransitionScope<*>.slidePopIn() =
 private fun AnimatedContentTransitionScope<*>.slidePopOut() =
     slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.End, tween(ANIM_DURATION))
 
-// [Photo Details] Fade in/out (Since fadeIn/fadeOut are global functions, variables or functions could be used here; keeping it as functions for consistency)
+// [Photo Details] Fade in/out
 private fun fadeEnter() = fadeIn(tween(ANIM_DURATION))
 private fun fadeExit() = fadeOut(tween(ANIM_DURATION))
 
+// Helper to determine screen index for tab animations
+private fun getScreenIndex(entry: NavBackStackEntry?): Int {
+    return when {
+        entry?.destination?.hasRoute<Screen.Home>() == true -> 0
+        entry?.destination?.hasRoute<Screen.Settings>() == true -> 1
+        entry?.destination?.hasRoute<Screen.Login>() == true -> 2
+        entry?.destination?.hasRoute<Screen.Register>() == true -> 2
+        else -> 0
+    }
+}
 
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Preview(name = "Mobile", widthDp = 360, heightDp = 640)
@@ -100,7 +112,6 @@ fun AppScreen(
     showNavigationBar: Boolean
 ){
     val logger = rememberLogger("AppScreen")
-//    val navController = rememberNavController()
 
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
@@ -133,18 +144,14 @@ fun AppScreen(
     // Resolve issue where web cannot redirect to Gallery page after successful OAuth2 login
     val startDestination: Any = remember {
         val hasAuthCode = DeepLinkBuffer.deepLinkUrl.value?.contains("code=") == true
-        // If an auth code is present, navigate directly to Gallery (letting ViewModel handle login);
-        // otherwise, go to the Home screen.
         if (hasAuthCode)  Feature.Gallery else Screen.Home
     }
 
-    // Use NavigationSuiteScaffold instead of the original Scaffold
     NavigationSuiteScaffold(
         layoutType = layoutType,
         navigationSuiteItems = {
             navItems.forEachIndexed { index, item ->
 
-                // Logic: If in Rail mode, it is the first item (Home), add 16dp top padding
                 val itemModifier = if (layoutType == NavigationSuiteType.NavigationRail && index == 0) {
                     Modifier.padding(top = 16.dp)
                 } else {
@@ -170,7 +177,6 @@ fun AppScreen(
         SharedTransitionLayout {
             Scaffold(
                 snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
-                // Use a transparent background to avoid obscuring the content behind
                 containerColor = androidx.compose.ui.graphics.Color.Transparent
             ) { innerPadding ->
                 val onNavigate: (Feature) -> Unit = { feature ->
@@ -179,33 +185,112 @@ fun AppScreen(
                     handleAppNavigation(feature, navController, scope, snackbarHostState)
                 }
 
-                // Main content goes here (NavHost)
-                // Note: No need to handle innerPadding like in standard Scaffold,
-                // NavigationSuiteScaffold automatically handles the layout
                 NavHost(
                     navController = navController,
                     startDestination = startDestination,
-                    modifier = Modifier
-                        .fillMaxSize()
+                    modifier = Modifier.fillMaxSize()
                 ) {
                     // Home Screen
-                    composable<Screen.Home> {
+                    composable<Screen.Home>(
+                        enterTransition = {
+                            val initialIndex = getScreenIndex(initialState)
+                            val targetIndex = getScreenIndex(targetState)
+                            if (targetIndex > initialIndex) {
+                                slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Start, tween(ANIM_DURATION))
+                            } else {
+                                slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.End, tween(ANIM_DURATION))
+                            }
+                        },
+                        exitTransition = {
+                            val initialIndex = getScreenIndex(initialState)
+                            val targetIndex = getScreenIndex(targetState)
+                            if (targetIndex < initialIndex) {
+                                slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.End, tween(ANIM_DURATION))
+                            } else {
+                                slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Start, tween(ANIM_DURATION))
+                            }
+                        }
+                    ) {
                         HomeScreen(
                             onNavigateToFeature = onNavigate
                         )
                     }
 
-                    // Account Screen
-                    composable<Screen.Settings> {
+                    // Settings Screen
+                    composable<Screen.Settings>(
+                        enterTransition = {
+                            val initialIndex = getScreenIndex(initialState)
+                            val targetIndex = getScreenIndex(targetState)
+                            if (targetIndex > initialIndex) {
+                                slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Start, tween(ANIM_DURATION))
+                            } else {
+                                slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.End, tween(ANIM_DURATION))
+                            }
+                        },
+                        exitTransition = {
+                            val initialIndex = getScreenIndex(initialState)
+                            val targetIndex = getScreenIndex(targetState)
+                            if (targetIndex < initialIndex) {
+                                slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.End, tween(ANIM_DURATION))
+                            } else {
+                                slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Start, tween(ANIM_DURATION))
+                            }
+                        }
+                    ) {
                         SettingsScreen(
                             onNavigateToFeature = onNavigate
                         )
                     }
 
                     // Login Screen
-                    composable<Screen.Login> {
+                    composable<Screen.Login>(
+                        enterTransition = {
+                            val initialIndex = getScreenIndex(initialState)
+                            val targetIndex = getScreenIndex(targetState)
+                            if (targetIndex > initialIndex) {
+                                slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Start, tween(ANIM_DURATION))
+                            } else {
+                                slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.End, tween(ANIM_DURATION))
+                            }
+                        },
+                        exitTransition = {
+                            val initialIndex = getScreenIndex(initialState)
+                            val targetIndex = getScreenIndex(targetState)
+                            if (targetIndex < initialIndex) {
+                                slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.End, tween(ANIM_DURATION))
+                            } else {
+                                slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Start, tween(ANIM_DURATION))
+                            }
+                        },
+                        popEnterTransition = { slidePopIn() },
+                        popExitTransition = { slidePopOut() }
+                    ) {
                         LoginScreen(
-                            onNavigateToFeature = onNavigate,
+                            onNavigateToRegister = {
+                                navController.navigate(Screen.Register)
+                            }
+                        )
+                    }
+
+                    // Register Screen
+                    composable<Screen.Register>(
+                        enterTransition = { slideIn() },
+                        exitTransition = {
+                            val initialIndex = getScreenIndex(initialState)
+                            val targetIndex = getScreenIndex(targetState)
+                            if (targetIndex < initialIndex) {
+                                slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.End, tween(ANIM_DURATION))
+                            } else {
+                                slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Start, tween(ANIM_DURATION))
+                            }
+                        },
+                        popEnterTransition = { slidePopIn() },
+                        popExitTransition = { slidePopOut() }
+                    ) {
+                        RegisterScreen(
+                            onNavigateToLogin = {
+                                navController.popBackStack()
+                            },
                             onBack = {
                                 navController.popBackStack()
                             }
@@ -329,11 +414,6 @@ fun AppScreen(
     }
 }
 
-/**
- * Centralized navigation logic:
- * 1. Intercept unfinished features (News, Stocks) -> Show Snackbar
- * 2. Finished features -> Perform smart navigation
- */
 private fun handleAppNavigation(
     feature: Feature,
     navController: NavHostController,
@@ -343,7 +423,6 @@ private fun handleAppNavigation(
     when (feature) {
         is Feature.News, is Feature.Stocks -> {
             scope.launch {
-                // Clear old snackbar and show new one to prevent stacking
                 snackbarHostState.currentSnackbarData?.dismiss()
                 snackbarHostState.showSnackbar(
                     message = "Coming Soon: ${feature::class.simpleName} is under development!",

@@ -33,7 +33,7 @@ fun HomeScreen(
             CenterAlignedTopAppBar(
                 title = {
                     Text(
-                        text = BuildKonfig.APP_NAME,
+                        text = "Home",
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold
                     )
