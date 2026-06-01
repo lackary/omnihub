@@ -2,6 +2,7 @@ package io.lackstudio.omnihub.ui.account
 
 import androidx.lifecycle.viewModelScope
 import io.lackstudio.omnifeed.auth.domain.usecase.SignUpWithEmailUseCase
+import io.lackstudio.omnifeed.core.common.error.getFriendlyMessage
 import io.lackstudio.omnifeed.ui.viewmodel.BaseViewModel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -74,8 +75,9 @@ class RegisterViewModel(
                     _sideEffect.send(RegisterContract.Effect.NavigateBack)
                 }
                 .onFailure { error ->
-                    _state.update { it.copy(isLoading = false, error = error.message) }
-                    _sideEffect.send(RegisterContract.Effect.ShowError(error.message ?: "Unknown error"))
+                    val message = error.getFriendlyMessage()
+                    _state.update { it.copy(isLoading = false, error = message) }
+                    _sideEffect.send(RegisterContract.Effect.ShowError(message))
                 }
         }
     }

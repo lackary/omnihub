@@ -3,6 +3,7 @@ package io.lackstudio.omnihub.ui.account
 import androidx.lifecycle.viewModelScope
 import io.lackstudio.omnifeed.auth.domain.usecase.SignInWithEmailUseCase
 import io.lackstudio.omnifeed.auth.domain.usecase.SignInWithGoogleUseCase
+import io.lackstudio.omnifeed.core.common.error.getFriendlyMessage
 import io.lackstudio.omnifeed.ui.viewmodel.BaseViewModel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -66,7 +67,7 @@ class LoginViewModel(
                     _sideEffect.send(LoginContract.Effect.NavigateBack)
                 }
                 .onFailure { error ->
-                    _state.update { it.copy(isLoading = false, error = error.message) }
+                    _state.update { it.copy(isLoading = false, error = error.getFriendlyMessage()) }
                 }
         }
     }
@@ -86,7 +87,7 @@ class LoginViewModel(
                     _sideEffect.send(LoginContract.Effect.NavigateBack)
                 }
                 .onFailure { error ->
-                    _state.update { it.copy(isLoading = false, error = error.message) }
+                    _state.update { it.copy(isLoading = false, error = error.getFriendlyMessage()) }
                 }
         }
     }
