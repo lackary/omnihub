@@ -165,6 +165,10 @@ kotlin {
     
     jvm()
 
+    js {
+        browser()
+    }
+
     @OptIn(ExperimentalWasmDsl::class)
     wasmJs {
         browser()
@@ -191,6 +195,7 @@ kotlin {
 //            implementation(libs.androidx.compose.ui.test.junit4)
 //            implementation(libs.androidx.test.ext.junit)
 //        }
+
         val androidHostTest by getting {
             dependencies {
                 implementation(libs.robolectric)
@@ -238,6 +243,9 @@ kotlin {
             implementation(compose.desktop.currentOs)
         }
         wasmJsMain.dependencies {
+            implementation(libs.kotlin.wrappers.browser)
+        }
+        jsMain.dependencies {
             implementation(libs.kotlin.wrappers.browser)
         }
     }

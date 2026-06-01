@@ -68,13 +68,14 @@ class RegisterViewModel(
 
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true, error = null) }
-            signUpWithEmailUseCase(email, password)
+            signUpWithEmailUseCase(email, password, username)
                 .onSuccess {
                     _state.update { it.copy(isLoading = false) }
                     _sideEffect.send(RegisterContract.Effect.NavigateBack)
                 }
                 .onFailure { error ->
                     _state.update { it.copy(isLoading = false, error = error.message) }
+                    _sideEffect.send(RegisterContract.Effect.ShowError(error.message ?: "Unknown error"))
                 }
         }
     }
