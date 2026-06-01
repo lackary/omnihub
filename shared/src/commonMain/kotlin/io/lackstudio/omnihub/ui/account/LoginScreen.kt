@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -42,7 +43,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusDirection
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
@@ -57,6 +62,7 @@ import org.koin.compose.viewmodel.koinViewModel
 @Composable
 fun LoginScreen(
     onNavigateToRegister: () -> Unit,
+    onLoginSuccess: () -> Unit,
     viewModel: LoginViewModel = koinViewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -66,7 +72,7 @@ fun LoginScreen(
         sideEffect.collect { effect ->
             when (effect) {
                 is LoginContract.Effect.NavigateBack -> {
-                    // Logic for back after login success if needed
+                    onLoginSuccess()
                 }
                 is LoginContract.Effect.NavigateToRegister -> onNavigateToRegister()
                 is LoginContract.Effect.ShowError -> {
@@ -91,6 +97,8 @@ fun LoginScreenContent(
     state: LoginContract.State,
     onEvent: (LoginContract.Event) -> Unit
 ) {
+    val focusManager = LocalFocusManager.current
+    val keyboardController = LocalSoftwareKeyboardController.current
     var passwordVisible by remember { mutableStateOf(false) }
 
     Scaffold(
@@ -131,9 +139,14 @@ fun LoginScreenContent(
                     onValueChange = { onEvent(LoginContract.Event.OnEmailChanged(it)) },
                     label = { Text("Email") },
                     modifier = Modifier.fillMaxWidth(),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
                     leadingIcon = { Icon(Icons.Default.Email, contentDescription = null) },
-                    enabled = !state.isLoading
+                    enabled = !state.isLoading,
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Email,
+                        imeAction = ImeAction.Next
+                    ),
+
                 )
 
                 Spacer(modifier = Modifier.height(16.dp))
@@ -144,7 +157,6 @@ fun LoginScreenContent(
                     label = { Text("Password") },
                     modifier = Modifier.fillMaxWidth(),
                     visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                     leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
                     trailingIcon = {
                         IconButton(onClick = { passwordVisible = !passwordVisible }) {
@@ -154,7 +166,18 @@ fun LoginScreenContent(
                             )
                         }
                     },
-                    enabled = !state.isLoading
+                    enabled = !state.isLoading,
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Password,
+                        imeAction = ImeAction.Done
+                    ),
+                    keyboardActions = KeyboardActions(
+                        onDone = {
+                            focusManager.moveFocus(FocusDirection.Down)
+                            keyboardController?.hide()
+                        }
+                    )
                 )
 
                 Spacer(modifier = Modifier.height(24.dp))
@@ -228,6 +251,7 @@ fun LoginScreenContent(
 @Composable
 fun LoginScreenPreview() {
     LoginScreen(
-        onNavigateToRegister = {}
+        onNavigateToRegister = {},
+        onLoginSuccess = {}
     )
 }

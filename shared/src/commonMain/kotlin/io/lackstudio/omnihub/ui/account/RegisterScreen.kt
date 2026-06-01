@@ -223,7 +223,7 @@ fun RegisterScreenContent(
                             focusManager.moveFocus(FocusDirection.Down)
                             keyboardController?.hide()
                         }
-                    ),
+                    )
                 )
 
                 Spacer(modifier = Modifier.height(24.dp))

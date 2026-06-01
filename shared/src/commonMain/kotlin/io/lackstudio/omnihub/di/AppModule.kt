@@ -1,5 +1,6 @@
 package io.lackstudio.omnihub.di
 
+import io.lackstudio.omnihub.ui.account.AccountViewModel
 import io.lackstudio.omnihub.ui.account.LoginViewModel
 import io.lackstudio.omnihub.ui.account.RegisterViewModel
 import io.lackstudio.omnihub.ui.gallery.CollectionViewModel
@@ -21,4 +22,5 @@ val appModule = module {
     viewModelOf(::UserViewModel)
     viewModelOf(::LoginViewModel)
     viewModelOf(::RegisterViewModel)
+    viewModelOf(::AccountViewModel)
 }

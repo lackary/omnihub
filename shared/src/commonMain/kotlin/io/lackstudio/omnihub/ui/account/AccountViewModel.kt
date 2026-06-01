@@ -1,0 +1,90 @@
+package io.lackstudio.omnihub.ui.account
+
+import androidx.lifecycle.viewModelScope
+import io.lackstudio.omnifeed.auth.domain.usecase.DeleteAccountUseCase
+import io.lackstudio.omnifeed.auth.domain.usecase.ObserveUserUseCase
+import io.lackstudio.omnifeed.auth.domain.usecase.SignOutUseCase
+import io.lackstudio.omnifeed.ui.viewmodel.BaseViewModel
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
+
+class AccountViewModel(
+    private val observeUserUseCase: ObserveUserUseCase,
+    private val signOutUseCase: SignOutUseCase,
+    private val deleteAccountUseCase: DeleteAccountUseCase
+) : BaseViewModel() {
+
+    private val _state = MutableStateFlow(AccountContract.State())
+    val state = _state.asStateFlow()
+
+    private val _sideEffect = Channel<AccountContract.Effect>(Channel.BUFFERED)
+    val sideEffect = _sideEffect.receiveAsFlow()
+
+    init {
+        observeUser()
+    }
+
+    private fun observeUser() {
+        viewModelScope.launch {
+            observeUserUseCase().collect { user ->
+                _state.update { it.copy(user = user) }
+                if (user == null && !state.value.isLoading) {
+                    _sideEffect.send(AccountContract.Effect.NavigateToLogin)
+                }
+            }
+        }
+    }
+
+    fun handleIntent(event: AccountContract.Event) {
+        when (event) {
+            AccountContract.Event.OnLogoutClicked -> logout()
+            AccountContract.Event.OnDeleteAccountClicked -> {
+                _state.update { it.copy(showDeleteDialog = true) }
+            }
+            AccountContract.Event.OnDismissDeleteDialog -> {
+                _state.update { it.copy(showDeleteDialog = false) }
+            }
+            AccountContract.Event.OnConfirmDeleteAccount -> {
+                _state.update { it.copy(showDeleteDialog = false) }
+                deleteAccount()
+            }
+            AccountContract.Event.OnBackClicked -> {
+                viewModelScope.launch {
+                    _sideEffect.send(AccountContract.Effect.NavigateBack)
+                }
+            }
+        }
+    }
+
+    private fun logout() {
+        viewModelScope.launch {
+            _state.update { it.copy(isLoading = true) }
+            signOutUseCase()
+                .onSuccess {
+                    _state.update { it.copy(isLoading = false) }
+                    _sideEffect.send(AccountContract.Effect.NavigateToLogin)
+                }
+                .onFailure { error ->
+                    _state.update { it.copy(isLoading = false, error = error.message) }
+                }
+        }
+    }
+
+    private fun deleteAccount() {
+        viewModelScope.launch {
+            _state.update { it.copy(isLoading = true) }
+            deleteAccountUseCase()
+                .onSuccess {
+                    _state.update { it.copy(isLoading = false) }
+                    _sideEffect.send(AccountContract.Effect.NavigateToLogin)
+                }
+                .onFailure { error ->
+                    _state.update { it.copy(isLoading = false, error = error.message) }
+                }
+        }
+    }
+}

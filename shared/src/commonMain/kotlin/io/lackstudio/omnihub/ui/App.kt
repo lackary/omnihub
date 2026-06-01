@@ -37,6 +37,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import io.lackstudio.omnihub.auth.DeepLinkBuffer
 import io.lackstudio.omnihub.ui.extensions.navigateToFeatureSmart
+import io.lackstudio.omnihub.ui.account.AccountScreen
 import io.lackstudio.omnihub.ui.account.LoginScreen
 import io.lackstudio.omnihub.ui.account.RegisterScreen
 import io.lackstudio.omnihub.ui.settings.SettingsScreen
@@ -84,6 +85,7 @@ private fun getScreenIndex(entry: NavBackStackEntry?): Int {
         entry?.destination?.hasRoute<Screen.Settings>() == true -> 1
         entry?.destination?.hasRoute<Screen.Login>() == true -> 2
         entry?.destination?.hasRoute<Screen.Register>() == true -> 2
+        entry?.destination?.hasRoute<Screen.Account>() == true -> 2
         else -> 0
     }
 }
@@ -268,6 +270,30 @@ fun AppScreen(
                         LoginScreen(
                             onNavigateToRegister = {
                                 navController.navigate(Screen.Register)
+                            },
+                            onLoginSuccess = {
+                                navController.navigate(Screen.Account) {
+                                    popUpTo(Screen.Login) { inclusive = true }
+                                }
+                            }
+                        )
+                    }
+
+                    // Account Screen
+                    composable<Screen.Account>(
+                        enterTransition = { slideIn() },
+                        exitTransition = { slideOut() },
+                        popEnterTransition = { slidePopIn() },
+                        popExitTransition = { slidePopOut() }
+                    ) {
+                        AccountScreen(
+                            onNavigateToLogin = {
+                                navController.navigate(Screen.Login) {
+                                    popUpTo(Screen.Account) { inclusive = true }
+                                }
+                            },
+                            onBack = {
+                                navController.popBackStack()
                             }
                         )
                     }

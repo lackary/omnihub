@@ -34,8 +34,10 @@ fun getAppNavItems(navDestination: NavDestination?): List<NavItem> {
         NavItem(
             label = "Account",
             icon = Icons.Filled.Person,
-            route = Screen.Login,
-            isSelected = navDestination?.hasRoute<Screen.Login>() == true
+            route = Screen.Account,
+            isSelected = navDestination?.hasRoute<Screen.Account>() == true ||
+                    navDestination?.hasRoute<Screen.Login>() == true ||
+                    navDestination?.hasRoute<Screen.Register>() == true
         )
     )
 }
