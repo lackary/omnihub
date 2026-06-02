@@ -7,18 +7,39 @@ import dev.gitlive.firebase.FirebaseOptions
 import dev.gitlive.firebase.initialize
 import io.lackstudio.omnihub.utils.getFirebaseWebConfig
 import io.lackstudio.omnihub.utils.logging.AppLog
+import java.util.prefs.BackingStoreException
+import java.util.prefs.Preferences
 
 actual fun initializeFirebase() {
     // Desktop initialization can be added here if needed
     FirebasePlatform.initializeFirebasePlatform(
         object : FirebasePlatform() {
-            val storage = mutableMapOf<String, String>()
-            override fun store(key: String, value: String) = storage.set(key, value)
-            override fun retrieve(key: String) = storage[key]
-            override fun clear(key: String) { storage.remove(key) }
-            override fun log(msg: String) = println(msg)
+            private val prefs = Preferences.userRoot().node("io.lackstudio.omnihub.firebase")
+
+            override fun store(key: String, value: String) {
+                prefs.put(key, value)
+                forceSyncToDisk()
+            }
+
+            override fun retrieve(key: String): String? = prefs.get(key, null)
+
+            override fun clear(key: String) {
+                prefs.remove(key)
+                forceSyncToDisk()
+            }
+
+            override fun log(msg: String) = AppLog.d { "Firebase JVM: $msg" }
+
+            private fun forceSyncToDisk() {
+                try {
+                    prefs.flush()
+                } catch (e: BackingStoreException) {
+                    AppLog.e(throwable = e) { "Failed to flush preferences to disk" }
+                }
+            }
         }
     )
+
 
     val config = getFirebaseWebConfig()
     if (config != null) {
