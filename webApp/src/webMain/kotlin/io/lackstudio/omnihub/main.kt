@@ -6,14 +6,17 @@ import io.lackstudio.omnihub.auth.DeepLinkBuffer
 import io.lackstudio.omnihub.di.initKoin
 import io.lackstudio.omnihub.platform.appName
 import io.lackstudio.omnihub.ui.App
-import io.lackstudio.omnihub.platform.initializeFirebase
+import io.lackstudio.omnifeed.auth.platform.initializeFirebase
+import io.lackstudio.omnihub.platform.firebaseWebBase64
 import kotlinx.browser.document
 import kotlinx.browser.window
 import kotlin.js.ExperimentalWasmJsInterop
 
 @OptIn(ExperimentalComposeUiApi::class, ExperimentalWasmJsInterop::class)
 fun main() {
-    initializeFirebase()
+
+    initializeFirebase(firebaseConfig = firebaseWebBase64)
+
 
     initKoin()
 

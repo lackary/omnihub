@@ -10,3 +10,4 @@ actual val authModule = module {
     single<AuthManager> { AndroidAuthManager(get()) }
 }
 actual val appName: String = BuildKonfig.APP_NAME
+actual val firebaseWebBase64: String = ""

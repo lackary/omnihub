@@ -13,6 +13,7 @@ dependencies {
     implementation(libs.kotlinx.coroutines.swing)
     implementation(libs.compose.ui.tooling.preview)
     implementation(libs.gitlive.firebase.auth)
+    implementation(libs.omnifeed.auth)
 }
 
 compose.desktop {

@@ -67,4 +67,5 @@ dependencies {
     implementation(libs.koin.android)
     implementation(libs.koin.androidx.compose)
     implementation(libs.touchlab.kermit)
+    implementation(libs.omnifeed.auth)
 }

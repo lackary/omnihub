@@ -8,13 +8,14 @@ import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
 import io.lackstudio.omnihub.di.initKoin
 import io.lackstudio.omnihub.platform.appName
-import io.lackstudio.omnihub.platform.initializeFirebase
 import io.lackstudio.omnihub.ui.App
+import io.lackstudio.omnifeed.auth.platform.initializeFirebase
+import io.lackstudio.omnihub.platform.firebaseWebBase64
 
 fun main() {
     System.setProperty("PID", ProcessHandle.current().pid().toString())
 
-    initializeFirebase()
+    initializeFirebase("io.lackstudio.omnihub.firebase", firebaseWebBase64)
 
     initKoin()
 
