@@ -29,7 +29,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -81,31 +80,9 @@ private fun AnimatedContentTransitionScope<*>.slidePopOut() =
 private fun fadeEnter() = fadeIn(tween(ANIM_DURATION))
 private fun fadeExit() = fadeOut(tween(ANIM_DURATION))
 
-// Helper to determine screen index for tab animations
-private fun getScreenIndex(entry: NavBackStackEntry?): Int {
-    return when {
-        entry?.destination?.hasRoute<Screen.Home>() == true -> 0
-        entry?.destination?.hasRoute<Screen.Settings>() == true -> 1
-        entry?.destination?.hasRoute<Screen.Account>() == true -> 2
-        entry?.destination?.hasRoute<Screen.Login>() == true -> 3
-        entry?.destination?.hasRoute<Screen.Register>() == true -> 4
-        else -> 0
-    }
-}
-
-private fun AnimatedContentTransitionScope<NavBackStackEntry>.tabEnterTransition() =
-    if (getScreenIndex(targetState) > getScreenIndex(initialState)) {
-        slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Start, tween(ANIM_DURATION))
-    } else {
-        slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.End, tween(ANIM_DURATION))
-    }
-
-private fun AnimatedContentTransitionScope<NavBackStackEntry>.tabExitTransition() =
-    if (getScreenIndex(targetState) < getScreenIndex(initialState)) {
-        slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.End, tween(ANIM_DURATION))
-    } else {
-        slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Start, tween(ANIM_DURATION))
-    }
+// [Tabs] Fade in/out
+private fun tabEnterTransition() = fadeIn(tween(ANIM_DURATION))
+private fun tabExitTransition() = fadeOut(tween(ANIM_DURATION))
 
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Preview(name = "Mobile", widthDp = 360, heightDp = 640)
@@ -219,7 +196,9 @@ fun AppScreen(
                     // Home Screen
                     composable<Screen.Home>(
                         enterTransition = { tabEnterTransition() },
-                        exitTransition = { tabExitTransition() }
+                        exitTransition = { tabExitTransition() },
+                        popEnterTransition = { tabEnterTransition() },
+                        popExitTransition = { tabExitTransition() }
                     ) {
                         HomeScreen(
                             onNavigateToFeature = onNavigate
@@ -229,7 +208,9 @@ fun AppScreen(
                     // Settings Screen
                     composable<Screen.Settings>(
                         enterTransition = { tabEnterTransition() },
-                        exitTransition = { tabExitTransition() }
+                        exitTransition = { tabExitTransition() },
+                        popEnterTransition = { tabEnterTransition() },
+                        popExitTransition = { tabExitTransition() }
                     ) {
                         SettingsScreen(
                             onNavigateToFeature = onNavigate
@@ -240,13 +221,13 @@ fun AppScreen(
                     composable<Screen.Account>(
                         enterTransition = { tabEnterTransition() },
                         exitTransition = { tabExitTransition() },
-                        popEnterTransition = { slidePopIn() },
-                        popExitTransition = { slidePopOut() }
+                        popEnterTransition = { tabEnterTransition() },
+                        popExitTransition = { tabExitTransition() }
                     ) {
                         AccountScreen(
                             onNavigateToLogin = {
                                 navController.navigate(Screen.Login) {
-                                    popUpTo(Screen.Account) { inclusive = true }
+                                    popUpTo<Screen.Account> { inclusive = true }
                                 }
                             }
                         )
@@ -256,8 +237,8 @@ fun AppScreen(
                     composable<Screen.Login>(
                         enterTransition = { tabEnterTransition() },
                         exitTransition = { tabExitTransition() },
-                        popEnterTransition = { slidePopIn() },
-                        popExitTransition = { slidePopOut() }
+                        popEnterTransition = { tabEnterTransition() },
+                        popExitTransition = { tabExitTransition() }
                     ) {
                         LoginScreen(
                             onNavigateToRegister = {
@@ -265,7 +246,7 @@ fun AppScreen(
                             },
                             onLoginSuccess = {
                                 navController.navigate(Screen.Account) {
-                                    popUpTo(Screen.Login) { inclusive = true }
+                                    popUpTo<Screen.Login> { inclusive = true }
                                 }
                             }
                         )
@@ -273,8 +254,8 @@ fun AppScreen(
 
                     // Register Screen
                     composable<Screen.Register>(
-                        enterTransition = { tabEnterTransition() },
-                        exitTransition = { tabExitTransition() },
+                        enterTransition = { slideIn() },
+                        exitTransition = { slideOut() },
                         popEnterTransition = { slidePopIn() },
                         popExitTransition = { slidePopOut() }
                     ) {
