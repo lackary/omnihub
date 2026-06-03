@@ -1,5 +1,6 @@
 package io.lackstudio.omnihub.ui.account
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,6 +14,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -43,6 +46,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusDirection
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
@@ -83,7 +87,7 @@ fun RegisterScreen(
     )
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun RegisterScreenContent(
     state: RegisterContract.State,
@@ -95,6 +99,39 @@ fun RegisterScreenContent(
     val keyboardController = LocalSoftwareKeyboardController.current
     var passwordVisible by remember { mutableStateOf(false) }
     var confirmPasswordVisible by remember { mutableStateOf(false) }
+
+    val emailRequester = remember { BringIntoViewRequester() }
+    val passwordRequester = remember { BringIntoViewRequester() }
+    val confirmPasswordRequester = remember { BringIntoViewRequester() }
+    val generalErrorRequester = remember { BringIntoViewRequester() }
+
+    LaunchedEffect(state.emailError) {
+        if (state.emailError != null) {
+            emailRequester.bringIntoView()
+        }
+    }
+
+    LaunchedEffect(state.error) {
+        if (state.error != null) {
+            when {
+                state.password.isEmpty() -> passwordRequester.bringIntoView()
+                state.confirmPassword.isEmpty() -> confirmPasswordRequester.bringIntoView()
+                else -> generalErrorRequester.bringIntoView()
+            }
+        }
+    }
+
+    LaunchedEffect(state.passwordError) {
+        if (state.passwordError != null) {
+            passwordRequester.bringIntoView()
+        }
+    }
+
+    LaunchedEffect(state.confirmPasswordError) {
+        if (state.confirmPasswordError != null) {
+            confirmPasswordRequester.bringIntoView()
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -160,9 +197,20 @@ fun RegisterScreenContent(
                     value = state.email,
                     onValueChange = { onEvent(RegisterContract.Event.OnEmailChanged(it)) },
                     label = { Text("Email") },
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .bringIntoViewRequester(emailRequester)
+                        .onFocusChanged { focusState ->
+                            if (!focusState.isFocused) {
+                                onEvent(RegisterContract.Event.OnEmailBlur)
+                            }
+                        },
                     leadingIcon = { Icon(Icons.Default.Email, contentDescription = null) },
                     enabled = !state.isLoading,
+                    isError = state.emailError != null,
+                    supportingText = state.emailError?.let {
+                        { Text(it, color = MaterialTheme.colorScheme.error) }
+                    },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(
                         keyboardType = KeyboardType.Email,
@@ -176,7 +224,14 @@ fun RegisterScreenContent(
                     value = state.password,
                     onValueChange = { onEvent(RegisterContract.Event.OnPasswordChanged(it)) },
                     label = { Text("Password") },
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .bringIntoViewRequester(passwordRequester)
+                        .onFocusChanged { focusState ->
+                            if (!focusState.isFocused) {
+                                onEvent(RegisterContract.Event.OnPasswordBlur)
+                            }
+                        },
                     visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                     leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
                     trailingIcon = {
@@ -188,6 +243,10 @@ fun RegisterScreenContent(
                         }
                     },
                     enabled = !state.isLoading,
+                    isError = state.passwordError != null || (state.error != null && state.password.isEmpty()),
+                    supportingText = state.passwordError?.let {
+                        { Text(it, color = MaterialTheme.colorScheme.error) }
+                    },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(
                         keyboardType = KeyboardType.Password,
@@ -201,7 +260,14 @@ fun RegisterScreenContent(
                     value = state.confirmPassword,
                     onValueChange = { onEvent(RegisterContract.Event.OnConfirmPasswordChanged(it)) },
                     label = { Text("Confirm Password") },
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .bringIntoViewRequester(confirmPasswordRequester)
+                        .onFocusChanged { focusState ->
+                            if (!focusState.isFocused) {
+                                onEvent(RegisterContract.Event.OnConfirmPasswordBlur)
+                            }
+                        },
                     visualTransformation = if (confirmPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                     leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
                     trailingIcon = {
@@ -213,6 +279,10 @@ fun RegisterScreenContent(
                         }
                     },
                     enabled = !state.isLoading,
+                    isError = state.confirmPasswordError != null || (state.error != null && state.confirmPassword.isEmpty()),
+                    supportingText = state.confirmPasswordError?.let {
+                        { Text(it, color = MaterialTheme.colorScheme.error) }
+                    },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(
                         keyboardType = KeyboardType.Password,
@@ -220,7 +290,7 @@ fun RegisterScreenContent(
                     ),
                     keyboardActions = KeyboardActions(
                         onDone = {
-                            focusManager.moveFocus(FocusDirection.Down)
+                            focusManager.clearFocus()
                             keyboardController?.hide()
                         }
                     )
@@ -229,7 +299,10 @@ fun RegisterScreenContent(
                 Spacer(modifier = Modifier.height(24.dp))
 
                 Button(
-                    onClick = { onEvent(RegisterContract.Event.OnRegisterClicked) },
+                    onClick = {
+                        focusManager.clearFocus()
+                        onEvent(RegisterContract.Event.OnRegisterClicked)
+                    },
                     modifier = Modifier.fillMaxWidth().height(50.dp),
                     shape = MaterialTheme.shapes.medium,
                     enabled = !state.isLoading
@@ -247,7 +320,11 @@ fun RegisterScreenContent(
 
                 state.error?.let {
                     Spacer(modifier = Modifier.height(16.dp))
-                    Text(it, color = MaterialTheme.colorScheme.error)
+                    Text(
+                        text = it,
+                        color = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.bringIntoViewRequester(generalErrorRequester)
+                    )
                 }
 
                 Spacer(modifier = Modifier.height(32.dp))

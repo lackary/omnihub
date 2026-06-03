@@ -12,8 +12,10 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 class RegisterViewModel(
-    private val signUpWithEmailUseCase: SignUpWithEmailUseCase
+    private val signUpWithEmailUseCase: SignUpWithEmailUseCase,
 ) : BaseViewModel() {
+
+    private val emailRegex = Regex("""^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$""")
 
     private val _state = MutableStateFlow(RegisterContract.State())
     val state = _state.asStateFlow()
@@ -24,16 +26,49 @@ class RegisterViewModel(
     fun handleIntent(event: RegisterContract.Event) {
         when (event) {
             is RegisterContract.Event.OnUsernameChanged -> {
-                _state.update { it.copy(username = event.username) }
+                _state.update { it.copy(username = event.username, error = null) }
             }
             is RegisterContract.Event.OnEmailChanged -> {
-                _state.update { it.copy(email = event.email) }
+                _state.update { it.copy(email = event.email, emailError = null, error = null) }
+            }
+            RegisterContract.Event.OnEmailBlur -> {
+                if (state.value.email.isNotEmpty() && !validateEmail(state.value.email)) {
+                    _state.update { it.copy(emailError = "Invalid email format") }
+                }
             }
             is RegisterContract.Event.OnPasswordChanged -> {
-                _state.update { it.copy(password = event.password) }
+                _state.update { it.copy(password = event.password, passwordError = null, error = null) }
+            }
+            RegisterContract.Event.OnPasswordBlur -> {
+                _state.update {
+                    var newState = it
+                    if (it.password.isNotEmpty() && it.password.length < 6) {
+                        newState = newState.copy(passwordError = "Password must be at least 6 characters")
+                    }
+                    if (it.confirmPassword.isNotEmpty() && it.password != it.confirmPassword) {
+                        newState = newState.copy(confirmPasswordError = "Passwords do not match")
+                    }
+                    newState
+                }
             }
             is RegisterContract.Event.OnConfirmPasswordChanged -> {
-                _state.update { it.copy(confirmPassword = event.password) }
+                _state.update {
+                    val isMatchSoFar = it.password.startsWith(event.password)
+                    it.copy(
+                        confirmPassword = event.password,
+                        confirmPasswordError = if (isMatchSoFar) null else "Passwords do not match",
+                        error = null
+                    )
+                }
+            }
+            RegisterContract.Event.OnConfirmPasswordBlur -> {
+                _state.update {
+                    if (it.confirmPassword.isNotEmpty() && it.password != it.confirmPassword) {
+                        it.copy(confirmPasswordError = "Passwords do not match")
+                    } else {
+                        it.copy(confirmPasswordError = null)
+                    }
+                }
             }
             RegisterContract.Event.OnRegisterClicked -> {
                 registerWithEmail()
@@ -51,19 +86,44 @@ class RegisterViewModel(
         }
     }
 
-    private fun registerWithEmail() {
-        val email = state.value.email
-        val username = state.value.username
-        val password = state.value.password
-        val confirmPassword = state.value.confirmPassword
+    private fun validateEmail(email: String): Boolean {
+        return emailRegex.matches(email)
+    }
 
-        if (email.isBlank() || password.isBlank() || username.isBlank()) {
+    private fun registerWithEmail() {
+        val stateValue = state.value
+        val email = stateValue.email
+        val username = stateValue.username
+        val password = stateValue.password
+        val confirmPassword = stateValue.confirmPassword
+
+        // Reset errors
+        _state.update {
+            it.copy(
+                emailError = null,
+                passwordError = null,
+                confirmPasswordError = null,
+                error = null
+            )
+        }
+
+        if (email.isBlank() || password.isBlank() || confirmPassword.isBlank() || username.isBlank()) {
             _state.update { it.copy(error = "All fields are required") }
             return
         }
 
+        if (!validateEmail(email)) {
+            _state.update { it.copy(emailError = "Invalid email format") }
+            return
+        }
+
+        if (password.length < 6) {
+            _state.update { it.copy(passwordError = "Password must be at least 6 characters") }
+            return
+        }
+
         if (password != confirmPassword) {
-            _state.update { it.copy(error = "Passwords do not match") }
+            _state.update { it.copy(confirmPasswordError = "Passwords do not match") }
             return
         }
 
