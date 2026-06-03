@@ -21,12 +21,14 @@ import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteType
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavHostController
@@ -54,6 +56,7 @@ import io.lackstudio.omnihub.utils.logging.AppLog
 import io.lackstudio.omnihub.utils.LocalLogger
 import io.lackstudio.omnihub.utils.logging.rememberLogger
 import kotlinx.coroutines.launch
+import org.koin.compose.viewmodel.koinViewModel
 
 // --- Animation Constants ---
 private const val ANIM_DURATION = 300
@@ -110,10 +113,12 @@ fun App(
 
 @Composable
 fun AppScreen(
-    navController: NavHostController ,
-    showNavigationBar: Boolean
-){
+    navController: NavHostController,
+    showNavigationBar: Boolean,
+    viewModel: AppViewModel = koinViewModel()
+) {
     val logger = rememberLogger("AppScreen")
+    val isLoggedIn by viewModel.isLoggedIn.collectAsStateWithLifecycle()
 
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
@@ -166,7 +171,12 @@ fun AppScreen(
                     label = { Text(item.label) },
                     selected = item.isSelected,
                     onClick = {
-                        navController.navigate(item.route) {
+                        val targetRoute = if (item.route == Screen.Account && !isLoggedIn) {
+                            Screen.Login
+                        } else {
+                            item.route
+                        }
+                        navController.navigate(targetRoute) {
                             popUpTo(navController.graph.startDestinationId) { saveState = true }
                             launchSingleTop = true
                             restoreState = true
