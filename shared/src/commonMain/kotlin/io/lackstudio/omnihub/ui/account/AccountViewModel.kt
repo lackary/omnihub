@@ -52,11 +52,6 @@ class AccountViewModel(
                 _state.update { it.copy(showDeleteDialog = false) }
                 deleteAccount()
             }
-            AccountContract.Event.OnBackClicked -> {
-                viewModelScope.launch {
-                    _sideEffect.send(AccountContract.Effect.NavigateBack)
-                }
-            }
         }
     }
 

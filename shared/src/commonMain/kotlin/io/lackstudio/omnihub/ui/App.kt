@@ -86,12 +86,26 @@ private fun getScreenIndex(entry: NavBackStackEntry?): Int {
     return when {
         entry?.destination?.hasRoute<Screen.Home>() == true -> 0
         entry?.destination?.hasRoute<Screen.Settings>() == true -> 1
-        entry?.destination?.hasRoute<Screen.Login>() == true -> 2
-        entry?.destination?.hasRoute<Screen.Register>() == true -> 2
         entry?.destination?.hasRoute<Screen.Account>() == true -> 2
+        entry?.destination?.hasRoute<Screen.Login>() == true -> 3
+        entry?.destination?.hasRoute<Screen.Register>() == true -> 4
         else -> 0
     }
 }
+
+private fun AnimatedContentTransitionScope<NavBackStackEntry>.tabEnterTransition() =
+    if (getScreenIndex(targetState) > getScreenIndex(initialState)) {
+        slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Start, tween(ANIM_DURATION))
+    } else {
+        slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.End, tween(ANIM_DURATION))
+    }
+
+private fun AnimatedContentTransitionScope<NavBackStackEntry>.tabExitTransition() =
+    if (getScreenIndex(targetState) < getScreenIndex(initialState)) {
+        slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.End, tween(ANIM_DURATION))
+    } else {
+        slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Start, tween(ANIM_DURATION))
+    }
 
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Preview(name = "Mobile", widthDp = 360, heightDp = 640)
@@ -159,7 +173,7 @@ fun AppScreen(
         navigationSuiteItems = {
             navItems.forEachIndexed { index, item ->
 
-                val itemModifier = if (layoutType == NavigationSuiteType.NavigationRail && index == 0) {
+                val itemModifier = if ((layoutType == NavigationSuiteType.NavigationRail) && (index == 0)) {
                     Modifier.padding(top = 16.dp)
                 } else {
                     Modifier
@@ -204,24 +218,8 @@ fun AppScreen(
                 ) {
                     // Home Screen
                     composable<Screen.Home>(
-                        enterTransition = {
-                            val initialIndex = getScreenIndex(initialState)
-                            val targetIndex = getScreenIndex(targetState)
-                            if (targetIndex > initialIndex) {
-                                slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Start, tween(ANIM_DURATION))
-                            } else {
-                                slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.End, tween(ANIM_DURATION))
-                            }
-                        },
-                        exitTransition = {
-                            val initialIndex = getScreenIndex(initialState)
-                            val targetIndex = getScreenIndex(targetState)
-                            if (targetIndex < initialIndex) {
-                                slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.End, tween(ANIM_DURATION))
-                            } else {
-                                slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Start, tween(ANIM_DURATION))
-                            }
-                        }
+                        enterTransition = { tabEnterTransition() },
+                        exitTransition = { tabExitTransition() }
                     ) {
                         HomeScreen(
                             onNavigateToFeature = onNavigate
@@ -230,50 +228,34 @@ fun AppScreen(
 
                     // Settings Screen
                     composable<Screen.Settings>(
-                        enterTransition = {
-                            val initialIndex = getScreenIndex(initialState)
-                            val targetIndex = getScreenIndex(targetState)
-                            if (targetIndex > initialIndex) {
-                                slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Start, tween(ANIM_DURATION))
-                            } else {
-                                slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.End, tween(ANIM_DURATION))
-                            }
-                        },
-                        exitTransition = {
-                            val initialIndex = getScreenIndex(initialState)
-                            val targetIndex = getScreenIndex(targetState)
-                            if (targetIndex < initialIndex) {
-                                slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.End, tween(ANIM_DURATION))
-                            } else {
-                                slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Start, tween(ANIM_DURATION))
-                            }
-                        }
+                        enterTransition = { tabEnterTransition() },
+                        exitTransition = { tabExitTransition() }
                     ) {
                         SettingsScreen(
                             onNavigateToFeature = onNavigate
                         )
                     }
 
+                    // Account Screen
+                    composable<Screen.Account>(
+                        enterTransition = { tabEnterTransition() },
+                        exitTransition = { tabExitTransition() },
+                        popEnterTransition = { slidePopIn() },
+                        popExitTransition = { slidePopOut() }
+                    ) {
+                        AccountScreen(
+                            onNavigateToLogin = {
+                                navController.navigate(Screen.Login) {
+                                    popUpTo(Screen.Account) { inclusive = true }
+                                }
+                            }
+                        )
+                    }
+
                     // Login Screen
                     composable<Screen.Login>(
-                        enterTransition = {
-                            val initialIndex = getScreenIndex(initialState)
-                            val targetIndex = getScreenIndex(targetState)
-                            if (targetIndex > initialIndex) {
-                                slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Start, tween(ANIM_DURATION))
-                            } else {
-                                slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.End, tween(ANIM_DURATION))
-                            }
-                        },
-                        exitTransition = {
-                            val initialIndex = getScreenIndex(initialState)
-                            val targetIndex = getScreenIndex(targetState)
-                            if (targetIndex < initialIndex) {
-                                slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.End, tween(ANIM_DURATION))
-                            } else {
-                                slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Start, tween(ANIM_DURATION))
-                            }
-                        },
+                        enterTransition = { tabEnterTransition() },
+                        exitTransition = { tabExitTransition() },
                         popEnterTransition = { slidePopIn() },
                         popExitTransition = { slidePopOut() }
                     ) {
@@ -289,37 +271,10 @@ fun AppScreen(
                         )
                     }
 
-                    // Account Screen
-                    composable<Screen.Account>(
-                        enterTransition = { slideIn() },
-                        exitTransition = { slideOut() },
-                        popEnterTransition = { slidePopIn() },
-                        popExitTransition = { slidePopOut() }
-                    ) {
-                        AccountScreen(
-                            onNavigateToLogin = {
-                                navController.navigate(Screen.Login) {
-                                    popUpTo(Screen.Account) { inclusive = true }
-                                }
-                            },
-                            onBack = {
-                                navController.popBackStack()
-                            }
-                        )
-                    }
-
                     // Register Screen
                     composable<Screen.Register>(
-                        enterTransition = { slideIn() },
-                        exitTransition = {
-                            val initialIndex = getScreenIndex(initialState)
-                            val targetIndex = getScreenIndex(targetState)
-                            if (targetIndex < initialIndex) {
-                                slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.End, tween(ANIM_DURATION))
-                            } else {
-                                slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Start, tween(ANIM_DURATION))
-                            }
-                        },
+                        enterTransition = { tabEnterTransition() },
+                        exitTransition = { tabExitTransition() },
                         popEnterTransition = { slidePopIn() },
                         popExitTransition = { slidePopOut() }
                     ) {

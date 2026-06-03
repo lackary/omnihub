@@ -13,13 +13,11 @@ interface AccountContract {
     sealed interface Event {
         data object OnLogoutClicked : Event
         data object OnDeleteAccountClicked : Event
-        data object OnBackClicked : Event
         data object OnDismissDeleteDialog : Event
         data object OnConfirmDeleteAccount : Event
     }
 
     sealed interface Effect {
-        data object NavigateBack : Effect
         data object NavigateToLogin : Effect
         data object ShowDeleteConfirmation : Effect
     }

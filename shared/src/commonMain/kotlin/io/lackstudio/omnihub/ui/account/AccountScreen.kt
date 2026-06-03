@@ -15,28 +15,27 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
@@ -45,8 +44,7 @@ import org.koin.compose.viewmodel.koinViewModel
 @Composable
 fun AccountScreen(
     onNavigateToLogin: () -> Unit,
-    onBack: () -> Unit,
-    viewModel: AccountViewModel = koinViewModel()
+    viewModel: AccountViewModel = koinViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val sideEffect = viewModel.sideEffect
@@ -54,7 +52,6 @@ fun AccountScreen(
     LaunchedEffect(sideEffect) {
         sideEffect.collect { effect ->
             when (effect) {
-                AccountContract.Effect.NavigateBack -> onBack()
                 AccountContract.Effect.NavigateToLogin -> onNavigateToLogin()
                 AccountContract.Effect.ShowDeleteConfirmation -> {
                     /* Handled via state.showDeleteDialog */
@@ -77,12 +74,13 @@ fun AccountScreenContent(
 ) {
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text("Account") },
-                navigationIcon = {
-                    IconButton(onClick = { onEvent(AccountContract.Event.OnBackClicked) }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
+            CenterAlignedTopAppBar(
+                title = {
+                    Text(
+                        text = "Account",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold
+                    )
                 }
             )
         }
