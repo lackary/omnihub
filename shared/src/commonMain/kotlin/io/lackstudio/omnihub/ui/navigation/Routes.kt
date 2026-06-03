@@ -5,6 +5,9 @@ import kotlinx.serialization.Serializable
 // Main top-level Destination
 sealed interface Screen {
     @Serializable
+    data object MainTabs : Screen
+
+    @Serializable
     data object Home : Screen
 
     @Serializable

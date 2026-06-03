@@ -9,6 +9,8 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -117,6 +119,7 @@ fun AppScreen(
     val navBackStackEntry = navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry.value?.destination
 
+    val pagerState = rememberPagerState { 3 }
 
     // Get current layout info (Is it Rail or BottomBar?)
     val adaptiveInfo = currentWindowAdaptiveInfo()
@@ -137,12 +140,12 @@ fun AppScreen(
     }
 
     // Define your navigation items
-    val navItems = getAppNavItems(currentDestination)
+    val navItems = getAppNavItems(currentDestination, pagerState.currentPage)
 
     // Resolve issue where web cannot redirect to Gallery page after successful OAuth2 login
     val startDestination: Any = remember {
         val hasAuthCode = DeepLinkBuffer.deepLinkUrl.value?.contains("code=") == true
-        if (hasAuthCode)  Feature.Gallery else Screen.Home
+        if (hasAuthCode)  Feature.Gallery else Screen.MainTabs
     }
 
     NavigationSuiteScaffold(
@@ -162,15 +165,37 @@ fun AppScreen(
                     label = { Text(item.label) },
                     selected = item.isSelected,
                     onClick = {
-                        val targetRoute = if (item.route == Screen.Account && !isLoggedIn) {
-                            Screen.Login
+                        val targetRoute = item.route
+
+                        if (targetRoute == Screen.Home || targetRoute == Screen.Settings || targetRoute == Screen.Account) {
+                            val pageIndex = when (targetRoute) {
+                                Screen.Home -> 0
+                                Screen.Settings -> 1
+                                else -> 2
+                            }
+                            if (currentDestination?.hasRoute<Screen.MainTabs>() == true) {
+                                scope.launch {
+                                    pagerState.animateScrollToPage(pageIndex)
+                                }
+                            } else {
+                                navController.navigate(Screen.MainTabs) {
+                                    popUpTo(navController.graph.startDestinationId) {
+                                        saveState = true
+                                        inclusive = true
+                                    }
+                                    launchSingleTop = true
+                                    restoreState = true
+                                }
+                            }
                         } else {
-                            item.route
-                        }
-                        navController.navigate(targetRoute) {
-                            popUpTo(navController.graph.startDestinationId) { saveState = true }
-                            launchSingleTop = true
-                            restoreState = true
+                            navController.navigate(targetRoute) {
+                                popUpTo(navController.graph.startDestinationId) {
+                                    saveState = true
+                                    inclusive = true
+                                }
+                                launchSingleTop = true
+                                restoreState = true
+                            }
                         }
                     }
                 )
@@ -193,63 +218,41 @@ fun AppScreen(
                     startDestination = startDestination,
                     modifier = Modifier.fillMaxSize()
                 ) {
-                    // Home Screen
-                    composable<Screen.Home>(
+                    // Main Tabs with Pager
+                    composable<Screen.MainTabs>(
                         enterTransition = { tabEnterTransition() },
                         exitTransition = { tabExitTransition() },
                         popEnterTransition = { tabEnterTransition() },
                         popExitTransition = { tabExitTransition() }
                     ) {
-                        HomeScreen(
-                            onNavigateToFeature = onNavigate
-                        )
-                    }
-
-                    // Settings Screen
-                    composable<Screen.Settings>(
-                        enterTransition = { tabEnterTransition() },
-                        exitTransition = { tabExitTransition() },
-                        popEnterTransition = { tabEnterTransition() },
-                        popExitTransition = { tabExitTransition() }
-                    ) {
-                        SettingsScreen(
-                            onNavigateToFeature = onNavigate
-                        )
-                    }
-
-                    // Account Screen
-                    composable<Screen.Account>(
-                        enterTransition = { tabEnterTransition() },
-                        exitTransition = { tabExitTransition() },
-                        popEnterTransition = { tabEnterTransition() },
-                        popExitTransition = { tabExitTransition() }
-                    ) {
-                        AccountScreen(
-                            onNavigateToLogin = {
-                                navController.navigate(Screen.Login) {
-                                    popUpTo<Screen.Account> { inclusive = true }
+                        HorizontalPager(
+                            state = pagerState,
+                            modifier = Modifier.fillMaxSize(),
+                            beyondViewportPageCount = 1
+                        ) { page ->
+                            when (page) {
+                                0 -> HomeScreen(onNavigateToFeature = onNavigate)
+                                1 -> SettingsScreen(onNavigateToFeature = onNavigate)
+                                2 -> {
+                                    if (isLoggedIn) {
+                                        AccountScreen(
+                                            onNavigateToLogin = {
+                                                // Login handled by state
+                                            }
+                                        )
+                                    } else {
+                                        LoginScreen(
+                                            onNavigateToRegister = {
+                                                navController.navigate(Screen.Register)
+                                            },
+                                            onLoginSuccess = {
+                                                // isLoggedIn state update will switch view
+                                            }
+                                        )
+                                    }
                                 }
                             }
-                        )
-                    }
-
-                    // Login Screen
-                    composable<Screen.Login>(
-                        enterTransition = { tabEnterTransition() },
-                        exitTransition = { tabExitTransition() },
-                        popEnterTransition = { tabEnterTransition() },
-                        popExitTransition = { tabExitTransition() }
-                    ) {
-                        LoginScreen(
-                            onNavigateToRegister = {
-                                navController.navigate(Screen.Register)
-                            },
-                            onLoginSuccess = {
-                                navController.navigate(Screen.Account) {
-                                    popUpTo<Screen.Login> { inclusive = true }
-                                }
-                            }
-                        )
+                        }
                     }
 
                     // Register Screen
@@ -268,6 +271,7 @@ fun AppScreen(
                             }
                         )
                     }
+
 
                     // Features
                     composable<Feature.Gallery>(

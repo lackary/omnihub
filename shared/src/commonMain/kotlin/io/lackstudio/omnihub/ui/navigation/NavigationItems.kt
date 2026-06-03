@@ -17,25 +17,27 @@ data class NavItem(
 )
 
 @Composable
-fun getAppNavItems(navDestination: NavDestination?): List<NavItem> {
+fun getAppNavItems(navDestination: NavDestination?, pagerIndex: Int = 0): List<NavItem> {
+    val isMainTabs = navDestination?.hasRoute<Screen.MainTabs>() == true
     return listOf(
         NavItem(
             label = "Home",
             icon = Icons.Filled.Home,
             route = Screen.Home,
-            isSelected = navDestination?.hasRoute<Screen.Home>() == true
+            isSelected = (isMainTabs && pagerIndex == 0) || navDestination?.hasRoute<Screen.Home>() == true
         ),
         NavItem(
             label = "Settings",
             icon = Icons.Filled.Settings,
             route = Screen.Settings,
-            isSelected = navDestination?.hasRoute<Screen.Settings>() == true
+            isSelected = (isMainTabs && pagerIndex == 1) || navDestination?.hasRoute<Screen.Settings>() == true
         ),
         NavItem(
             label = "Account",
             icon = Icons.Filled.Person,
             route = Screen.Account,
-            isSelected = navDestination?.hasRoute<Screen.Account>() == true ||
+            isSelected = (isMainTabs && pagerIndex == 2) ||
+                    navDestination?.hasRoute<Screen.Account>() == true ||
                     navDestination?.hasRoute<Screen.Login>() == true ||
                     navDestination?.hasRoute<Screen.Register>() == true
         )
