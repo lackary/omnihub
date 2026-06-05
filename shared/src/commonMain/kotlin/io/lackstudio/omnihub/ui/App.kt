@@ -121,6 +121,10 @@ fun AppScreen(
 
     val pagerState = rememberPagerState { 3 }
 
+    LaunchedEffect(isLoggedIn) {
+        logger.d { "Current Login State: $isLoggedIn" }
+    }
+
     // Get current layout info (Is it Rail or BottomBar?)
     val adaptiveInfo = currentWindowAdaptiveInfo()
     val defaultLayoutType =
@@ -246,7 +250,7 @@ fun AppScreen(
                                                 navController.navigate(Screen.Register)
                                             },
                                             onLoginSuccess = {
-                                                // isLoggedIn state update will switch view
+                                                logger.d { "Login success triggered, isLoggedIn: $isLoggedIn" }
                                             }
                                         )
                                     }

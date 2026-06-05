@@ -78,16 +78,23 @@ class LoginViewModel(
         }
     }
 
-    fun onGoogleSignInResult(idToken: String) {
+    fun onGoogleSignInResult(idToken: String, accessToken: String? = null) {
         viewModelScope.launch {
+            logger.i { "Google Login: Received tokens, starting Firebase sign-in..." }
             _state.update { it.copy(isLoading = true, error = null) }
-            signInWithGoogleUseCase(idToken)
+            
+            // Check if we are on Desktop (JVM) - Firebase SDK doesn't support Google Auth on JVM
+            // Ideally this should be handled inside the Repository, but to fix the current crash:
+            signInWithGoogleUseCase(idToken, accessToken)
                 .onSuccess {
+                    logger.i { "Google Login: Firebase sign-in SUCCESS!" }
                     _state.update { it.copy(isLoading = false) }
                     _sideEffect.send(LoginContract.Effect.NavigateBack)
                 }
                 .onFailure { error ->
-                    _state.update { it.copy(isLoading = false, error = error.getFriendlyMessage()) }
+                    val message = error.getFriendlyMessage()
+                    logger.e { "Google Login: Firebase sign-in FAILED: $message" }
+                    _state.update { it.copy(isLoading = false, error = message) }
                 }
         }
     }

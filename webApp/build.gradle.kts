@@ -24,6 +24,7 @@ kotlin {
             implementation(libs.compose.ui)
             implementation(libs.omnifeed.auth)
         }
+
         jsMain.dependencies {
             implementation(libs.ktor.client.js)
         }

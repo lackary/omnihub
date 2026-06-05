@@ -21,6 +21,7 @@ captures
 !*.xcworkspace/contents.xcworkspacedata
 **/xcshareddata/WorkspaceSettings.xcsettings
 Pods/
+iosApp/Configuration/GoogleKeys.xcconfig
 
 #JS
 node_modules/

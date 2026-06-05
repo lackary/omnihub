@@ -53,10 +53,16 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import io.lackstudio.omnihub.utils.logging.rememberLogger
+import io.lackstudio.omnihub.auth.AuthManager
+import io.lackstudio.omnihub.platform.rememberPlatformContext
+import kotlinx.coroutines.launch
 import omnihub.shared.generated.resources.Res
 import omnihub.shared.generated.resources.ic_google
 import org.jetbrains.compose.resources.painterResource
+import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
@@ -65,8 +71,12 @@ fun LoginScreen(
     onLoginSuccess: () -> Unit,
     viewModel: LoginViewModel = koinViewModel()
 ) {
+    val logger = rememberLogger("LoginScreen")
     val state by viewModel.state.collectAsStateWithLifecycle()
     val sideEffect = viewModel.sideEffect
+    val authManager: AuthManager = koinInject()
+    val scope = rememberCoroutineScope()
+    val context = rememberPlatformContext()
 
     LaunchedEffect(sideEffect) {
         sideEffect.collect { effect ->
@@ -79,7 +89,16 @@ fun LoginScreen(
                     // TODO: Show snackbar
                 }
                 LoginContract.Effect.ShowGoogleSignIn -> {
-                    // TODO: Trigger platform-specific Google Sign-In
+                    logger.i { "Captured ShowGoogleSignIn effect" }
+                    scope.launch {
+                        val tokens = authManager.signInWithGoogle(context)
+                        if (tokens != null) {
+                            logger.i { "Got Tokens, notifying ViewModel" }
+                            viewModel.onGoogleSignInResult(tokens.idToken, tokens.accessToken)
+                        } else {
+                            logger.w { "Tokens are NULL, flow aborted" }
+                        }
+                    }
                 }
             }
         }

@@ -8,6 +8,8 @@ android-targetSdk = "36"
 # Google
 googleServices = "4.4.4"
 googleFirebaseBom = "34.13.0"
+googleGms = "21.6.0"
+googleId = "1.2.0"
 
 # Android
 androidxCore = "1.18.0"
@@ -17,6 +19,7 @@ androidxTestExt = "1.3.0"
 androidxTestEspresso = "3.7.0"
 androidxLifecycleRuntime = "2.10.0"
 androidxComposeBom = "2026.05.01"
+androidxCredential = "1.6.0"
 androidxXRCompose = "1.0.0-alpha13"
 androidxXRRuntime = "1.0.0-alpha13"
 androidxXRScenecore = "1.0.0-alpha14"
@@ -44,6 +47,7 @@ robolectric = "4.16.1"
 # 3rd party
 koin = "4.2.1"
 gitliveFirebase = "2.4.0"
+mirzemehdiKmpAuth = "2.3.1"
 kermit = "2.1.0"
 buildkonfig = "0.21.2"
 coil3 = "3.4.0"
@@ -68,6 +72,8 @@ androidx-compose-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-
 androidx-compose-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4" }
 androidx-compose-ui-test-junit4-android = { group = "androidx.compose.ui", name = "ui-test-junit4-android" }
 androidx-compose-material3 = { group = "androidx.compose.material3", name = "material3" }
+androidx-credentials = { group = "androidx.credentials", name = "credentials", version.ref = "androidxCredential" }
+androidx-credentials-play-services-auth = { group = "androidx.credentials", name = "credentials-play-services-auth", version.ref = "androidxCredential" }
 androidx-xr-compose = { group = "androidx.xr.compose", name = "compose", version.ref = "androidxXRCompose" }
 androidx-xr-runtime = { group = "androidx.xr.runtime", name = "runtime", version.ref = "androidxXRRuntime" }
 androidx-xr-scenecore = { group = "androidx.xr.scenecore", name = "scenecore", version.ref = "androidxXRScenecore" }
@@ -118,7 +124,10 @@ panpf-sketch-compose = { module = "io.github.panpf.sketch4:sketch-compose", vers
 panpf-sketch-http = { module  = "io.github.panpf.sketch4:sketch-http", version.ref = "sketch"}
 panpf-sketch-blurhash = { module = "io.github.panpf.sketch4:sketch-blurhash", version.ref = "sketch" }
 gitlive-firebase-auth = { group = "dev.gitlive", name = "firebase-auth", version.ref = "gitliveFirebase" }
+mirzemehdi-kmpauth-google = { group = "io.github.mirzemehdi", name = "kmpauth-google", version.ref = "mirzemehdiKmpAuth"}
 google-firebase-bom = { module = "com.google.firebase:firebase-bom", version.ref = "googleFirebaseBom" }
+google-gms-play-service-auth = { group = "com.google.android.gms", name = "play-services-auth", version.ref = "googleGms" }
+google-googleid = { group = "com.google.android.libraries.identity.googleid", name = "googleid", version.ref = "googleId" }
 
 # Self
 omnifeed = { module = "io.lackstudio.omnifeed:omnifeed", version.ref = "omnifeed" }

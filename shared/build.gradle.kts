@@ -4,6 +4,7 @@ import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import com.codingfeline.buildkonfig.compiler.FieldSpec.Type.STRING
 import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
+import java.util.Base64
 import java.util.Properties
 
 val modulePackageName = "io.lackstudio.omnihub.shared"
@@ -12,6 +13,7 @@ val unsplashSecretKeyName = "UNSPLASH_SECRET_KEY"
 val firebaseAndroidBase64Name = "FIREBASE_ANDROID_BASE64"
 val firebaseIosBase64Name = "FIREBASE_IOS_BASE64"
 val firebaseWebBase64Name = "FIREBASE_WEB_BASE64"
+val googleServerClientIdName = "GOOGLE_SERVER_CLIENT_ID"
 
 // Read buildNumber, default to 1 if not provided (e.g. during development)
 val buildNumberProp = project.findProperty("buildNumber") as? String
@@ -54,6 +56,18 @@ buildkonfig {
     val firebaseIosBase64 = resolveConfigValue(firebaseIosBase64Name, project) ?: ""
     val firebaseWebBase64 = resolveConfigValue(firebaseWebBase64Name, project) ?: ""
 
+    // 1. Automatically decode from Android Base64 and extract Web Client ID (client_type: 3)
+    val googleServerClientId = if (firebaseAndroidBase64.isNotEmpty()) {
+        try {
+            val decodedBytes = Base64.getDecoder().decode(firebaseAndroidBase64)
+            val decoded = String(decodedBytes)
+            // Find the client_id before client_type: 3
+            // The format is usually "client_id": "...", "client_type": 3
+            val regex = "\"client_id\":\\s*\"([^\"]+)\",\\s*\"client_type\":\\s*3".toRegex()
+            regex.find(decoded)?.groupValues?.get(1) ?: ""
+        } catch (e: Exception) { "" }
+    } else ""
+
     val isDebug = System.getenv("CONFIGURATION") == "Debug" ||
             project.gradle.startParameter.taskNames.any { task ->
                 task.contains("debug", ignoreCase = true) ||
@@ -64,13 +78,14 @@ buildkonfig {
 
     defaultConfigs {
         buildConfigField(STRING, "APP_NAME", defaultAppName)
-        buildConfigField(STRING, "APP_VERSION", project.version.toString()) // Automatically reads from gradle.properties)
+        buildConfigField(STRING, "APP_VERSION", project.version.toString())
         buildConfigField(STRING, "APP_BUILD_NUMBER", appBuildNumber.toString())
         buildConfigField(STRING, unsplashAccessKeyName, unsplashAccessKey)
         buildConfigField(STRING, unsplashSecretKeyName, unsplashSecretKey)
         buildConfigField(STRING, firebaseAndroidBase64Name, firebaseAndroidBase64)
         buildConfigField(STRING, firebaseIosBase64Name, firebaseIosBase64)
         buildConfigField(STRING, firebaseWebBase64Name, firebaseWebBase64)
+        buildConfigField(STRING, googleServerClientIdName, googleServerClientId)
     }
     targetConfigs {
         create("debug") {
@@ -157,6 +172,10 @@ kotlin {
             version = "~> 12.4.0"
             extraOpts += listOf("-compiler-option", "-fmodules")
         }
+        pod("GoogleSignIn") {
+            version = "~> 9.0.0"
+            extraOpts += listOf("-compiler-option", "-fmodules")
+        }
 
         // Maps custom Xcode configuration to NativeBuildType
 //        xcodeConfigurationToNativeBuildType["CUSTOM_DEBUG"] = NativeBuildType.DEBUG
@@ -187,6 +206,10 @@ kotlin {
             implementation(libs.androidx.xr.compose)
             implementation(libs.androidx.xr.material3)
             implementation(libs.ktor.client.android)
+            implementation(libs.androidx.credentials)
+            implementation(libs.androidx.credentials.play.services.auth)
+            implementation(libs.google.gms.play.service.auth)
+            implementation(libs.google.googleid)
             implementation(project.dependencies.platform(libs.androidx.compose.bom))
             implementation(project.dependencies.platform(libs.google.firebase.bom))
         }

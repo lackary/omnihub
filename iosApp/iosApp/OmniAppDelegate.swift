@@ -9,6 +9,7 @@
 import Foundation
 import UIKit
 import FirebaseCore
+import GoogleSignIn
 
 class OmniAppDelegate: NSObject, UIApplicationDelegate {
     func application(
@@ -18,5 +19,13 @@ class OmniAppDelegate: NSObject, UIApplicationDelegate {
         FirebaseApp.configure()
         print("🚀 AppDelegate: Firebase configured.")
         return true
+    }
+
+    func application(
+        _ app: UIApplication,
+        open url: URL,
+        options: [UIApplication.OpenURLOptionsKey : Any] = [:]
+    ) -> Bool {
+        return GIDSignIn.sharedInstance.handle(url)
     }
 }
