@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh-TW">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -80,38 +80,10 @@
 
         p {
             margin: 0;
-            font-size: 14px;
-            line-height: 20px; /* M3 Body Medium */
+            font-size: 16px;
+            line-height: 24px; /* M3 Body Medium */
             letter-spacing: 0.25px;
             color: var(--md-sys-color-on-surface-variant);
-        }
-
-        /* M3 Button (Filled) */
-        .btn {
-            background-color: var(--md-sys-color-primary);
-            color: var(--md-sys-color-on-primary);
-            font-size: 14px;
-            font-weight: 500; /* Label Large */
-            letter-spacing: 0.1px;
-            height: 40px;
-            border-radius: 20px; /* Pill shape */
-            padding: 0 24px;
-            border: none;
-            cursor: pointer;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            text-decoration: none;
-            transition: box-shadow 0.2s, background-color 0.2s;
-        }
-
-        .btn:hover {
-            box-shadow: 0 1px 2px rgba(0,0,0,0.3), 0 1px 3px 1px rgba(0,0,0,0.15);
-            filter: brightness(1.05); /* Slight brighten on hover */
-        }
-
-        .btn:active {
-            filter: brightness(0.95);
         }
 
         @keyframes fadeIn {
@@ -129,22 +101,10 @@
         </div>
 
         <div>
-            <h1>登入成功</h1>
-            <h1 style="font-size: 18px; margin-top: 4px; opacity: 0.8;">Login Successful</h1>
+            <h1>Login Successful</h1>
         </div>
 
-        <p>驗證已完成，您可以安全地關閉此視窗並回到 OmniHub App 開始使用。</p>
-
-        <a href="javascript:window.close()" class="btn">
-            關閉視窗 Close Window
-        </a>
+        <p>Authentication is complete.<br>You can now safely close this tab and return to the <b>OmniHub</b> app.</p>
     </div>
-
-    <script>
-        // Try to close automatically
-        setTimeout(function() {
-            window.close();
-        }, 1500);
-    </script>
 </body>
 </html>
