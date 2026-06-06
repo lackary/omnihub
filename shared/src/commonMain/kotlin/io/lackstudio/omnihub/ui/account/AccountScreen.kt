@@ -72,139 +72,147 @@ fun AccountScreenContent(
     state: AccountContract.State,
     onEvent: (AccountContract.Event) -> Unit
 ) {
-    Scaffold(
-        topBar = {
-            CenterAlignedTopAppBar(
-                title = {
-                    Text(
-                        text = "Account",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-            )
-        }
-    ) { padding ->
-        Box(
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.TopCenter
+    ) {
+        Scaffold(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(padding),
-            contentAlignment = Alignment.Center
-        ) {
-            Column(
-                modifier = Modifier
-                    .widthIn(max = 400.dp)
-                    .fillMaxWidth()
-                    .fillMaxHeight()
-                    .padding(16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
-            ) {
-                val user = state.user
-                if (user != null) {
-                    if (user.photoUrl != null) {
-                        AsyncImage(
-                            model = user.photoUrl,
-                            contentDescription = "Profile Picture",
-                            modifier = Modifier
-                                .size(100.dp)
-                                .clip(CircleShape)
-                        )
-                    } else {
-                        Icon(
-                            imageVector = Icons.Default.AccountCircle,
-                            contentDescription = "Profile Picture",
-                            modifier = Modifier.size(100.dp)
+                .widthIn(max = 600.dp)
+                .fillMaxWidth(),
+            topBar = {
+                CenterAlignedTopAppBar(
+                    title = {
+                        Text(
+                            text = "Account",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold
                         )
                     }
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    Text(
-                        text = user.displayName ?: "No Name",
-                        style = MaterialTheme.typography.headlineSmall
-                    )
-
-                    Text(
-                        text = user.email ?: "No Email",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-
-                    Spacer(modifier = Modifier.height(32.dp))
-
-                    Button(
-                        onClick = { onEvent(AccountContract.Event.OnLogoutClicked) },
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                            contentColor = MaterialTheme.colorScheme.onSurfaceVariant
-                        ),
-                        enabled = !state.isLoading
-                    ) {
-                        if (state.isLoading) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(24.dp),
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                strokeWidth = 2.dp
+                )
+            }
+        ) { padding ->
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(
+                    modifier = Modifier
+                        .widthIn(max = 400.dp)
+                        .fillMaxWidth()
+                        .fillMaxHeight()
+                        .padding(16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    val user = state.user
+                    if (user != null) {
+                        if (user.photoUrl != null) {
+                            AsyncImage(
+                                model = user.photoUrl,
+                                contentDescription = "Profile Picture",
+                                modifier = Modifier
+                                    .size(100.dp)
+                                    .clip(CircleShape)
                             )
                         } else {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = null)
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text("Logout")
+                            Icon(
+                                imageVector = Icons.Default.AccountCircle,
+                                contentDescription = "Profile Picture",
+                                modifier = Modifier.size(100.dp)
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        Text(
+                            text = user.displayName ?: "No Name",
+                            style = MaterialTheme.typography.headlineSmall
+                        )
+
+                        Text(
+                            text = user.email ?: "No Email",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+
+                        Spacer(modifier = Modifier.height(32.dp))
+
+                        Button(
+                            onClick = { onEvent(AccountContract.Event.OnLogoutClicked) },
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                            ),
+                            enabled = !state.isLoading
+                        ) {
+                            if (state.isLoading) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(24.dp),
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    strokeWidth = 2.dp
+                                )
+                            } else {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = null)
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text("Logout")
+                                }
                             }
                         }
+
+                        Spacer(modifier = Modifier.weight(1f))
+
+                        state.error?.let {
+                            Text(
+                                text = it,
+                                color = MaterialTheme.colorScheme.error,
+                                style = MaterialTheme.typography.bodyMedium,
+                                modifier = Modifier.padding(bottom = 8.dp)
+                            )
+                        }
+
+                        TextButton(
+                            onClick = { onEvent(AccountContract.Event.OnDeleteAccountClicked) },
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = ButtonDefaults.textButtonColors(
+                                contentColor = MaterialTheme.colorScheme.error
+                            ),
+                            enabled = !state.isLoading
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Default.Delete, contentDescription = null)
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("Delete Account")
+                            }
+                        }
+                    } else {
+                        Text("Not logged in")
                     }
 
-                    Spacer(modifier = Modifier.weight(1f))
-
-                    state.error?.let {
-                        Text(
-                            text = it,
-                            color = MaterialTheme.colorScheme.error,
-                            style = MaterialTheme.typography.bodyMedium,
-                            modifier = Modifier.padding(bottom = 8.dp)
+                    if (state.showDeleteDialog) {
+                        AlertDialog(
+                            onDismissRequest = { onEvent(AccountContract.Event.OnDismissDeleteDialog) },
+                            title = { Text("Delete Account") },
+                            text = { Text("Are you sure you want to delete your account? This action cannot be undone.") },
+                            confirmButton = {
+                                TextButton(
+                                    onClick = { onEvent(AccountContract.Event.OnConfirmDeleteAccount) },
+                                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                                ) {
+                                    Text("Delete")
+                                }
+                            },
+                            dismissButton = {
+                                TextButton(onClick = { onEvent(AccountContract.Event.OnDismissDeleteDialog) }) {
+                                    Text("Cancel")
+                                }
+                            }
                         )
                     }
-
-                    TextButton(
-                        onClick = { onEvent(AccountContract.Event.OnDeleteAccountClicked) },
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.textButtonColors(
-                            contentColor = MaterialTheme.colorScheme.error
-                        ),
-                        enabled = !state.isLoading
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.Delete, contentDescription = null)
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text("Delete Account")
-                        }
-                    }
-                } else {
-                    Text("Not logged in")
-                }
-
-                if (state.showDeleteDialog) {
-                    AlertDialog(
-                        onDismissRequest = { onEvent(AccountContract.Event.OnDismissDeleteDialog) },
-                        title = { Text("Delete Account") },
-                        text = { Text("Are you sure you want to delete your account? This action cannot be undone.") },
-                        confirmButton = {
-                            TextButton(
-                                onClick = { onEvent(AccountContract.Event.OnConfirmDeleteAccount) },
-                                colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
-                            ) {
-                                Text("Delete")
-                            }
-                        },
-                        dismissButton = {
-                            TextButton(onClick = { onEvent(AccountContract.Event.OnDismissDeleteDialog) }) {
-                                Text("Cancel")
-                            }
-                        }
-                    )
                 }
             }
         }

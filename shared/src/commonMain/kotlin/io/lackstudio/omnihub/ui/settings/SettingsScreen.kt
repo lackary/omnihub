@@ -34,40 +34,45 @@ import io.lackstudio.omnihub.ui.navigation.Feature
 fun SettingsScreen(
     onNavigateToFeature: (Feature) -> Unit
 ) {
-    Scaffold(
-        modifier = Modifier
-            .widthIn(max = 600.dp) // Settings can be a bit wider
-            .fillMaxWidth(),
-        topBar = {
-            CenterAlignedTopAppBar(
-                title = {
-                    Text(
-                        text = "Settings",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-            )
-        }
-    ) { innerPadding ->
-        Column(
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.TopCenter
+    ) {
+        Scaffold(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            // ... User profile information at the top ...
-            Text("About", style = MaterialTheme.typography.titleLarge)
+                .widthIn(max = 600.dp) // Settings can be a bit wider
+                .fillMaxWidth(),
+            topBar = {
+                CenterAlignedTopAppBar(
+                    title = {
+                        Text(
+                            text = "Settings",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                )
+            }
+        ) { innerPadding ->
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+                    .padding(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                // ... User profile information at the top ...
+                Text("About", style = MaterialTheme.typography.titleLarge)
 
-            Spacer(modifier = Modifier.weight(1f))
+                Spacer(modifier = Modifier.weight(1f))
 
-            VersionFooter(
-                versionName = APP_VERSION,
-                buildNumber = APP_BUILD_NUMBER
-            )
+                VersionFooter(
+                    versionName = APP_VERSION,
+                    buildNumber = APP_BUILD_NUMBER
+                )
 
-            Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(24.dp))
+            }
         }
     }
 }
@@ -111,7 +116,8 @@ fun VersionFooter(
     }
 }
 
-@Preview
+@Preview(name = "Mobile", widthDp = 360, heightDp = 640)
+@Preview(name = "Desktop", widthDp = 1024, heightDp = 768)
 @Composable
 fun AccountScreenPreview() {
     SettingsScreen (

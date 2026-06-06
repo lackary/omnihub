@@ -120,145 +120,153 @@ fun LoginScreenContent(
     val keyboardController = LocalSoftwareKeyboardController.current
     var passwordVisible by remember { mutableStateOf(false) }
 
-    Scaffold(
-        topBar = {
-            CenterAlignedTopAppBar(
-                title = {
-                    Text(
-                        text = "Login",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-            )
-        }
-    ) { padding ->
-        Box(
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.TopCenter
+    ) {
+        Scaffold(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(padding),
-            contentAlignment = Alignment.Center
-        ) {
-            Column(
+                .widthIn(max = 600.dp)
+                .fillMaxWidth(),
+            topBar = {
+                CenterAlignedTopAppBar(
+                    title = {
+                        Text(
+                            text = "Login",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                )
+            }
+        ) { padding ->
+            Box(
                 modifier = Modifier
-                    .widthIn(max = 400.dp)
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
+                    .fillMaxSize()
+                    .padding(padding),
+                contentAlignment = Alignment.Center
             ) {
-                Text(
-                    text = "Welcome back",
-                    style = MaterialTheme.typography.headlineMedium,
-                    modifier = Modifier.padding(bottom = 32.dp)
-                )
-
-                OutlinedTextField(
-                    value = state.email,
-                    onValueChange = { onEvent(LoginContract.Event.OnEmailChanged(it)) },
-                    label = { Text("Email") },
-                    modifier = Modifier.fillMaxWidth(),
-                    leadingIcon = { Icon(Icons.Default.Email, contentDescription = null) },
-                    enabled = !state.isLoading,
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Email,
-                        imeAction = ImeAction.Next
-                    ),
-
-                )
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                OutlinedTextField(
-                    value = state.password,
-                    onValueChange = { onEvent(LoginContract.Event.OnPasswordChanged(it)) },
-                    label = { Text("Password") },
-                    modifier = Modifier.fillMaxWidth(),
-                    visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                    leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
-                    trailingIcon = {
-                        IconButton(onClick = { passwordVisible = !passwordVisible }) {
-                            Icon(
-                                imageVector = if (passwordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
-                                contentDescription = null
-                            )
-                        }
-                    },
-                    enabled = !state.isLoading,
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Password,
-                        imeAction = ImeAction.Done
-                    ),
-                    keyboardActions = KeyboardActions(
-                        onDone = {
-                            focusManager.moveFocus(FocusDirection.Down)
-                            keyboardController?.hide()
-                        }
+                Column(
+                    modifier = Modifier
+                        .widthIn(max = 400.dp)
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Text(
+                        text = "Welcome back",
+                        style = MaterialTheme.typography.headlineMedium,
+                        modifier = Modifier.padding(bottom = 32.dp)
                     )
-                )
 
-                Spacer(modifier = Modifier.height(24.dp))
+                    OutlinedTextField(
+                        value = state.email,
+                        onValueChange = { onEvent(LoginContract.Event.OnEmailChanged(it)) },
+                        label = { Text("Email") },
+                        modifier = Modifier.fillMaxWidth(),
+                        leadingIcon = { Icon(Icons.Default.Email, contentDescription = null) },
+                        enabled = !state.isLoading,
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Email,
+                            imeAction = ImeAction.Next
+                        ),
 
-                Button(
-                    onClick = { onEvent(LoginContract.Event.OnLoginClicked) },
-                    modifier = Modifier.fillMaxWidth().height(50.dp),
-                    shape = MaterialTheme.shapes.medium,
-                    enabled = !state.isLoading
-                ) {
-                    if (state.isLoading) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(24.dp),
-                            color = MaterialTheme.colorScheme.onPrimary,
-                            strokeWidth = 2.dp
                         )
-                    } else {
-                        Text("Login")
-                    }
-                }
 
-                Spacer(modifier = Modifier.height(16.dp))
-
-                Text("OR", style = MaterialTheme.typography.labelMedium)
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                OutlinedButton(
-                    onClick = { onEvent(LoginContract.Event.OnGoogleLoginClicked) },
-                    modifier = Modifier.fillMaxWidth().height(50.dp),
-                    shape = MaterialTheme.shapes.medium,
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        contentColor = MaterialTheme.colorScheme.onSurface
-                    ),
-                    enabled = !state.isLoading
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.Center
-                    ) {
-                        Image(
-                            painter = painterResource(Res.drawable.ic_google),
-                            contentDescription = null,
-                            modifier = Modifier.size(20.dp)
-                        )
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Text("Continue with Google")
-                    }
-                }
-
-                state.error?.let {
                     Spacer(modifier = Modifier.height(16.dp))
-                    Text(it, color = MaterialTheme.colorScheme.error)
-                }
 
-                Spacer(modifier = Modifier.height(32.dp))
+                    OutlinedTextField(
+                        value = state.password,
+                        onValueChange = { onEvent(LoginContract.Event.OnPasswordChanged(it)) },
+                        label = { Text("Password") },
+                        modifier = Modifier.fillMaxWidth(),
+                        visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                        leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
+                        trailingIcon = {
+                            IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                                Icon(
+                                    imageVector = if (passwordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                                    contentDescription = null
+                                )
+                            }
+                        },
+                        enabled = !state.isLoading,
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Password,
+                            imeAction = ImeAction.Done
+                        ),
+                        keyboardActions = KeyboardActions(
+                            onDone = {
+                                focusManager.moveFocus(FocusDirection.Down)
+                                keyboardController?.hide()
+                            }
+                        )
+                    )
 
-                TextButton(
-                    onClick = { onEvent(LoginContract.Event.OnSignUpClicked) },
-                    enabled = !state.isLoading
-                ) {
-                    Text("Don't have an account? Sign Up")
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    Button(
+                        onClick = { onEvent(LoginContract.Event.OnLoginClicked) },
+                        modifier = Modifier.fillMaxWidth().height(50.dp),
+                        shape = MaterialTheme.shapes.medium,
+                        enabled = !state.isLoading
+                    ) {
+                        if (state.isLoading) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(24.dp),
+                                color = MaterialTheme.colorScheme.onPrimary,
+                                strokeWidth = 2.dp
+                            )
+                        } else {
+                            Text("Login")
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Text("OR", style = MaterialTheme.typography.labelMedium)
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    OutlinedButton(
+                        onClick = { onEvent(LoginContract.Event.OnGoogleLoginClicked) },
+                        modifier = Modifier.fillMaxWidth().height(50.dp),
+                        shape = MaterialTheme.shapes.medium,
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            contentColor = MaterialTheme.colorScheme.onSurface
+                        ),
+                        enabled = !state.isLoading
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            Image(
+                                painter = painterResource(Res.drawable.ic_google),
+                                contentDescription = null,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Text("Continue with Google")
+                        }
+                    }
+
+                    state.error?.let {
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text(it, color = MaterialTheme.colorScheme.error)
+                    }
+
+                    Spacer(modifier = Modifier.height(32.dp))
+
+                    TextButton(
+                        onClick = { onEvent(LoginContract.Event.OnSignUpClicked) },
+                        enabled = !state.isLoading
+                    ) {
+                        Text("Don't have an account? Sign Up")
+                    }
                 }
             }
         }
