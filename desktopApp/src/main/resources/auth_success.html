@@ -106,5 +106,13 @@
 
         <p>Authentication is complete.<br>You can now safely close this tab and return to the <b>OmniHub</b> app.</p>
     </div>
+
+    <script>
+        // Use JavaScript to trigger the custom protocol, which prompts the macOS "Open App" dialog.
+        // We add a small delay to ensure the success message is visible first.
+        setTimeout(function() {
+            window.location.href = "omnihub://auth/callback";
+        }, 500);
+    </script>
 </body>
 </html>

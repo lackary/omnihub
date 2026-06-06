@@ -26,27 +26,26 @@ compose.desktop {
             packageVersion = "1.0.0"
 
             macOS {
+                bundleID = "io.lackstudio.omnihub"
                 // If the project version starts with 0. (e.g. 0.2.0), DMG is forced to set to 1.0.0 to avoid errors
                 // If the project version is already 1.0.0 or higher, use the project version directly
                 val verStr = project.version.toString()
-                dmgPackageVersion = if (verStr.startsWith("0.")) "1.0.0" else verStr
+                dmgPackageVersion = verStr
 
-                macOS {
-                    infoPlist {
-                        extraKeysRawXml = """
-                        <key>CFBundleURLTypes</key>
-                        <array>
-                            <dict>
-                                <key>CFBundleURLName</key>
-                                <string>io.lackstudio.omnihub</string>
-                                <key>CFBundleURLSchemes</key>
-                                <array>
-                                    <string>omnihub</string>
-                                </array>
-                            </dict>
-                        </array>
-                    """.trimIndent()
-                    }
+                infoPlist {
+                    extraKeysRawXml = """
+                    <key>CFBundleURLTypes</key>
+                    <array>
+                        <dict>
+                            <key>CFBundleURLName</key>
+                            <string>io.lackstudio.omnihub</string>
+                            <key>CFBundleURLSchemes</key>
+                            <array>
+                                <string>omnihub</string>
+                            </array>
+                        </dict>
+                    </array>
+                """.trimIndent()
                 }
             }
         }

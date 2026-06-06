@@ -59,7 +59,7 @@ class DesktopAuthManager : AuthManager {
                                     // Precisely extract id_token, excluding subsequent & parameters or spaces
                                     val idToken = requestLine.substringAfter("id_token=").substringBefore("&").substringBefore(" ")
                                     logger.i { "Desktop received Google ID Token" }
-                                    
+
                                     val tokens = GoogleAuthTokens(idToken = idToken)
                                     resultDeferred?.complete(tokens)
 
@@ -108,12 +108,12 @@ class DesktopAuthManager : AuthManager {
     override suspend fun signInWithGoogle(context: Any?): GoogleAuthTokens? {
         val deferred = CompletableDeferred<GoogleAuthTokens?>()
         resultDeferred = deferred
-        
+
         val scope = "email profile openid"
         val encodedRedirect = URLEncoder.encode(getRedirectUrl(), "UTF-8")
         val encodedScope = URLEncoder.encode(scope, "UTF-8")
         val nonce = UUID.randomUUID().toString()
-        
+
         val authUrl = "https://accounts.google.com/o/oauth2/v2/auth?" +
                 "client_id=${BuildKonfig.GOOGLE_SERVER_CLIENT_ID}&" +
                 "redirect_uri=$encodedRedirect&" +
@@ -123,7 +123,7 @@ class DesktopAuthManager : AuthManager {
                 "prompt=select_account"
 
         startLogin(authUrl)
-        
+
         return resultDeferred?.await()
     }
 
