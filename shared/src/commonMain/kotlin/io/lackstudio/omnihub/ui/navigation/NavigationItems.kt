@@ -19,12 +19,24 @@ data class NavItem(
 @Composable
 fun getAppNavItems(navDestination: NavDestination?, pagerIndex: Int = 0): List<NavItem> {
     val isMainTabs = navDestination?.hasRoute<Screen.MainTabs>() == true
+    val isAnyFeature = navDestination?.let {
+        it.hasRoute<Feature.Gallery>() ||
+                it.hasRoute<Feature.Photo>() ||
+                it.hasRoute<Feature.Collection>() ||
+                it.hasRoute<Feature.Topic>() ||
+                it.hasRoute<Feature.User>() ||
+                it.hasRoute<Feature.News>() ||
+                it.hasRoute<Feature.Stocks>()
+    } == true
+
     return listOf(
         NavItem(
             label = "Home",
             icon = Icons.Filled.Home,
             route = Screen.Home,
-            isSelected = (isMainTabs && pagerIndex == 0) || navDestination?.hasRoute<Screen.Home>() == true
+            isSelected = (isMainTabs && pagerIndex == 0) ||
+                    navDestination?.hasRoute<Screen.Home>() == true ||
+                    isAnyFeature
         ),
         NavItem(
             label = "Settings",

@@ -38,6 +38,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
+import androidx.navigation.NavGraph.Companion.findStartDestination
 import io.lackstudio.omnihub.auth.DeepLinkBuffer
 import io.lackstudio.omnihub.ui.extensions.navigateToFeatureSmart
 import io.lackstudio.omnihub.ui.account.AccountScreen
@@ -121,6 +122,13 @@ fun AppScreen(
 
     val pagerState = rememberPagerState { 3 }
 
+    // 🔍 Global log for monitoring navigation destination changes
+    LaunchedEffect(navController) {
+        navController.currentBackStackEntryFlow.collect { entry ->
+            logger.d { "NavHost Real Destination: ${entry.destination.route}" }
+        }
+    }
+
     LaunchedEffect(isLoggedIn) {
         logger.d { "Current Login State: $isLoggedIn" }
     }
@@ -130,13 +138,28 @@ fun AppScreen(
     val defaultLayoutType =
         NavigationSuiteScaffoldDefaults.calculateFromAdaptiveInfo(adaptiveInfo)
 
-    // Check if the current destination is the PhotoDetail screen
+    // Check if the current destination is any Feature screen
     val isPhotoDetail = currentDestination?.hasRoute<Feature.Photo>() == true
-    // Determine Layout Type: If it's PhotoDetail, force hide the navigation bar (None)
-    val layoutType = if (!showNavigationBar || isPhotoDetail) {
-        NavigationSuiteType.None
-    } else {
-        defaultLayoutType
+    val isAnyFeature = currentDestination?.let {
+        it.hasRoute<Feature.Gallery>() ||
+                it.hasRoute<Feature.Photo>() ||
+                it.hasRoute<Feature.Collection>() ||
+                it.hasRoute<Feature.Topic>() ||
+                it.hasRoute<Feature.User>() ||
+                it.hasRoute<Feature.News>() ||
+                it.hasRoute<Feature.Stocks>()
+    } == true
+
+    // Determine Layout Type:
+    // 1. If explicitly hidden, hide it.
+    // 2. If it's PhotoDetail (Lightbox), hide it on all platforms.
+    // 3. If it's Mobile (NavigationBar) and we are in any sub-feature or secondary screen, hide it.
+    // 4. Otherwise, use the default layout (shows Rail on Desktop).
+    val layoutType = when {
+        !showNavigationBar -> NavigationSuiteType.None
+        isPhotoDetail -> NavigationSuiteType.None
+        defaultLayoutType == NavigationSuiteType.NavigationBar && (isAnyFeature || currentDestination?.hasRoute<Screen.Register>() == true) -> NavigationSuiteType.None
+        else -> defaultLayoutType
     }
 
     LaunchedEffect(Unit) {
@@ -170,6 +193,9 @@ fun AppScreen(
                     selected = item.isSelected,
                     onClick = {
                         val targetRoute = item.route
+                        logger.d { "NavClick: target=$targetRoute, current=${currentDestination?.route}" }
+                        val startDest = navController.graph.findStartDestination()
+                        logger.d { "StartDestination ID: ${startDest.id}, Route: ${startDest.route}" }
 
                         if (targetRoute == Screen.Home || targetRoute == Screen.Settings || targetRoute == Screen.Account) {
                             val pageIndex = when (targetRoute) {
@@ -177,25 +203,36 @@ fun AppScreen(
                                 Screen.Settings -> 1
                                 else -> 2
                             }
+
                             if (currentDestination?.hasRoute<Screen.MainTabs>() == true) {
+                                logger.d { "NavClick: Already in MainTabs, scrolling to $pageIndex" }
                                 scope.launch {
                                     pagerState.animateScrollToPage(pageIndex)
                                 }
                             } else {
-                                navController.navigate(Screen.MainTabs) {
-                                    popUpTo(navController.graph.startDestinationId) {
-                                        saveState = true
-                                        inclusive = true
+                                logger.d { "NavClick: In Sub-Page, popping back to root and jumping to $pageIndex" }
+                                // 1. Pop back directly to the root node (safest way)
+                                navController.popBackStack(startDest.id, inclusive = false)
+
+                                // 2. Sync Pager state
+                                scope.launch {
+                                    pagerState.scrollToPage(pageIndex)
+                                }
+
+                                // 3. If it's not MainTabs after popping (e.g. startDestination is not MainTabs), navigate to it.
+                                if (navController.currentDestination?.hasRoute<Screen.MainTabs>() != true) {
+                                    navController.navigate(Screen.MainTabs) {
+                                        launchSingleTop = true
+                                        restoreState = true
                                     }
-                                    launchSingleTop = true
-                                    restoreState = true
                                 }
                             }
                         } else {
+                            // Other non-Pager Feature page navigation
+                            logger.d { "NavClick: Navigating to Feature: $targetRoute" }
                             navController.navigate(targetRoute) {
-                                popUpTo(navController.graph.startDestinationId) {
+                                popUpTo(startDest.id) {
                                     saveState = true
-                                    inclusive = true
                                 }
                                 launchSingleTop = true
                                 restoreState = true
@@ -229,11 +266,13 @@ fun AppScreen(
                         popEnterTransition = { tabEnterTransition() },
                         popExitTransition = { tabExitTransition() }
                     ) {
+                        logger.d { "Recomposing MainTabs, pagerState.currentPage=${pagerState.currentPage}" }
                         HorizontalPager(
                             state = pagerState,
                             modifier = Modifier.fillMaxSize(),
                             beyondViewportPageCount = 1
                         ) { page ->
+                            logger.d { "Displaying Pager page: $page" }
                             when (page) {
                                 0 -> HomeScreen(onNavigateToFeature = onNavigate)
                                 1 -> SettingsScreen(onNavigateToFeature = onNavigate)
@@ -284,6 +323,9 @@ fun AppScreen(
                         popEnterTransition = { slidePopIn() },
                         popExitTransition = { slidePopOut() }
                     ) {
+                        LaunchedEffect(Unit) {
+                            logger.d { "Navigated to Gallery Composable (Effect)" }
+                        }
                         GalleryScreen(
                             onNavigateToFeature = onNavigate,
                             onBack = {

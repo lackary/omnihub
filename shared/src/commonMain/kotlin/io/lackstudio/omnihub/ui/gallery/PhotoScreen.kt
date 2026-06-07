@@ -7,6 +7,8 @@ import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -107,6 +109,7 @@ fun PhotoDetailContent(
 ) {
     var showBottomSheet by remember { mutableStateOf(false) }
     val sheetState = rememberModalBottomSheetState()
+    var showUI by remember { mutableStateOf(true) }
 
     // Attempt to get high-resolution photo data
     val photoDetail = (state.detailState as? AppUiState.Success)?.data
@@ -118,7 +121,17 @@ fun PhotoDetailContent(
         containerColor = Color.Black,
         contentWindowInsets = WindowInsets(0, 0, 0, 0)
     ) { _ ->
-        BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+        BoxWithConstraints(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black)
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null
+                ) {
+                    showUI = !showUI
+                }
+        ) {
             val screenWidth = maxWidth
             val screenHeight = maxHeight
             val density = LocalDensity.current
@@ -256,20 +269,30 @@ fun PhotoDetailContent(
 
                 // --- UI Control Layer (TopBar, BottomBar) ---
                 // Top Bar
-                PhotoDetailTopBar(
-                    onBack = onBack,
+                AnimatedVisibility(
+                    visible = showUI,
+                    enter = fadeIn(),
+                    exit = fadeOut(),
                     modifier = Modifier.align(Alignment.TopCenter)
-                )
+                ) {
+                    PhotoDetailTopBar(onBack = onBack)
+                }
 
                 // Bottom Bar
-                PhotoDetailBottomBar(
-                    photoDetail = photoDetail,
-                    isVisible = state.detailState is AppUiState.Success,
-                    onInfoClick = { showBottomSheet = true },
-                    onUserClick = onNavigateToUser,
-                    layoutInfo = detailLayoutInfo,
+                AnimatedVisibility(
+                    visible = showUI && state.detailState is AppUiState.Success,
+                    enter = fadeIn(),
+                    exit = fadeOut(),
                     modifier = Modifier.align(Alignment.BottomCenter)
-                )
+                ) {
+                    PhotoDetailBottomBar(
+                        photoDetail = photoDetail,
+                        isVisible = true, // Animation handled by outer AnimatedVisibility
+                        onInfoClick = { showBottomSheet = true },
+                        onUserClick = onNavigateToUser,
+                        layoutInfo = detailLayoutInfo
+                    )
+                }
             }
         }
 
