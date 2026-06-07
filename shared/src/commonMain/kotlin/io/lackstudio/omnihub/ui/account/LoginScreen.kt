@@ -56,7 +56,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.lackstudio.omnihub.utils.logging.rememberLogger
-import io.lackstudio.omnihub.auth.AuthManager
+import io.lackstudio.omnifeed.auth.AuthManager
 import io.lackstudio.omnihub.platform.rememberPlatformContext
 import kotlinx.coroutines.launch
 import omnihub.shared.generated.resources.Res

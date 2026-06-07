@@ -14,8 +14,8 @@ import io.lackstudio.omnifeed.unsplash.domain.usecase.GetPhotosParams
 import io.lackstudio.omnifeed.unsplash.domain.usecase.GetPhotosUseCase
 import io.lackstudio.omnifeed.unsplash.domain.usecase.GetTopicsParams
 import io.lackstudio.omnifeed.unsplash.domain.usecase.GetTopicsUseCase
-import io.lackstudio.omnihub.auth.AuthManager
-import io.lackstudio.omnihub.auth.DeepLinkBuffer
+import io.lackstudio.omnifeed.auth.AuthManager
+import io.lackstudio.omnifeed.auth.DeepLinkBuffer
 import io.lackstudio.omnihub.platform.getUnsplashAccessKey
 import io.lackstudio.omnihub.platform.getUnsplashSecretKey
 import kotlinx.coroutines.channels.Channel

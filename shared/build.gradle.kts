@@ -162,6 +162,7 @@ kotlin {
             // Uncomment and specify another project module if you have one:
             // export(project(":<your other KMP module>"))
             transitiveExport = false // This is default.
+            export(libs.omnifeed.auth)
         }
 
         pod("FirebaseCore") {
@@ -256,7 +257,7 @@ kotlin {
             implementation(libs.omnifeed.core)
             implementation(libs.omnifeed.ui)
             implementation(libs.omnifeed.unsplash)
-            implementation(libs.omnifeed.auth)
+            api(libs.omnifeed.auth)
         }
         commonTest.dependencies {
             implementation(libs.compose.ui.test)

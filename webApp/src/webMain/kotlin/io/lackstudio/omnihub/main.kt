@@ -2,7 +2,7 @@ package io.lackstudio.omnihub
 
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.window.ComposeViewport
-import io.lackstudio.omnihub.auth.DeepLinkBuffer
+import io.lackstudio.omnifeed.auth.DeepLinkBuffer
 import io.lackstudio.omnihub.di.initKoin
 import io.lackstudio.omnihub.platform.appName
 import io.lackstudio.omnihub.ui.App

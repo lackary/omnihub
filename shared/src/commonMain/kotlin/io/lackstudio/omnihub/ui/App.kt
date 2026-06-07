@@ -39,7 +39,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import androidx.navigation.NavGraph.Companion.findStartDestination
-import io.lackstudio.omnihub.auth.DeepLinkBuffer
+import io.lackstudio.omnifeed.auth.DeepLinkBuffer
 import io.lackstudio.omnihub.ui.extensions.navigateToFeatureSmart
 import io.lackstudio.omnihub.ui.account.AccountScreen
 import io.lackstudio.omnihub.ui.account.LoginScreen
