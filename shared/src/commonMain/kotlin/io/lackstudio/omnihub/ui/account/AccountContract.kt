@@ -15,10 +15,12 @@ interface AccountContract {
         data object OnDeleteAccountClicked : Event
         data object OnDismissDeleteDialog : Event
         data object OnConfirmDeleteAccount : Event
+        data object OnLinkWithGoogleClicked : Event
     }
 
     sealed interface Effect {
         data object NavigateToLogin : Effect
         data object ShowDeleteConfirmation : Effect
+        data object ShowGoogleSignIn : Effect
     }
 }

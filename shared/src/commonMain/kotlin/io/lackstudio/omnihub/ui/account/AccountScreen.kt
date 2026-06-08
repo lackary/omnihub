@@ -1,5 +1,6 @@
 package io.lackstudio.omnihub.ui.account
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -32,6 +33,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -39,6 +41,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
+import io.lackstudio.omnifeed.auth.AuthManager
+import io.lackstudio.omnihub.platform.rememberPlatformContext
+import kotlinx.coroutines.launch
+import omnihub.shared.generated.resources.Res
+import omnihub.shared.generated.resources.ic_google
+import org.jetbrains.compose.resources.painterResource
+import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
@@ -48,6 +57,9 @@ fun AccountScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val sideEffect = viewModel.sideEffect
+    val authManager: AuthManager = koinInject()
+    val scope = rememberCoroutineScope()
+    val context = rememberPlatformContext()
 
     LaunchedEffect(sideEffect) {
         sideEffect.collect { effect ->
@@ -55,6 +67,14 @@ fun AccountScreen(
                 AccountContract.Effect.NavigateToLogin -> onNavigateToLogin()
                 AccountContract.Effect.ShowDeleteConfirmation -> {
                     /* Handled via state.showDeleteDialog */
+                }
+                AccountContract.Effect.ShowGoogleSignIn -> {
+                    scope.launch {
+                        val tokens = authManager.signInWithGoogle(context)
+                        if (tokens != null) {
+                            viewModel.onGoogleSignInResult(tokens.idToken, tokens.accessToken)
+                        }
+                    }
                 }
             }
         }
@@ -139,6 +159,59 @@ fun AccountScreenContent(
                         )
 
                         Spacer(modifier = Modifier.height(32.dp))
+
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(40.dp)
+                                        .clip(CircleShape),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Image(
+                                        painter = painterResource(Res.drawable.ic_google),
+                                        contentDescription = null,
+                                        modifier = Modifier.size(24.dp)
+                                    )
+                                }
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Text(
+                                    text = "Google",
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
+
+                            if (user.isGoogleLinked) {
+                                Button(
+                                    onClick = { },
+                                    enabled = false,
+                                    colors = ButtonDefaults.buttonColors(
+                                        disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                        disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                                    ),
+                                    shape = MaterialTheme.shapes.medium
+                                ) {
+                                    Text("Linked")
+                                }
+                            } else {
+                                Button(
+                                    onClick = { onEvent(AccountContract.Event.OnLinkWithGoogleClicked) },
+                                    enabled = !state.isLoading,
+                                    shape = MaterialTheme.shapes.medium
+                                ) {
+                                    Text("Link")
+                                }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(16.dp))
 
                         Button(
                             onClick = { onEvent(AccountContract.Event.OnLogoutClicked) },
