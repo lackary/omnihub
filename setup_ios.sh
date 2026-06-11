@@ -5,10 +5,13 @@
 set -e
 cd "$(dirname "$0")"
 
-# --- Step 1: Clean old build caches ---
+# --- Step 1: Clean old build caches and CocoaPods artifacts ---
 # This prevents old or incorrect resources/paths from affecting the new build.
-echo "🧹 [1/4] Cleaning previous builds..."
+echo "🧹 [1/4] Cleaning previous builds and CocoaPods artifacts..."
 ./gradlew clean
+rm -rf iosApp/Pods
+rm -f iosApp/Podfile.lock
+rm -rf ~/Library/Developer/Xcode/DerivedData/OmniHub-* # Optional: clear specific DerivedData
 
 # --- Step 2: Create an empty resource directory ---
 # This is the key to the whole process!

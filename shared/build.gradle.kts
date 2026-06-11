@@ -173,6 +173,10 @@ kotlin {
             version = "~> 12.4.0"
             extraOpts += listOf("-compiler-option", "-fmodules")
         }
+        pod("FirebaseFirestore") {
+            version = "~> 12.4.0"
+            extraOpts += listOf("-compiler-option", "-fmodules")
+        }
         pod("GoogleSignIn") {
             version = "~> 9.0.0"
             extraOpts += listOf("-compiler-option", "-fmodules")

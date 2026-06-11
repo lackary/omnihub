@@ -46,6 +46,7 @@ import io.lackstudio.omnihub.platform.rememberPlatformContext
 import kotlinx.coroutines.launch
 import omnihub.shared.generated.resources.Res
 import omnihub.shared.generated.resources.ic_google
+import omnihub.shared.generated.resources.ic_unsplash
 import org.jetbrains.compose.resources.painterResource
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
@@ -203,6 +204,57 @@ fun AccountScreenContent(
                             } else {
                                 Button(
                                     onClick = { onEvent(AccountContract.Event.OnLinkWithGoogleClicked) },
+                                    enabled = !state.isLoading,
+                                    shape = MaterialTheme.shapes.medium
+                                ) {
+                                    Text("Link")
+                                }
+                            }
+                        }
+
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(40.dp)
+                                        .clip(CircleShape),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Image(
+                                        painter = painterResource(Res.drawable.ic_unsplash),
+                                        contentDescription = null,
+                                        modifier = Modifier.size(24.dp)
+                                    )
+                                }
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Text(
+                                    text = "Unsplash",
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
+
+                            if (user.isUnsplashLinked) {
+                                Button(
+                                    onClick = { },
+                                    enabled = false,
+                                    colors = ButtonDefaults.buttonColors(
+                                        disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                        disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                                    ),
+                                    shape = MaterialTheme.shapes.medium
+                                ) {
+                                    Text("Linked")
+                                }
+                            } else {
+                                Button(
+                                    onClick = { onEvent(AccountContract.Event.OnLinkWithUnsplashClicked) },
                                     enabled = !state.isLoading,
                                     shape = MaterialTheme.shapes.medium
                                 ) {

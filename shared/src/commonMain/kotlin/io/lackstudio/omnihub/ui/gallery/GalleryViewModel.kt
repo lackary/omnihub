@@ -14,6 +14,7 @@ import io.lackstudio.omnifeed.unsplash.domain.usecase.GetPhotosParams
 import io.lackstudio.omnifeed.unsplash.domain.usecase.GetPhotosUseCase
 import io.lackstudio.omnifeed.unsplash.domain.usecase.GetTopicsParams
 import io.lackstudio.omnifeed.unsplash.domain.usecase.GetTopicsUseCase
+import io.lackstudio.omnifeed.auth.domain.usecase.LinkWithUnsplashUseCase
 import io.lackstudio.omnifeed.auth.AuthManager
 import io.lackstudio.omnifeed.auth.DeepLinkBuffer
 import io.lackstudio.omnihub.platform.getUnsplashAccessKey
@@ -31,6 +32,7 @@ class GalleryViewModel(
     private val getCollectionsUseCase: GetCollectionsUseCase,
     private val getTopicsUseCase: GetTopicsUseCase,
     private val exchangeOAuthUseCase: ExchangeOAuthUseCase,
+    private val linkWithUnsplashUseCase: LinkWithUnsplashUseCase,
     private val accessTokenProvider: AccessTokenProvider,
     private val meUseCase: GetMeUseCase,
 ) : BaseViewModel() {
@@ -156,6 +158,9 @@ class GalleryViewModel(
                 // Handle successful login
                 viewModelScope.launch {
                     accessTokenProvider.setOAuthToken(data.tokenType, data.accessToken)
+
+                    // Link with Firebase
+                    linkWithUnsplashUseCase(data.accessToken)
 
                     _state.update { it.copy(isAuthenticating = false) }
                     _sideEffect.send(GallerySideEffect.ShowSnackbar("Login Successful!"))
