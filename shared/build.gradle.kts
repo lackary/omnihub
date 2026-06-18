@@ -14,6 +14,9 @@ val firebaseAndroidBase64Name = "FIREBASE_ANDROID_BASE64"
 val firebaseIosBase64Name = "FIREBASE_IOS_BASE64"
 val firebaseWebBase64Name = "FIREBASE_WEB_BASE64"
 val googleServerClientIdName = "GOOGLE_SERVER_CLIENT_ID"
+val firebaseProjectIdName = "FIREBASE_PROJECT_ID"
+val firebaseRegionName = "FIREBASE_REGION"
+val firebaseExtCustomAuthPathName = "FIREBASE_EXT_CUSTOM_AUTH_PATH"
 
 // Read buildNumber, default to 1 if not provided (e.g. during development)
 val buildNumberProp = project.findProperty("buildNumber") as? String
@@ -29,9 +32,9 @@ fun getFromPropertiesFile(fileName: String, key: String, project: Project): Stri
 }
 
 fun resolveConfigValue(key: String, project: Project): String? {
-    // Priority: .secrets -> Environment variables
+    // Priority: .secrets -> local.properties -> Environment variables
     return getFromPropertiesFile(".secrets", key, project)
-//        ?: getFromPropertiesFile("local.properties", key, project)
+        ?: getFromPropertiesFile("local.properties", key, project)
         ?: System.getenv(key)
 }
 
@@ -55,6 +58,9 @@ buildkonfig {
     val firebaseAndroidBase64 = resolveConfigValue(firebaseAndroidBase64Name, project) ?: ""
     val firebaseIosBase64 = resolveConfigValue(firebaseIosBase64Name, project) ?: ""
     val firebaseWebBase64 = resolveConfigValue(firebaseWebBase64Name, project) ?: ""
+    val firebaseProjectId = resolveConfigValue(firebaseProjectIdName, project) ?: ""
+    val firebaseRegion = resolveConfigValue(firebaseRegionName, project) ?: "us-central1"
+    val firebaseExtCustomAuthPath = resolveConfigValue(firebaseExtCustomAuthPathName, project) ?: ""
 
     // 1. Automatically decode from Android Base64 and extract Web Client ID (client_type: 3)
     val googleServerClientId = if (firebaseAndroidBase64.isNotEmpty()) {
@@ -86,6 +92,9 @@ buildkonfig {
         buildConfigField(STRING, firebaseIosBase64Name, firebaseIosBase64)
         buildConfigField(STRING, firebaseWebBase64Name, firebaseWebBase64)
         buildConfigField(STRING, googleServerClientIdName, googleServerClientId)
+        buildConfigField(STRING, firebaseProjectIdName, firebaseProjectId)
+        buildConfigField(STRING, firebaseRegionName, firebaseRegion)
+        buildConfigField(STRING, firebaseExtCustomAuthPathName, firebaseExtCustomAuthPath)
     }
     targetConfigs {
         create("debug") {

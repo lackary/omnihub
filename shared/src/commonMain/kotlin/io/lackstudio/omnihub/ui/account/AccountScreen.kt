@@ -43,6 +43,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import io.lackstudio.omnifeed.auth.AuthManager
 import io.lackstudio.omnihub.platform.rememberPlatformContext
+import io.lackstudio.omnihub.utils.Environment
 import kotlinx.coroutines.launch
 import omnihub.shared.generated.resources.Res
 import omnihub.shared.generated.resources.ic_google
@@ -240,17 +241,17 @@ fun AccountScreenContent(
                                 )
                             }
 
-                            if (user.isUnsplashLinked) {
+                            if (user.isCustomServiceLinked(Environment.SERVICE_UNSPLASH)) {
                                 Button(
-                                    onClick = { },
-                                    enabled = false,
+                                    onClick = { onEvent(AccountContract.Event.OnUnlinkUnsplashClicked) },
+                                    enabled = !state.isLoading,
                                     colors = ButtonDefaults.buttonColors(
-                                        disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                                        disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                                        containerColor = MaterialTheme.colorScheme.errorContainer,
+                                        contentColor = MaterialTheme.colorScheme.onErrorContainer
                                     ),
                                     shape = MaterialTheme.shapes.medium
                                 ) {
-                                    Text("Linked")
+                                    Text("Unlink")
                                 }
                             } else {
                                 Button(

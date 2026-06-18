@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Visibility
@@ -34,7 +33,6 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -61,6 +59,7 @@ import io.lackstudio.omnihub.platform.rememberPlatformContext
 import kotlinx.coroutines.launch
 import omnihub.shared.generated.resources.Res
 import omnihub.shared.generated.resources.ic_google
+import omnihub.shared.generated.resources.ic_unsplash
 import org.jetbrains.compose.resources.painterResource
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
@@ -99,6 +98,15 @@ fun LoginScreen(
                             logger.w { "Tokens are NULL, flow aborted" }
                         }
                     }
+                }
+                LoginContract.Effect.ShowUnsplashSignIn -> {
+                    logger.i { "Captured ShowUnsplashSignIn effect" }
+                    val authUrl = "https://unsplash.com/oauth/authorize" +
+                            "?client_id=${io.lackstudio.omnihub.shared.BuildKonfig.UNSPLASH_ACCESS_KEY}" +
+                            "&redirect_uri=${authManager.getRedirectUrl()}" +
+                            "&response_type=code" +
+                            "&scope=public"
+                    authManager.startLogin(authUrl)
                 }
             }
         }
@@ -251,6 +259,31 @@ fun LoginScreenContent(
                             )
                             Spacer(modifier = Modifier.width(12.dp))
                             Text("Continue with Google")
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    OutlinedButton(
+                        onClick = { onEvent(LoginContract.Event.OnUnsplashLoginClicked) },
+                        modifier = Modifier.fillMaxWidth().height(50.dp),
+                        shape = MaterialTheme.shapes.medium,
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            contentColor = MaterialTheme.colorScheme.onSurface
+                        ),
+                        enabled = !state.isLoading
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            Image(
+                                painter = painterResource(Res.drawable.ic_unsplash),
+                                contentDescription = null,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Text("Continue with Unsplash")
                         }
                     }
 

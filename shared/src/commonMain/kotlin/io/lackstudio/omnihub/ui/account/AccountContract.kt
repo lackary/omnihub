@@ -17,6 +17,7 @@ interface AccountContract {
         data object OnConfirmDeleteAccount : Event
         data object OnLinkWithGoogleClicked : Event
         data object OnLinkWithUnsplashClicked : Event
+        data object OnUnlinkUnsplashClicked : Event
     }
 
     sealed interface Effect {

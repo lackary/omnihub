@@ -3,7 +3,8 @@ package io.lackstudio.omnihub.ui.account
 import androidx.lifecycle.viewModelScope
 import io.lackstudio.omnifeed.auth.domain.usecase.DeleteAccountUseCase
 import io.lackstudio.omnifeed.auth.domain.usecase.LinkWithGoogleUseCase
-import io.lackstudio.omnifeed.auth.domain.usecase.LinkWithUnsplashUseCase
+import io.lackstudio.omnifeed.auth.domain.usecase.LinkWithCustomServiceUseCase
+import io.lackstudio.omnifeed.auth.domain.usecase.UnlinkCustomServiceUseCase
 import io.lackstudio.omnifeed.auth.domain.usecase.ObserveUserUseCase
 import io.lackstudio.omnifeed.auth.domain.usecase.SignOutUseCase
 import io.lackstudio.omnifeed.core.common.error.getFriendlyMessage
@@ -14,6 +15,7 @@ import io.lackstudio.omnifeed.auth.AuthManager
 import io.lackstudio.omnifeed.auth.DeepLinkBuffer
 import io.lackstudio.omnihub.platform.getUnsplashAccessKey
 import io.lackstudio.omnihub.platform.getUnsplashSecretKey
+import io.lackstudio.omnihub.utils.Environment
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -28,7 +30,8 @@ class AccountViewModel(
     private val deleteAccountUseCase: DeleteAccountUseCase,
     private val linkWithGoogleUseCase: LinkWithGoogleUseCase,
     private val exchangeOAuthUseCase: ExchangeOAuthUseCase,
-    private val linkWithUnsplashUseCase: LinkWithUnsplashUseCase,
+    private val linkWithCustomServiceUseCase: LinkWithCustomServiceUseCase,
+    private val unlinkCustomServiceUseCase: UnlinkCustomServiceUseCase,
 ) : BaseViewModel() {
 
     private val _state = MutableStateFlow(AccountContract.State())
@@ -91,6 +94,22 @@ class AccountViewModel(
             AccountContract.Event.OnLinkWithUnsplashClicked -> {
                 linkWithUnsplash()
             }
+            AccountContract.Event.OnUnlinkUnsplashClicked -> {
+                unlinkUnsplash()
+            }
+        }
+    }
+
+    private fun unlinkUnsplash() {
+        viewModelScope.launch {
+            _state.update { it.copy(isLoading = true, error = null) }
+            unlinkCustomServiceUseCase(Environment.SERVICE_UNSPLASH)
+                .onSuccess { user ->
+                    _state.update { it.copy(isLoading = false, user = user) }
+                }
+                .onFailure { error ->
+                    _state.update { it.copy(isLoading = false, error = error.getFriendlyMessage()) }
+                }
         }
     }
 
@@ -100,7 +119,7 @@ class AccountViewModel(
         val authUrl = "https://unsplash.com/oauth/authorize" +
                 "?client_id=${getUnsplashAccessKey()}" +
                 "&response_type=code" +
-                "&scope=public" +
+                "&scope=public+read_user" +
                 "&redirect_uri=$redirectUri"
         authManager.startLogin(authUrl)
     }
@@ -120,7 +139,7 @@ class AccountViewModel(
             useCase = { exchangeOAuthUseCase(unsplashOAuthCode) },
             onSuccess = { data ->
                 viewModelScope.launch {
-                    linkWithUnsplashUseCase(data.accessToken)
+                    linkWithCustomServiceUseCase(Environment.SERVICE_UNSPLASH, data.accessToken)
                         .onSuccess { user ->
                             _state.update { it.copy(isLoading = false, user = user) }
                         }

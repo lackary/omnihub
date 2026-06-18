@@ -14,11 +14,12 @@ import io.lackstudio.omnifeed.unsplash.domain.usecase.GetPhotosParams
 import io.lackstudio.omnifeed.unsplash.domain.usecase.GetPhotosUseCase
 import io.lackstudio.omnifeed.unsplash.domain.usecase.GetTopicsParams
 import io.lackstudio.omnifeed.unsplash.domain.usecase.GetTopicsUseCase
-import io.lackstudio.omnifeed.auth.domain.usecase.LinkWithUnsplashUseCase
+import io.lackstudio.omnifeed.auth.domain.usecase.LinkWithCustomServiceUseCase
 import io.lackstudio.omnifeed.auth.AuthManager
 import io.lackstudio.omnifeed.auth.DeepLinkBuffer
 import io.lackstudio.omnihub.platform.getUnsplashAccessKey
 import io.lackstudio.omnihub.platform.getUnsplashSecretKey
+import io.lackstudio.omnihub.utils.Environment
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -32,7 +33,7 @@ class GalleryViewModel(
     private val getCollectionsUseCase: GetCollectionsUseCase,
     private val getTopicsUseCase: GetTopicsUseCase,
     private val exchangeOAuthUseCase: ExchangeOAuthUseCase,
-    private val linkWithUnsplashUseCase: LinkWithUnsplashUseCase,
+    private val linkWithCustomServiceUseCase: LinkWithCustomServiceUseCase,
     private val accessTokenProvider: AccessTokenProvider,
     private val meUseCase: GetMeUseCase,
 ) : BaseViewModel() {
@@ -160,7 +161,7 @@ class GalleryViewModel(
                     accessTokenProvider.setOAuthToken(data.tokenType, data.accessToken)
 
                     // Link with Firebase
-                    linkWithUnsplashUseCase(data.accessToken)
+                    linkWithCustomServiceUseCase(Environment.SERVICE_UNSPLASH, data.accessToken)
 
                     _state.update { it.copy(isAuthenticating = false) }
                     _sideEffect.send(GallerySideEffect.ShowSnackbar("Login Successful!"))
@@ -447,7 +448,7 @@ class GalleryViewModel(
         return "https://unsplash.com/oauth/authorize" +
                 "?client_id=${getUnsplashAccessKey()}" +
                 "&response_type=code" +
-                "&scope=public" +
+                "&scope=public+read_user" +
                 "&redirect_uri=$redirectUrl"
     }
 }

@@ -1,6 +1,7 @@
 package io.lackstudio.omnihub.di
 
 import io.lackstudio.omnifeed.auth.di.omnifeedAuthModule
+import io.lackstudio.omnifeed.core.CustomServiceConfig
 import io.lackstudio.omnifeed.core.OmniFeedConfig
 import io.lackstudio.omnifeed.core.UnsplashConfig
 import io.lackstudio.omnifeed.core.common.logging.createOmniFeedLogger
@@ -9,6 +10,8 @@ import io.lackstudio.omnifeed.unsplash.di.unsplashModule
 import io.lackstudio.omnifeed.unsplash.utils.Environment as UnsplashEnvironment
 import io.lackstudio.omnihub.platform.authModule
 import io.lackstudio.omnihub.platform.getUnsplashAccessKey
+import io.lackstudio.omnihub.shared.BuildKonfig
+import io.lackstudio.omnihub.utils.Environment
 import io.lackstudio.omnihub.utils.logging.AppLog
 import org.koin.core.context.startKoin
 import org.koin.dsl.KoinAppDeclaration
@@ -23,11 +26,22 @@ fun initKoin(config: KoinAppDeclaration? = null) {
 
     AppLog.init(appLogger)
 
+    // Helper to construct Cloud Function URLs
+    fun getCloudFunctionUrl(path: String): String {
+        return "https://${BuildKonfig.FIREBASE_REGION}-${BuildKonfig.FIREBASE_PROJECT_ID}.cloudfunctions.net/$path"
+    }
+
     val omniFeedConfig = OmniFeedConfig(
         appLogger = appLogger,
         unsplash = UnsplashConfig(
             tokenType = UnsplashEnvironment.AUTH_SCHEME_PUBLIC,
             token = getUnsplashAccessKey(),
+        ),
+        customServices = mapOf(
+            Environment.SERVICE_UNSPLASH to CustomServiceConfig(
+                authEndpoint = getCloudFunctionUrl(BuildKonfig.FIREBASE_EXT_CUSTOM_AUTH_PATH),
+                linkedField = "isUnsplashLinked"
+            )
         )
     )
     startKoin {

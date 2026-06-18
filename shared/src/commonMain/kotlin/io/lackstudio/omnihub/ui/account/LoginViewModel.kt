@@ -1,10 +1,19 @@
 package io.lackstudio.omnihub.ui.account
 
 import androidx.lifecycle.viewModelScope
+import io.lackstudio.omnifeed.auth.AuthManager
+import io.lackstudio.omnifeed.auth.DeepLinkBuffer
+import io.lackstudio.omnifeed.auth.domain.usecase.SignInWithCustomServiceUseCase
 import io.lackstudio.omnifeed.auth.domain.usecase.SignInWithEmailUseCase
 import io.lackstudio.omnifeed.auth.domain.usecase.SignInWithGoogleUseCase
 import io.lackstudio.omnifeed.core.common.error.getFriendlyMessage
+import io.lackstudio.omnifeed.core.network.oauth.AccessTokenProvider
 import io.lackstudio.omnifeed.ui.viewmodel.BaseViewModel
+import io.lackstudio.omnifeed.unsplash.domain.usecase.ExchangeOAuthUseCase
+import io.lackstudio.omnifeed.unsplash.domain.model.OAuthCode as UnsplashOAuthCode
+import io.lackstudio.omnihub.platform.getUnsplashAccessKey
+import io.lackstudio.omnihub.platform.getUnsplashSecretKey
+import io.lackstudio.omnihub.utils.Environment
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -13,8 +22,12 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 class LoginViewModel(
+    private val authManager: AuthManager,
     private val signInWithEmailUseCase: SignInWithEmailUseCase,
-    private val signInWithGoogleUseCase: SignInWithGoogleUseCase
+    private val signInWithGoogleUseCase: SignInWithGoogleUseCase,
+    private val signInWithCustomServiceUseCase: SignInWithCustomServiceUseCase,
+    private val exchangeOAuthUseCase: ExchangeOAuthUseCase,
+    private val accessTokenProvider: AccessTokenProvider,
 ) : BaseViewModel() {
 
     private val _state = MutableStateFlow(LoginContract.State())
@@ -22,6 +35,23 @@ class LoginViewModel(
 
     private val _sideEffect = Channel<LoginContract.Effect>(Channel.BUFFERED)
     val sideEffect = _sideEffect.receiveAsFlow()
+
+    init {
+        observeDeepLink()
+    }
+
+    private fun observeDeepLink() {
+        viewModelScope.launch {
+            DeepLinkBuffer.deepLinkUrl.collect { url ->
+                if (url != null && url.contains("code=")) {
+                    val code = url.substringAfter("code=").substringBefore("&")
+                    logger.d { "✅ LoginViewModel detected code: $code" }
+                    handleUnsplashCallback(code)
+                    DeepLinkBuffer.consumeDeepLink()
+                }
+            }
+        }
+    }
 
     fun handleIntent(event: LoginContract.Event) {
         when (event) {
@@ -36,6 +66,9 @@ class LoginViewModel(
             }
             LoginContract.Event.OnGoogleLoginClicked -> {
                 loginWithGoogle()
+            }
+            LoginContract.Event.OnUnsplashLoginClicked -> {
+                loginWithUnsplash()
             }
             LoginContract.Event.OnSignUpClicked -> {
                 viewModelScope.launch {
@@ -76,6 +109,50 @@ class LoginViewModel(
         viewModelScope.launch {
             _sideEffect.send(LoginContract.Effect.ShowGoogleSignIn)
         }
+    }
+
+    private fun loginWithUnsplash() {
+        val authUrl = "https://unsplash.com/oauth/authorize" +
+                "?client_id=${getUnsplashAccessKey()}" +
+                "&response_type=code" +
+                "&scope=public+read_user" +
+                "&redirect_uri=${authManager.getRedirectUrl()}"
+        authManager.startLogin(authUrl)
+    }
+
+    private fun handleUnsplashCallback(code: String) {
+        val unsplashOAuthCode = UnsplashOAuthCode(
+            clientId = getUnsplashAccessKey(),
+            clientSecret = getUnsplashSecretKey(),
+            redirectUri = authManager.getRedirectUrl(),
+            code = code
+        )
+
+        handleUseCaseCall(
+            name = "exchangeOAuth",
+            onLoading = { _state.update { it.copy(isLoading = true, error = null) } },
+            useCase = { exchangeOAuthUseCase(unsplashOAuthCode) },
+            onSuccess = { data ->
+                val serviceName = Environment.SERVICE_UNSPLASH
+                viewModelScope.launch {
+                    accessTokenProvider.setOAuthToken(data.tokenType, data.accessToken)
+                    
+                    signInWithCustomServiceUseCase(serviceName, data.accessToken)
+                        .onSuccess {
+                            logger.d { "Service $serviceName, login success!" }
+                            _state.update { it.copy(isLoading = false) }
+                            _sideEffect.send(LoginContract.Effect.NavigateBack)
+                        }
+                        .onFailure { error ->
+                            logger.e(error) { "Service $serviceName, login Failed!, error message: ${error.message}" }
+                            _state.update { it.copy(isLoading = false, error = error.getFriendlyMessage()) }
+                        }
+                }
+            },
+            onError = { errorMessage ->
+                _state.update { it.copy(isLoading = false, error = errorMessage) }
+            }
+        )
     }
 
     fun onGoogleSignInResult(idToken: String, accessToken: String? = null) {
