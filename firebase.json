@@ -1,3 +1,5 @@
 {
-  "extensions": {}
+  "extensions": {
+    "omnifeed-auth-custom-service": "lackstudio/omnifeed-auth-custom-service@0.13.0-alpha.5"
+  }
 }

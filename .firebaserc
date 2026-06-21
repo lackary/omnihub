@@ -1,5 +1,13 @@
 {
   "projects": {
     "default": "lackstudio-omnihub-dev"
+  },
+  "targets": {},
+  "etags": {
+    "lackstudio-omnihub-dev": {
+      "extensionInstances": {
+        "omnifeed-auth-custom-service": "7e0239be6a35a5f8089c95a0c678ac015edaa6fc51759326d0f889cf5b4d5b2d"
+      }
+    }
   }
 }
