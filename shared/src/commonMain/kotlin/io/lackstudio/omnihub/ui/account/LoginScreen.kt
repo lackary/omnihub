@@ -96,6 +96,8 @@ fun LoginScreen(
                             viewModel.onGoogleSignInResult(tokens.idToken, tokens.accessToken)
                         } else {
                             logger.w { "Tokens are NULL, flow aborted" }
+                            // Reset loading state if cancelled
+                            viewModel.handleIntent(LoginContract.Event.OnBackClicked) // or a specific reset
                         }
                     }
                 }
@@ -222,7 +224,7 @@ fun LoginScreenContent(
                         shape = MaterialTheme.shapes.medium,
                         enabled = !state.isLoading
                     ) {
-                        if (state.isLoading) {
+                        if (state.isLoading && state.loadingSource == LoginContract.LoadingSource.EMAIL) {
                             CircularProgressIndicator(
                                 modifier = Modifier.size(24.dp),
                                 color = MaterialTheme.colorScheme.onPrimary,
@@ -248,17 +250,25 @@ fun LoginScreenContent(
                         ),
                         enabled = !state.isLoading
                     ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.Center
-                        ) {
-                            Image(
-                                painter = painterResource(Res.drawable.ic_google),
-                                contentDescription = null,
-                                modifier = Modifier.size(20.dp)
+                        if (state.isLoading && state.loadingSource == LoginContract.LoadingSource.GOOGLE) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(24.dp),
+                                color = MaterialTheme.colorScheme.primary,
+                                strokeWidth = 2.dp
                             )
-                            Spacer(modifier = Modifier.width(12.dp))
-                            Text("Continue with Google")
+                        } else {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.Center
+                            ) {
+                                Image(
+                                    painter = painterResource(Res.drawable.ic_google),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Text("Continue with Google")
+                            }
                         }
                     }
 
@@ -273,17 +283,25 @@ fun LoginScreenContent(
                         ),
                         enabled = !state.isLoading
                     ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.Center
-                        ) {
-                            Image(
-                                painter = painterResource(Res.drawable.ic_unsplash),
-                                contentDescription = null,
-                                modifier = Modifier.size(20.dp)
+                        if (state.isLoading && state.loadingSource == LoginContract.LoadingSource.UNSPLASH) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(24.dp),
+                                color = MaterialTheme.colorScheme.primary,
+                                strokeWidth = 2.dp
                             )
-                            Spacer(modifier = Modifier.width(12.dp))
-                            Text("Continue with Unsplash")
+                        } else {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.Center
+                            ) {
+                                Image(
+                                    painter = painterResource(Res.drawable.ic_unsplash),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Text("Continue with Unsplash")
+                            }
                         }
                     }
 

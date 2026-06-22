@@ -75,6 +75,9 @@ fun AccountScreen(
                         val tokens = authManager.signInWithGoogle(context)
                         if (tokens != null) {
                             viewModel.onGoogleSignInResult(tokens.idToken, tokens.accessToken)
+                        } else {
+                            // Reset loading state if cancelled
+                            // viewModel.onCancel...
                         }
                     }
                 }
@@ -208,7 +211,15 @@ fun AccountScreenContent(
                                     enabled = !state.isLoading,
                                     shape = MaterialTheme.shapes.medium
                                 ) {
-                                    Text("Link")
+                                    if (state.isLoading && state.loadingSource == AccountContract.LoadingSource.GOOGLE) {
+                                        CircularProgressIndicator(
+                                            modifier = Modifier.size(24.dp),
+                                            color = MaterialTheme.colorScheme.onPrimary,
+                                            strokeWidth = 2.dp
+                                        )
+                                    } else {
+                                        Text("Link")
+                                    }
                                 }
                             }
                         }
@@ -251,7 +262,15 @@ fun AccountScreenContent(
                                     ),
                                     shape = MaterialTheme.shapes.medium
                                 ) {
-                                    Text("Unlink")
+                                    if (state.isLoading && state.loadingSource == AccountContract.LoadingSource.UNSPLASH) {
+                                        CircularProgressIndicator(
+                                            modifier = Modifier.size(24.dp),
+                                            color = MaterialTheme.colorScheme.onErrorContainer,
+                                            strokeWidth = 2.dp
+                                        )
+                                    } else {
+                                        Text("Unlink")
+                                    }
                                 }
                             } else {
                                 Button(
@@ -259,7 +278,15 @@ fun AccountScreenContent(
                                     enabled = !state.isLoading,
                                     shape = MaterialTheme.shapes.medium
                                 ) {
-                                    Text("Link")
+                                    if (state.isLoading && state.loadingSource == AccountContract.LoadingSource.UNSPLASH) {
+                                        CircularProgressIndicator(
+                                            modifier = Modifier.size(24.dp),
+                                            color = MaterialTheme.colorScheme.onPrimary,
+                                            strokeWidth = 2.dp
+                                        )
+                                    } else {
+                                        Text("Link")
+                                    }
                                 }
                             }
                         }
@@ -275,7 +302,7 @@ fun AccountScreenContent(
                             ),
                             enabled = !state.isLoading
                         ) {
-                            if (state.isLoading) {
+                            if (state.isLoading && state.loadingSource == AccountContract.LoadingSource.LOGOUT) {
                                 CircularProgressIndicator(
                                     modifier = Modifier.size(24.dp),
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -309,10 +336,18 @@ fun AccountScreenContent(
                             ),
                             enabled = !state.isLoading
                         ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(Icons.Default.Delete, contentDescription = null)
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text("Delete Account")
+                            if (state.isLoading && state.loadingSource == AccountContract.LoadingSource.DELETE) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(24.dp),
+                                    color = MaterialTheme.colorScheme.error,
+                                    strokeWidth = 2.dp
+                                )
+                            } else {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(Icons.Default.Delete, contentDescription = null)
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text("Delete Account")
+                                }
                             }
                         }
                     } else {

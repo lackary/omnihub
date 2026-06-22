@@ -6,9 +6,14 @@ interface AccountContract {
     data class State(
         val user: User? = null,
         val isLoading: Boolean = false,
+        val loadingSource: LoadingSource? = null,
         val showDeleteDialog: Boolean = false,
         val error: String? = null
     )
+
+    enum class LoadingSource {
+        GOOGLE, UNSPLASH, LOGOUT, DELETE
+    }
 
     sealed interface Event {
         data object OnLogoutClicked : Event

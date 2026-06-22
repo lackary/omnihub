@@ -3,10 +3,15 @@ package io.lackstudio.omnihub.ui.account
 interface LoginContract {
     data class State(
         val isLoading: Boolean = false,
+        val loadingSource: LoadingSource? = null,
         val email: String = "",
         val password: String = "",
         val error: String? = null
     )
+
+    enum class LoadingSource {
+        EMAIL, GOOGLE, UNSPLASH
+    }
 
     sealed interface Event {
         data class OnEmailChanged(val email: String) : Event

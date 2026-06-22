@@ -19,6 +19,9 @@ import io.lackstudio.omnihub.utils.Environment
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -62,10 +65,19 @@ class AccountViewModel(
 
     private fun observeDeepLink() {
         viewModelScope.launch {
-            DeepLinkBuffer.deepLinkUrl.collect { url ->
-                if (url != null && url.contains("code=")) {
-                    val code = url.substringAfter("code=").substringBefore("&")
-                    logger.d { "✅ AccountViewModel detected code: $code" }
+            combine(
+                DeepLinkBuffer.deepLinkUrl,
+                state.map { it.user }.distinctUntilChanged()
+            ) { url, user ->
+                if (url != null && url.contains("code=") && user != null) {
+                    url
+                } else {
+                    null
+                }
+            }.collect { url ->
+                url?.let {
+                    val code = it.substringAfter("code=").substringBefore("&")
+                    logger.d { "✅ AccountViewModel detected code: $code (Linking Mode)" }
                     handleUnsplashCallback(code)
                     DeepLinkBuffer.consumeDeepLink()
                 }
@@ -88,6 +100,7 @@ class AccountViewModel(
             }
             AccountContract.Event.OnLinkWithGoogleClicked -> {
                 viewModelScope.launch {
+                    _state.update { it.copy(isLoading = true, loadingSource = AccountContract.LoadingSource.GOOGLE) }
                     _sideEffect.send(AccountContract.Effect.ShowGoogleSignIn)
                 }
             }
@@ -102,13 +115,13 @@ class AccountViewModel(
 
     private fun unlinkUnsplash() {
         viewModelScope.launch {
-            _state.update { it.copy(isLoading = true, error = null) }
+            _state.update { it.copy(isLoading = true, loadingSource = AccountContract.LoadingSource.UNSPLASH, error = null) }
             unlinkCustomServiceUseCase(Environment.SERVICE_UNSPLASH)
                 .onSuccess { user ->
-                    _state.update { it.copy(isLoading = false, user = user) }
+                    _state.update { it.copy(isLoading = false, loadingSource = null, user = user) }
                 }
                 .onFailure { error ->
-                    _state.update { it.copy(isLoading = false, error = error.getFriendlyMessage()) }
+                    _state.update { it.copy(isLoading = false, loadingSource = null, error = error.getFriendlyMessage()) }
                 }
         }
     }
@@ -135,48 +148,48 @@ class AccountViewModel(
 
         handleUseCaseCall(
             name = "exchangeOAuth",
-            onLoading = { _state.update { it.copy(isLoading = true, error = null) } },
+            onLoading = { _state.update { it.copy(isLoading = true, loadingSource = AccountContract.LoadingSource.UNSPLASH, error = null) } },
             useCase = { exchangeOAuthUseCase(unsplashOAuthCode) },
             onSuccess = { data ->
                 viewModelScope.launch {
                     linkWithCustomServiceUseCase(Environment.SERVICE_UNSPLASH, data.accessToken)
                         .onSuccess { user ->
-                            _state.update { it.copy(isLoading = false, user = user) }
+                            _state.update { it.copy(isLoading = false, loadingSource = null, user = user) }
                         }
                         .onFailure { error ->
-                            _state.update { it.copy(isLoading = false, error = error.getFriendlyMessage()) }
+                            _state.update { it.copy(isLoading = false, loadingSource = null, error = error.getFriendlyMessage()) }
                         }
                 }
             },
             onError = { errorMessage ->
-                _state.update { it.copy(isLoading = false, error = errorMessage) }
+                _state.update { it.copy(isLoading = false, loadingSource = null, error = errorMessage) }
             }
         )
     }
 
     fun onGoogleSignInResult(idToken: String, accessToken: String? = null) {
         viewModelScope.launch {
-            _state.update { it.copy(isLoading = true, error = null) }
+            _state.update { it.copy(isLoading = true, loadingSource = AccountContract.LoadingSource.GOOGLE, error = null) }
             linkWithGoogleUseCase(idToken, accessToken)
                 .onSuccess { user ->
-                    _state.update { it.copy(isLoading = false, user = user) }
+                    _state.update { it.copy(isLoading = false, loadingSource = null, user = user) }
                 }
                 .onFailure { error ->
-                    _state.update { it.copy(isLoading = false, error = error.getFriendlyMessage()) }
+                    _state.update { it.copy(isLoading = false, loadingSource = null, error = error.getFriendlyMessage()) }
                 }
         }
     }
 
     private fun logout() {
         viewModelScope.launch {
-            _state.update { it.copy(isLoading = true) }
+            _state.update { it.copy(isLoading = true, loadingSource = AccountContract.LoadingSource.LOGOUT) }
             signOutUseCase()
                 .onSuccess {
-                    _state.update { it.copy(isLoading = false) }
+                    _state.update { it.copy(isLoading = false, loadingSource = null) }
                     _sideEffect.send(AccountContract.Effect.NavigateToLogin)
                 }
                 .onFailure { error ->
-                    _state.update { it.copy(isLoading = false, error = error.message) }
+                    _state.update { it.copy(isLoading = false, loadingSource = null, error = error.message) }
                 }
         }
     }
@@ -184,16 +197,16 @@ class AccountViewModel(
     private fun deleteAccount() {
         viewModelScope.launch {
             logger.i { "deleteAccount initiated" }
-            _state.update { it.copy(isLoading = true) }
+            _state.update { it.copy(isLoading = true, loadingSource = AccountContract.LoadingSource.DELETE) }
             deleteAccountUseCase()
                 .onSuccess {
                     logger.i { "deleteAccount SUCCESS, navigating to Login" }
-                    _state.update { it.copy(isLoading = false) }
+                    _state.update { it.copy(isLoading = false, loadingSource = null) }
                     _sideEffect.send(AccountContract.Effect.NavigateToLogin)
                 }
                 .onFailure { error ->
                     logger.e { "deleteAccount FAILURE: ${error.message}" }
-                    _state.update { it.copy(isLoading = false, error = error.message) }
+                    _state.update { it.copy(isLoading = false, loadingSource = null, error = error.message) }
                 }
         }
     }

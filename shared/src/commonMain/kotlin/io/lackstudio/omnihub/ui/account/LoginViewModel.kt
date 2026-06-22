@@ -6,6 +6,7 @@ import io.lackstudio.omnifeed.auth.DeepLinkBuffer
 import io.lackstudio.omnifeed.auth.domain.usecase.SignInWithCustomServiceUseCase
 import io.lackstudio.omnifeed.auth.domain.usecase.SignInWithEmailUseCase
 import io.lackstudio.omnifeed.auth.domain.usecase.SignInWithGoogleUseCase
+import io.lackstudio.omnifeed.auth.domain.usecase.ObserveUserUseCase
 import io.lackstudio.omnifeed.core.common.error.getFriendlyMessage
 import io.lackstudio.omnifeed.core.network.oauth.AccessTokenProvider
 import io.lackstudio.omnifeed.ui.viewmodel.BaseViewModel
@@ -17,6 +18,7 @@ import io.lackstudio.omnihub.utils.Environment
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -28,6 +30,7 @@ class LoginViewModel(
     private val signInWithCustomServiceUseCase: SignInWithCustomServiceUseCase,
     private val exchangeOAuthUseCase: ExchangeOAuthUseCase,
     private val accessTokenProvider: AccessTokenProvider,
+    private val observeUserUseCase: ObserveUserUseCase,
 ) : BaseViewModel() {
 
     private val _state = MutableStateFlow(LoginContract.State())
@@ -42,10 +45,19 @@ class LoginViewModel(
 
     private fun observeDeepLink() {
         viewModelScope.launch {
-            DeepLinkBuffer.deepLinkUrl.collect { url ->
-                if (url != null && url.contains("code=")) {
-                    val code = url.substringAfter("code=").substringBefore("&")
-                    logger.d { "✅ LoginViewModel detected code: $code" }
+            combine(
+                DeepLinkBuffer.deepLinkUrl,
+                observeUserUseCase()
+            ) { url, user ->
+                if (url != null && url.contains("code=") && user == null) {
+                    url
+                } else {
+                    null
+                }
+            }.collect { url ->
+                url?.let {
+                    val code = it.substringAfter("code=").substringBefore("&")
+                    logger.d { "✅ LoginViewModel detected code: $code (Sign-in Mode)" }
                     handleUnsplashCallback(code)
                     DeepLinkBuffer.consumeDeepLink()
                 }
@@ -93,14 +105,14 @@ class LoginViewModel(
         }
 
         viewModelScope.launch {
-            _state.update { it.copy(isLoading = true, error = null) }
+            _state.update { it.copy(isLoading = true, loadingSource = LoginContract.LoadingSource.EMAIL, error = null) }
             signInWithEmailUseCase(email, password)
                 .onSuccess {
-                    _state.update { it.copy(isLoading = false) }
+                    _state.update { it.copy(isLoading = false, loadingSource = null) }
                     _sideEffect.send(LoginContract.Effect.NavigateBack)
                 }
                 .onFailure { error ->
-                    _state.update { it.copy(isLoading = false, error = error.getFriendlyMessage()) }
+                    _state.update { it.copy(isLoading = false, loadingSource = null, error = error.getFriendlyMessage()) }
                 }
         }
     }
@@ -130,7 +142,7 @@ class LoginViewModel(
 
         handleUseCaseCall(
             name = "exchangeOAuth",
-            onLoading = { _state.update { it.copy(isLoading = true, error = null) } },
+            onLoading = { _state.update { it.copy(isLoading = true, loadingSource = LoginContract.LoadingSource.UNSPLASH, error = null) } },
             useCase = { exchangeOAuthUseCase(unsplashOAuthCode) },
             onSuccess = { data ->
                 val serviceName = Environment.SERVICE_UNSPLASH
@@ -140,17 +152,17 @@ class LoginViewModel(
                     signInWithCustomServiceUseCase(serviceName, data.accessToken)
                         .onSuccess {
                             logger.d { "Service $serviceName, login success!" }
-                            _state.update { it.copy(isLoading = false) }
+                            _state.update { it.copy(isLoading = false, loadingSource = null) }
                             _sideEffect.send(LoginContract.Effect.NavigateBack)
                         }
                         .onFailure { error ->
                             logger.e(error) { "Service $serviceName, login Failed!, error message: ${error.message}" }
-                            _state.update { it.copy(isLoading = false, error = error.getFriendlyMessage()) }
+                            _state.update { it.copy(isLoading = false, loadingSource = null, error = error.getFriendlyMessage()) }
                         }
                 }
             },
             onError = { errorMessage ->
-                _state.update { it.copy(isLoading = false, error = errorMessage) }
+                _state.update { it.copy(isLoading = false, loadingSource = null, error = errorMessage) }
             }
         )
     }
@@ -158,20 +170,18 @@ class LoginViewModel(
     fun onGoogleSignInResult(idToken: String, accessToken: String? = null) {
         viewModelScope.launch {
             logger.i { "Google Login: Received tokens, starting Firebase sign-in..." }
-            _state.update { it.copy(isLoading = true, error = null) }
+            _state.update { it.copy(isLoading = true, loadingSource = LoginContract.LoadingSource.GOOGLE, error = null) }
             
-            // Check if we are on Desktop (JVM) - Firebase SDK doesn't support Google Auth on JVM
-            // Ideally this should be handled inside the Repository, but to fix the current crash:
             signInWithGoogleUseCase(idToken, accessToken)
                 .onSuccess {
                     logger.i { "Google Login: Firebase sign-in SUCCESS!" }
-                    _state.update { it.copy(isLoading = false) }
+                    _state.update { it.copy(isLoading = false, loadingSource = null) }
                     _sideEffect.send(LoginContract.Effect.NavigateBack)
                 }
                 .onFailure { error ->
                     val message = error.getFriendlyMessage()
                     logger.e { "Google Login: Firebase sign-in FAILED: $message" }
-                    _state.update { it.copy(isLoading = false, error = message) }
+                    _state.update { it.copy(isLoading = false, loadingSource = null, error = message) }
                 }
         }
     }
