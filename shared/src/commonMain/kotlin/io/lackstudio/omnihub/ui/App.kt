@@ -120,7 +120,10 @@ fun AppScreen(
     val navBackStackEntry = navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry.value?.destination
 
-    val pagerState = rememberPagerState { 3 }
+    // Resolve issue where web cannot redirect to Gallery page after successful OAuth2 login
+    val hasAuthCode = remember { DeepLinkBuffer.deepLinkUrl.value?.contains("code=") == true }
+    val pagerState = rememberPagerState(initialPage = if (hasAuthCode) 2 else 0) { 3 }
+    val startDestination: Any = Screen.MainTabs
 
     // 🔍 Global log for monitoring navigation destination changes
     LaunchedEffect(navController) {
@@ -168,12 +171,6 @@ fun AppScreen(
 
     // Define your navigation items
     val navItems = getAppNavItems(currentDestination, pagerState.currentPage)
-
-    // Resolve issue where web cannot redirect to Gallery page after successful OAuth2 login
-    val startDestination: Any = remember {
-        val hasAuthCode = DeepLinkBuffer.deepLinkUrl.value?.contains("code=") == true
-        if (hasAuthCode)  Feature.Gallery else Screen.MainTabs
-    }
 
     NavigationSuiteScaffold(
         layoutType = layoutType,
