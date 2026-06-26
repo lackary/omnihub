@@ -9,15 +9,22 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.navigation.NavDestination
 import androidx.navigation.NavDestination.Companion.hasRoute
 
+import io.lackstudio.omnifeed.auth.domain.model.User
+
 data class NavItem(
     val label: String,
     val icon: ImageVector,
     val route: Any,
-    val isSelected: Boolean
+    val isSelected: Boolean,
+    val photoUrl: String? = null
 )
 
 @Composable
-fun getAppNavItems(navDestination: NavDestination?, pagerIndex: Int = 0): List<NavItem> {
+fun getAppNavItems(
+    navDestination: NavDestination?,
+    pagerIndex: Int = 0,
+    user: User? = null
+): List<NavItem> {
     val isMainTabs = navDestination?.hasRoute<Screen.MainTabs>() == true
     val isAnyFeature = navDestination?.let {
         it.hasRoute<Feature.Gallery>() ||
@@ -51,7 +58,8 @@ fun getAppNavItems(navDestination: NavDestination?, pagerIndex: Int = 0): List<N
             isSelected = (isMainTabs && pagerIndex == 2) ||
                     navDestination?.hasRoute<Screen.Account>() == true ||
                     navDestination?.hasRoute<Screen.Login>() == true ||
-                    navDestination?.hasRoute<Screen.Register>() == true
+                    navDestination?.hasRoute<Screen.Register>() == true,
+            photoUrl = user?.photoUrl
         )
     )
 }

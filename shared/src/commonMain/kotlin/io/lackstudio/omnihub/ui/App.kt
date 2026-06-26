@@ -1,5 +1,9 @@
 package io.lackstudio.omnihub.ui
 
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.draw.clip
+import coil3.compose.AsyncImage
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionLayout
@@ -24,8 +28,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
@@ -40,6 +46,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import io.lackstudio.omnifeed.auth.DeepLinkBuffer
+import io.lackstudio.omnifeed.auth.domain.model.User
 import io.lackstudio.omnihub.ui.extensions.navigateToFeatureSmart
 import io.lackstudio.omnihub.ui.account.AccountScreen
 import io.lackstudio.omnihub.ui.account.LoginScreen
@@ -112,7 +119,9 @@ fun AppScreen(
     viewModel: AppViewModel = koinViewModel()
 ) {
     val logger = rememberLogger("AppScreen")
+    val user by viewModel.user.collectAsStateWithLifecycle()
     val isLoggedIn by viewModel.isLoggedIn.collectAsStateWithLifecycle()
+    var wasLoggedIn by remember { mutableStateOf(isLoggedIn) }
 
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
@@ -133,7 +142,21 @@ fun AppScreen(
     }
 
     LaunchedEffect(isLoggedIn) {
-        logger.d { "Current Login State: $isLoggedIn" }
+        logger.d { "Current Login State: $isLoggedIn, wasLoggedIn: $wasLoggedIn" }
+        if (isLoggedIn && !wasLoggedIn) {
+            // Login: Jump to Home only if we are currently on the Account page (typical after login)
+            if (pagerState.currentPage == 2) {
+                logger.d { "Login detected, jumping to HomeScreen" }
+                pagerState.animateScrollToPage(0)
+            }
+        } else if (!isLoggedIn && wasLoggedIn) {
+            // Logout: Jump to Account page to show LoginScreen
+            logger.d { "Logout detected, jumping to Account/LoginScreen" }
+            if (pagerState.currentPage != 2) {
+                pagerState.scrollToPage(2)
+            }
+        }
+        wasLoggedIn = isLoggedIn
     }
 
     // Get current layout info (Is it Rail or BottomBar?)
@@ -170,7 +193,7 @@ fun AppScreen(
     }
 
     // Define your navigation items
-    val navItems = getAppNavItems(currentDestination, pagerState.currentPage)
+    val navItems = getAppNavItems(currentDestination, pagerState.currentPage, user)
 
     NavigationSuiteScaffold(
         layoutType = layoutType,
@@ -185,7 +208,19 @@ fun AppScreen(
 
                 item(
                     modifier = itemModifier,
-                    icon = { Icon(item.icon, contentDescription = item.label) },
+                    icon = {
+                        if (item.photoUrl != null) {
+                            AsyncImage(
+                                model = item.photoUrl,
+                                contentDescription = item.label,
+                                modifier = Modifier
+                                    .size(24.dp)
+                                    .clip(CircleShape)
+                            )
+                        } else {
+                            Icon(item.icon, contentDescription = item.label)
+                        }
+                    },
                     label = { Text(item.label) },
                     selected = item.isSelected,
                     onClick = {
@@ -277,7 +312,10 @@ fun AppScreen(
                                     if (isLoggedIn) {
                                         AccountScreen(
                                             onNavigateToLogin = {
-                                                // Login handled by state
+                                                logger.d { "AccountScreen requested NavigateToLogin" }
+                                                scope.launch {
+                                                    pagerState.scrollToPage(2)
+                                                }
                                             }
                                         )
                                     } else {
@@ -287,6 +325,7 @@ fun AppScreen(
                                             },
                                             onLoginSuccess = {
                                                 logger.d { "Login success triggered, isLoggedIn: $isLoggedIn" }
+                                                // Removed redundant scroll, handled by LaunchedEffect
                                             }
                                         )
                                     }

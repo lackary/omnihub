@@ -80,8 +80,9 @@ fun LoginScreen(
     LaunchedEffect(sideEffect) {
         sideEffect.collect { effect ->
             when (effect) {
+                is LoginContract.Effect.LoginSuccess -> onLoginSuccess()
                 is LoginContract.Effect.NavigateBack -> {
-                    onLoginSuccess()
+                    // Handle actual back navigation if needed
                 }
                 is LoginContract.Effect.NavigateToRegister -> onNavigateToRegister()
                 is LoginContract.Effect.ShowError -> {

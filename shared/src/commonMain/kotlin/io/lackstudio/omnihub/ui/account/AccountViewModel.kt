@@ -78,8 +78,9 @@ class AccountViewModel(
                 url?.let {
                     val code = it.substringAfter("code=").substringBefore("&")
                     logger.d { "✅ AccountViewModel detected code: $code (Linking Mode)" }
-                    handleUnsplashCallback(code)
+                    // CONSUME IMMEDIATELY
                     DeepLinkBuffer.consumeDeepLink()
+                    handleUnsplashCallback(code)
                 }
             }
         }

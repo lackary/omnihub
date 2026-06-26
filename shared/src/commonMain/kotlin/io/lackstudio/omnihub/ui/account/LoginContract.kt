@@ -24,6 +24,7 @@ interface LoginContract {
     }
 
     sealed interface Effect {
+        data object LoginSuccess : Effect
         data object NavigateBack : Effect
         data object NavigateToRegister : Effect
         data class ShowError(val message: String) : Effect

@@ -58,8 +58,9 @@ class LoginViewModel(
                 url?.let {
                     val code = it.substringAfter("code=").substringBefore("&")
                     logger.d { "✅ LoginViewModel detected code: $code (Sign-in Mode)" }
-                    handleUnsplashCallback(code)
+                    // CONSUME IMMEDIATELY to prevent re-triggering if state changes quickly
                     DeepLinkBuffer.consumeDeepLink()
+                    handleUnsplashCallback(code)
                 }
             }
         }
@@ -109,7 +110,7 @@ class LoginViewModel(
             signInWithEmailUseCase(email, password)
                 .onSuccess {
                     _state.update { it.copy(isLoading = false, loadingSource = null) }
-                    _sideEffect.send(LoginContract.Effect.NavigateBack)
+                    _sideEffect.send(LoginContract.Effect.LoginSuccess)
                 }
                 .onFailure { error ->
                     _state.update { it.copy(isLoading = false, loadingSource = null, error = error.getFriendlyMessage()) }
@@ -153,7 +154,7 @@ class LoginViewModel(
                         .onSuccess {
                             logger.d { "Service $serviceName, login success!" }
                             _state.update { it.copy(isLoading = false, loadingSource = null) }
-                            _sideEffect.send(LoginContract.Effect.NavigateBack)
+                            _sideEffect.send(LoginContract.Effect.LoginSuccess)
                         }
                         .onFailure { error ->
                             logger.e(error) { "Service $serviceName, login Failed!, error message: ${error.message}" }
@@ -176,7 +177,7 @@ class LoginViewModel(
                 .onSuccess {
                     logger.i { "Google Login: Firebase sign-in SUCCESS!" }
                     _state.update { it.copy(isLoading = false, loadingSource = null) }
-                    _sideEffect.send(LoginContract.Effect.NavigateBack)
+                    _sideEffect.send(LoginContract.Effect.LoginSuccess)
                 }
                 .onFailure { error ->
                     val message = error.getFriendlyMessage()
