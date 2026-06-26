@@ -25,6 +25,8 @@ compose.desktop {
             packageName = "io.lackstudio.omnihub"
             packageVersion = "1.0.0"
 
+            modules("jdk.unsupported", "java.management", "java.sql")
+
             macOS {
                 bundleID = "io.lackstudio.omnihub"
                 // If the project version starts with 0. (e.g. 0.2.0), DMG is forced to set to 1.0.0 to avoid errors
