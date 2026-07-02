@@ -1,18 +1,14 @@
 package io.lackstudio.omnihub.ui.account
 
 import androidx.lifecycle.viewModelScope
-import io.lackstudio.omnifeed.auth.domain.usecase.DeleteAccountUseCase
-import io.lackstudio.omnifeed.auth.domain.usecase.LinkWithGoogleUseCase
-import io.lackstudio.omnifeed.auth.domain.usecase.LinkWithCustomServiceUseCase
-import io.lackstudio.omnifeed.auth.domain.usecase.UnlinkCustomServiceUseCase
-import io.lackstudio.omnifeed.auth.domain.usecase.ObserveUserUseCase
-import io.lackstudio.omnifeed.auth.domain.usecase.SignOutUseCase
+import io.lackstudio.omnifeed.auth.AuthManager
+import io.lackstudio.omnifeed.auth.DeepLinkBuffer
+import io.lackstudio.omnifeed.auth.domain.usecase.*
 import io.lackstudio.omnifeed.core.common.error.getFriendlyMessage
+import io.lackstudio.omnifeed.core.network.oauth.AccessTokenProvider
 import io.lackstudio.omnifeed.ui.viewmodel.BaseViewModel
 import io.lackstudio.omnifeed.unsplash.domain.usecase.ExchangeOAuthUseCase
 import io.lackstudio.omnifeed.unsplash.domain.model.OAuthCode as UnsplashOAuthCode
-import io.lackstudio.omnifeed.auth.AuthManager
-import io.lackstudio.omnifeed.auth.DeepLinkBuffer
 import io.lackstudio.omnihub.platform.getUnsplashAccessKey
 import io.lackstudio.omnihub.platform.getUnsplashSecretKey
 import io.lackstudio.omnihub.utils.Environment
@@ -35,6 +31,7 @@ class AccountViewModel(
     private val exchangeOAuthUseCase: ExchangeOAuthUseCase,
     private val linkWithCustomServiceUseCase: LinkWithCustomServiceUseCase,
     private val unlinkCustomServiceUseCase: UnlinkCustomServiceUseCase,
+    private val accessTokenProvider: AccessTokenProvider,
 ) : BaseViewModel() {
 
     private val _state = MutableStateFlow(AccountContract.State())
@@ -119,6 +116,7 @@ class AccountViewModel(
             _state.update { it.copy(isLoading = true, loadingSource = AccountContract.LoadingSource.UNSPLASH, error = null) }
             unlinkCustomServiceUseCase(Environment.SERVICE_UNSPLASH)
                 .onSuccess { user ->
+                    accessTokenProvider.resetToPublic()
                     _state.update { it.copy(isLoading = false, loadingSource = null, user = user) }
                 }
                 .onFailure { error ->
@@ -153,6 +151,7 @@ class AccountViewModel(
             useCase = { exchangeOAuthUseCase(unsplashOAuthCode) },
             onSuccess = { data ->
                 viewModelScope.launch {
+                    accessTokenProvider.setOAuthToken(data.tokenType, data.accessToken)
                     linkWithCustomServiceUseCase(Environment.SERVICE_UNSPLASH, data.accessToken)
                         .onSuccess { user ->
                             _state.update { it.copy(isLoading = false, loadingSource = null, user = user) }
@@ -186,6 +185,7 @@ class AccountViewModel(
             _state.update { it.copy(isLoading = true, loadingSource = AccountContract.LoadingSource.LOGOUT) }
             signOutUseCase()
                 .onSuccess {
+                    accessTokenProvider.resetToPublic()
                     _state.update { it.copy(isLoading = false, loadingSource = null) }
                     _sideEffect.send(AccountContract.Effect.NavigateToLogin)
                 }
@@ -202,6 +202,7 @@ class AccountViewModel(
             deleteAccountUseCase()
                 .onSuccess {
                     logger.i { "deleteAccount SUCCESS, navigating to Login" }
+                    accessTokenProvider.resetToPublic()
                     _state.update { it.copy(isLoading = false, loadingSource = null) }
                     _sideEffect.send(AccountContract.Effect.NavigateToLogin)
                 }

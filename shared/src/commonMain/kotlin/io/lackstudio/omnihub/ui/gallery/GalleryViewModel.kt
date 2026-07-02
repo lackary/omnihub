@@ -61,6 +61,19 @@ class GalleryViewModel(
         fetchPhotos(1)
 
         viewModelScope.launch {
+            // Check if we have a persisted token at startup
+            // This allows the UI to show the correct state (logged in vs logged out) immediately
+            _state.update { it.copy(isAuthenticating = true) }
+            val resolvedToken = accessTokenProvider.resolveToken()
+            if (resolvedToken.type == "Bearer") {
+                // If we have a Bearer token, we need to update the StateFlow
+                // so that it triggers the fetchMeProfile logic
+                accessTokenProvider.setOAuthToken(resolvedToken.type, resolvedToken.value)
+            } else {
+                // If no token, we are done "authenticating"
+                _state.update { it.copy(isAuthenticating = false) }
+            }
+
             accessTokenProvider.authToken.collect { token ->
                 // public type is Client-ID
                 // OAuth2 type is Bearer
@@ -69,7 +82,7 @@ class GalleryViewModel(
                     fetchMeProfile()
                 } else {
                     // If no token (e.g., just logged out) -> clear user profile
-                    _state.update { it.copy(meProfile = null) }
+                    _state.update { it.copy(meProfile = null, isAuthenticating = false) }
                 }
             }
         }
@@ -122,6 +135,7 @@ class GalleryViewModel(
                 loadNextPage()
             }
             is GalleryIntent.Login ->  {
+                if (_state.value.isAuthenticating) return
                 logger.d { "handleIntent: Login" }
                 login(authManager.getRedirectUrl())
             }
@@ -177,19 +191,25 @@ class GalleryViewModel(
     }
 
     private fun fetchMeProfile() {
-        if (_state.value.meProfile != null) return
+        if (_state.value.meProfile != null) {
+            _state.update { it.copy(isAuthenticating = false) }
+            return
+        }
 
         handleUseCaseCall(
             name = "me",
             useCase = { meUseCase(Unit) },
-            onLoading = { },
+            onLoading = {
+                _state.update { it.copy(isAuthenticating = true) }
+            },
             onSuccess = { me ->
-                _state.update { it.copy(meProfile = me) }
+                _state.update { it.copy(meProfile = me, isAuthenticating = false) }
 
                 refreshCurrentTab()
             },
             onError = { errorMessage ->
                 logger.e { "Fetch profile failed: $errorMessage" }
+                _state.update { it.copy(isAuthenticating = false) }
             }
 
         )
