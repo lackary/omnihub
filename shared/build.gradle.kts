@@ -175,15 +175,15 @@ kotlin {
         }
 
         pod("FirebaseCore") {
-            version = "~> 12.4.0"
+            version = "~> 12.14.0"
             extraOpts += listOf("-compiler-option", "-fmodules")
         }
         pod("FirebaseAuth") {
-            version = "~> 12.4.0"
+            version = "~> 12.14.0"
             extraOpts += listOf("-compiler-option", "-fmodules")
         }
         pod("FirebaseFirestore") {
-            version = "~> 12.4.0"
+            version = "~> 12.14.0"
             extraOpts += listOf("-compiler-option", "-fmodules")
         }
         pod("GoogleSignIn") {
