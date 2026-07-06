@@ -1,8 +1,9 @@
 package io.lackstudio.omnihub.ui.account
 
 import androidx.lifecycle.viewModelScope
-import io.lackstudio.omnifeed.auth.AuthManager
-import io.lackstudio.omnifeed.auth.DeepLinkBuffer
+import io.lackstudio.omnifeed.auth.utils.AuthManager
+import io.lackstudio.omnifeed.auth.utils.DeepLinkBuffer
+import io.lackstudio.omnifeed.auth.utils.OAuthUrlFactory
 import io.lackstudio.omnifeed.auth.domain.usecase.SignInWithCustomServiceUseCase
 import io.lackstudio.omnifeed.auth.domain.usecase.SignInWithEmailUseCase
 import io.lackstudio.omnifeed.auth.domain.usecase.SignInWithGoogleUseCase
@@ -12,6 +13,7 @@ import io.lackstudio.omnifeed.core.network.oauth.AccessTokenProvider
 import io.lackstudio.omnifeed.ui.viewmodel.BaseViewModel
 import io.lackstudio.omnifeed.unsplash.domain.usecase.ExchangeOAuthUseCase
 import io.lackstudio.omnifeed.unsplash.domain.model.OAuthCode as UnsplashOAuthCode
+import io.lackstudio.omnifeed.unsplash.utils.Environment.OAUTH_AUTHORIZE as UNSPLASH_OAUTH_AUTHORIZE
 import io.lackstudio.omnihub.platform.getUnsplashAccessKey
 import io.lackstudio.omnihub.platform.getUnsplashSecretKey
 import io.lackstudio.omnihub.utils.Environment
@@ -125,11 +127,12 @@ class LoginViewModel(
     }
 
     private fun loginWithUnsplash() {
-        val authUrl = "https://unsplash.com/oauth/authorize" +
-                "?client_id=${getUnsplashAccessKey()}" +
-                "&response_type=code" +
-                "&scope=public+read_user" +
-                "&redirect_uri=${authManager.getRedirectUrl()}"
+        val authUrl = OAuthUrlFactory.buildAuthUrl(
+            baseUrl = UNSPLASH_OAUTH_AUTHORIZE,
+            clientId = getUnsplashAccessKey(),
+            redirectUri = authManager.getRedirectUrl(),
+            scope = listOf("public", "read_user")
+        )
         authManager.startLogin(authUrl)
     }
 

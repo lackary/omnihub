@@ -1,7 +1,7 @@
 package io.lackstudio.omnihub.platform
 
-import io.lackstudio.omnifeed.auth.AuthManager
-import io.lackstudio.omnifeed.auth.DesktopAuthManager
+import io.lackstudio.omnifeed.auth.utils.AuthManager
+import io.lackstudio.omnifeed.auth.utils.DesktopAuthManager
 import io.lackstudio.omnihub.shared.BuildKonfig
 import org.koin.dsl.module
 

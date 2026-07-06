@@ -54,7 +54,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.lackstudio.omnihub.utils.logging.rememberLogger
-import io.lackstudio.omnifeed.auth.AuthManager
+import io.lackstudio.omnifeed.auth.utils.AuthManager
+import io.lackstudio.omnifeed.auth.utils.OAuthUrlFactory
+import io.lackstudio.omnifeed.unsplash.utils.Environment.OAUTH_AUTHORIZE as UNSPLASH_OAUTH_AUTHORIZE
+import io.lackstudio.omnihub.platform.getUnsplashAccessKey
 import io.lackstudio.omnihub.platform.rememberPlatformContext
 import kotlinx.coroutines.launch
 import omnihub.shared.generated.resources.Res
@@ -104,11 +107,12 @@ fun LoginScreen(
                 }
                 LoginContract.Effect.ShowUnsplashSignIn -> {
                     logger.i { "Captured ShowUnsplashSignIn effect" }
-                    val authUrl = "https://unsplash.com/oauth/authorize" +
-                            "?client_id=${io.lackstudio.omnihub.shared.BuildKonfig.UNSPLASH_ACCESS_KEY}" +
-                            "&redirect_uri=${authManager.getRedirectUrl()}" +
-                            "&response_type=code" +
-                            "&scope=public"
+                    val authUrl = OAuthUrlFactory.buildAuthUrl(
+                        baseUrl = UNSPLASH_OAUTH_AUTHORIZE,
+                        clientId = getUnsplashAccessKey(),
+                        redirectUri = authManager.getRedirectUrl(),
+                        scope = listOf("public", "read_user")
+                    )
                     authManager.startLogin(authUrl)
                 }
             }

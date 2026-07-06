@@ -7,6 +7,7 @@ import io.lackstudio.omnifeed.ui.state.AppUiState
 import io.lackstudio.omnifeed.ui.viewmodel.BaseViewModel
 import io.lackstudio.omnifeed.unsplash.domain.usecase.ExchangeOAuthUseCase
 import io.lackstudio.omnifeed.unsplash.domain.model.OAuthCode as UnsplashOAuthCode
+import io.lackstudio.omnifeed.unsplash.utils.Environment.OAUTH_AUTHORIZE as UNSPLASH_OAUTH_AUTHORIZE
 import io.lackstudio.omnifeed.unsplash.domain.usecase.GetCollectionsParams
 import io.lackstudio.omnifeed.unsplash.domain.usecase.GetCollectionsUseCase
 import io.lackstudio.omnifeed.unsplash.domain.usecase.GetMeUseCase
@@ -15,8 +16,9 @@ import io.lackstudio.omnifeed.unsplash.domain.usecase.GetPhotosUseCase
 import io.lackstudio.omnifeed.unsplash.domain.usecase.GetTopicsParams
 import io.lackstudio.omnifeed.unsplash.domain.usecase.GetTopicsUseCase
 import io.lackstudio.omnifeed.auth.domain.usecase.LinkWithCustomServiceUseCase
-import io.lackstudio.omnifeed.auth.AuthManager
-import io.lackstudio.omnifeed.auth.DeepLinkBuffer
+import io.lackstudio.omnifeed.auth.utils.AuthManager
+import io.lackstudio.omnifeed.auth.utils.DeepLinkBuffer
+import io.lackstudio.omnifeed.auth.utils.OAuthUrlFactory
 import io.lackstudio.omnihub.platform.getUnsplashAccessKey
 import io.lackstudio.omnihub.platform.getUnsplashSecretKey
 import io.lackstudio.omnihub.utils.Environment
@@ -465,10 +467,11 @@ class GalleryViewModel(
     }
 
     private fun getAuthUrl(redirectUrl: String): String {
-        return "https://unsplash.com/oauth/authorize" +
-                "?client_id=${getUnsplashAccessKey()}" +
-                "&response_type=code" +
-                "&scope=public+read_user" +
-                "&redirect_uri=$redirectUrl"
+        return OAuthUrlFactory.buildAuthUrl(
+            baseUrl = UNSPLASH_OAUTH_AUTHORIZE,
+            clientId = getUnsplashAccessKey(),
+            redirectUri = redirectUrl,
+            scope = listOf("public", "read_user")
+        )
     }
 }
