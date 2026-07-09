@@ -41,6 +41,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
+import io.lackstudio.omnifeed.auth.domain.model.AuthProvider
 import io.lackstudio.omnifeed.auth.utils.AuthManager
 import io.lackstudio.omnihub.platform.rememberPlatformContext
 import io.lackstudio.omnihub.utils.Environment
@@ -193,7 +194,7 @@ fun AccountScreenContent(
                                 )
                             }
 
-                            if (user.isGoogleLinked) {
+                            if (user.isAuthProviderLinked(AuthProvider.GOOGLE.id)) {
                                 Button(
                                     onClick = { },
                                     enabled = false,

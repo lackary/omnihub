@@ -43,8 +43,7 @@ fun initKoin(config: KoinAppDeclaration? = null) {
         ),
         customServices = mapOf(
             Environment.SERVICE_UNSPLASH to CustomServiceConfig(
-                authEndpoint = getCloudFunctionUrl(BuildKonfig.FIREBASE_EXT_CUSTOM_AUTH_PATH),
-                linkedField = "isUnsplashLinked"
+                authEndpoint = getCloudFunctionUrl(BuildKonfig.FIREBASE_EXT_CUSTOM_AUTH_PATH)
             )
         )
     )
