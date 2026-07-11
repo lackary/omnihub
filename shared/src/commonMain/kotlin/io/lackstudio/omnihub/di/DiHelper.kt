@@ -37,6 +37,7 @@ fun initKoin(config: KoinAppDeclaration? = null) {
 
     val omniFeedConfig = OmniFeedConfig(
         appLogger = appLogger,
+        encryptionSalt = BuildKonfig.AUTH_ENCRYPTION_SALT,
         unsplash = UnsplashConfig(
             tokenType = UnsplashEnvironment.AUTH_SCHEME_PUBLIC,
             token = getUnsplashAccessKey(),

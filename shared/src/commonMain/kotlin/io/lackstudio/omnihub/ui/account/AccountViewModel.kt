@@ -8,6 +8,7 @@ import io.lackstudio.omnifeed.auth.domain.usecase.*
 import io.lackstudio.omnifeed.core.common.error.getFriendlyMessage
 import io.lackstudio.omnifeed.core.network.oauth.AccessTokenProvider
 import io.lackstudio.omnifeed.ui.viewmodel.BaseViewModel
+import io.lackstudio.omnifeed.unsplash.domain.model.OAuthToken
 import io.lackstudio.omnifeed.unsplash.domain.usecase.ExchangeOAuthUseCase
 import io.lackstudio.omnifeed.unsplash.domain.model.OAuthCode as UnsplashOAuthCode
 import io.lackstudio.omnifeed.unsplash.utils.Environment.OAUTH_AUTHORIZE as UNSPLASH_OAUTH_AUTHORIZE
@@ -23,6 +24,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.serialization.json.Json
 
 class AccountViewModel(
     private val authManager: AuthManager,
@@ -155,7 +157,14 @@ class AccountViewModel(
             onSuccess = { data ->
                 viewModelScope.launch {
                     accessTokenProvider.setOAuthToken(data.tokenType, data.accessToken)
-                    linkWithCustomServiceUseCase(Environment.SERVICE_UNSPLASH, data.accessToken)
+                    
+                    // Plan A: Store the entire token object as JSON to preserve refresh_token for cloud sync
+                    val tokenJson = Json.encodeToString(
+                        OAuthToken.serializer(),
+                        data
+                    )
+                    
+                    linkWithCustomServiceUseCase(Environment.SERVICE_UNSPLASH, tokenJson)
                         .onSuccess { user ->
                             _state.update { it.copy(isLoading = false, loadingSource = null, user = user) }
                         }
