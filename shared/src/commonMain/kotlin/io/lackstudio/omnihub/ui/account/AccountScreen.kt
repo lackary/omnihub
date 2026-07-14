@@ -154,7 +154,7 @@ fun AccountScreenContent(
                         Spacer(modifier = Modifier.height(16.dp))
 
                         Text(
-                            text = user.displayName ?: "No Name",
+                            text = user.username ?: "No Name",
                             style = MaterialTheme.typography.headlineSmall
                         )
 
