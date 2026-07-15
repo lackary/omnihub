@@ -56,6 +56,7 @@ import kotlinx.coroutines.launch
 import omnihub.shared.generated.resources.Res
 import omnihub.shared.generated.resources.ic_google
 import omnihub.shared.generated.resources.ic_unsplash
+import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
@@ -213,131 +214,25 @@ fun AccountScreenContent(
 
                         Spacer(modifier = Modifier.height(32.dp))
 
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 8.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(40.dp)
-                                        .clip(CircleShape),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Image(
-                                        painter = painterResource(Res.drawable.ic_google),
-                                        contentDescription = null,
-                                        modifier = Modifier.size(24.dp)
-                                    )
-                                }
-                                Spacer(modifier = Modifier.width(12.dp))
-                                Text(
-                                    text = "Google",
-                                    style = MaterialTheme.typography.bodyLarge,
-                                    fontWeight = FontWeight.Medium
-                                )
-                            }
+                        // Google Linking row
+                        ServiceLinkRow(
+                            label = "Google",
+                            icon = Res.drawable.ic_google,
+                            isLinked = user.isAuthProviderLinked(AuthProvider.GOOGLE.id),
+                            isLoading = state.isLoading && state.loadingSource == AccountContract.LoadingSource.GOOGLE,
+                            onLink = { onEvent(AccountContract.Event.OnLinkWithGoogleClicked) }
+                        )
 
-                            if (user.isAuthProviderLinked(AuthProvider.GOOGLE.id)) {
-                                Button(
-                                    onClick = { },
-                                    enabled = false,
-                                    colors = ButtonDefaults.buttonColors(
-                                        disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                                        disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant
-                                    ),
-                                    shape = MaterialTheme.shapes.medium
-                                ) {
-                                    Text("Linked")
-                                }
-                            } else {
-                                Button(
-                                    onClick = { onEvent(AccountContract.Event.OnLinkWithGoogleClicked) },
-                                    enabled = !state.isLoading,
-                                    shape = MaterialTheme.shapes.medium
-                                ) {
-                                    if (state.isLoading && state.loadingSource == AccountContract.LoadingSource.GOOGLE) {
-                                        CircularProgressIndicator(
-                                            modifier = Modifier.size(24.dp),
-                                            color = MaterialTheme.colorScheme.onPrimary,
-                                            strokeWidth = 2.dp
-                                        )
-                                    } else {
-                                        Text("Link")
-                                    }
-                                }
-                            }
-                        }
-
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 8.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(40.dp)
-                                        .clip(CircleShape),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Image(
-                                        painter = painterResource(Res.drawable.ic_unsplash),
-                                        contentDescription = null,
-                                        modifier = Modifier.size(24.dp)
-                                    )
-                                }
-                                Spacer(modifier = Modifier.width(12.dp))
-                                Text(
-                                    text = "Unsplash",
-                                    style = MaterialTheme.typography.bodyLarge,
-                                    fontWeight = FontWeight.Medium
-                                )
-                            }
-
-                            if (user.isCustomServiceLinked(Environment.SERVICE_UNSPLASH)) {
-                                Button(
-                                    onClick = { onEvent(AccountContract.Event.OnUnlinkUnsplashClicked) },
-                                    enabled = !state.isLoading,
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = MaterialTheme.colorScheme.errorContainer,
-                                        contentColor = MaterialTheme.colorScheme.onErrorContainer
-                                    ),
-                                    shape = MaterialTheme.shapes.medium
-                                ) {
-                                    if (state.isLoading && state.loadingSource == AccountContract.LoadingSource.UNSPLASH) {
-                                        CircularProgressIndicator(
-                                            modifier = Modifier.size(24.dp),
-                                            color = MaterialTheme.colorScheme.onErrorContainer,
-                                            strokeWidth = 2.dp
-                                        )
-                                    } else {
-                                        Text("Unlink")
-                                    }
-                                }
-                            } else {
-                                Button(
-                                    onClick = { onEvent(AccountContract.Event.OnLinkWithUnsplashClicked) },
-                                    enabled = !state.isLoading,
-                                    shape = MaterialTheme.shapes.medium
-                                ) {
-                                    if (state.isLoading && state.loadingSource == AccountContract.LoadingSource.UNSPLASH) {
-                                        CircularProgressIndicator(
-                                            modifier = Modifier.size(24.dp),
-                                            color = MaterialTheme.colorScheme.onPrimary,
-                                            strokeWidth = 2.dp
-                                        )
-                                    } else {
-                                        Text("Link")
-                                    }
-                                }
-                            }
-                        }
+                        // Unsplash Linking row
+                        ServiceLinkRow(
+                            label = "Unsplash",
+                            icon = Res.drawable.ic_unsplash,
+                            isLinked = user.isCustomServiceLinked(Environment.SERVICE_UNSPLASH),
+                            isLoading = state.isLoading && state.loadingSource == AccountContract.LoadingSource.UNSPLASH,
+                            canUnlink = true,
+                            onLink = { onEvent(AccountContract.Event.OnLinkWithUnsplashClicked) },
+                            onUnlink = { onEvent(AccountContract.Event.OnUnlinkUnsplashClicked) }
+                        )
 
                         Spacer(modifier = Modifier.height(16.dp))
 
@@ -515,6 +410,91 @@ fun AccountScreenContent(
                             }
                         )
                     }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ServiceLinkRow(
+    label: String,
+    icon: DrawableResource,
+    isLinked: Boolean,
+    isLoading: Boolean,
+    canUnlink: Boolean = false,
+    onLink: () -> Unit,
+    onUnlink: () -> Unit = {}
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Image(
+                    painter = painterResource(icon),
+                    contentDescription = null,
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+            Spacer(modifier = Modifier.width(12.dp))
+            Text(
+                text = label,
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.Medium
+            )
+        }
+
+        if (isLinked) {
+            Button(
+                onClick = onUnlink,
+                enabled = canUnlink && !isLoading,
+                colors = if (canUnlink) {
+                    ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.errorContainer,
+                        contentColor = MaterialTheme.colorScheme.onErrorContainer
+                    )
+                } else {
+                    ButtonDefaults.buttonColors(
+                        disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                        disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                },
+                shape = MaterialTheme.shapes.medium
+            ) {
+                if (isLoading && canUnlink) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(24.dp),
+                        color = MaterialTheme.colorScheme.onErrorContainer,
+                        strokeWidth = 2.dp
+                    )
+                } else {
+                    Text(if (canUnlink) "Unlink" else "Linked")
+                }
+            }
+        } else {
+            Button(
+                onClick = onLink,
+                enabled = !isLoading,
+                shape = MaterialTheme.shapes.medium
+            ) {
+                if (isLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(24.dp),
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        strokeWidth = 2.dp
+                    )
+                } else {
+                    Text("Link")
                 }
             }
         }
