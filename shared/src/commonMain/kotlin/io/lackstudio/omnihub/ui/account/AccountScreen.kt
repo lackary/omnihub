@@ -19,6 +19,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -26,7 +27,9 @@ import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -38,12 +41,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import io.lackstudio.omnifeed.auth.domain.model.AuthProvider
 import io.lackstudio.omnifeed.auth.utils.AuthManager
 import io.lackstudio.omnihub.platform.rememberPlatformContext
+import io.lackstudio.omnihub.ui.components.PasswordTextField
+import io.lackstudio.omnihub.ui.components.responsiveDialog
 import io.lackstudio.omnihub.utils.Environment
 import kotlinx.coroutines.launch
 import omnihub.shared.generated.resources.Res
@@ -122,7 +129,7 @@ fun AccountScreenContent(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(padding),
-                contentAlignment = Alignment.Center
+                contentAlignment = Alignment.TopCenter
             ) {
                 Column(
                     modifier = Modifier
@@ -131,38 +138,78 @@ fun AccountScreenContent(
                         .fillMaxHeight()
                         .padding(16.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
+                    verticalArrangement = Arrangement.Top
                 ) {
                     val user = state.user
                     if (user != null) {
-                        if (user.photoUrl != null) {
-                            AsyncImage(
-                                model = user.photoUrl,
-                                contentDescription = "Profile Picture",
-                                modifier = Modifier
-                                    .size(100.dp)
-                                    .clip(CircleShape)
-                            )
-                        } else {
-                            Icon(
-                                imageVector = Icons.Default.AccountCircle,
-                                contentDescription = "Profile Picture",
-                                modifier = Modifier.size(100.dp)
-                            )
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            if (user.photoUrl != null) {
+                                AsyncImage(
+                                    model = user.photoUrl,
+                                    contentDescription = "Profile Picture",
+                                    modifier = Modifier
+                                        .size(80.dp)
+                                        .clip(CircleShape)
+                                )
+                            } else {
+                                Icon(
+                                    imageVector = Icons.Default.AccountCircle,
+                                    contentDescription = "Profile Picture",
+                                    modifier = Modifier.size(80.dp)
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.width(16.dp))
+
+                            Column(
+                                modifier = Modifier.weight(1f),
+                                horizontalAlignment = Alignment.End
+                            ) {
+                                Text(
+                                    text = user.email ?: "No Email",
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+
+                                Spacer(modifier = Modifier.height(8.dp))
+
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.End
+                                ) {
+                                    Text(
+                                        text = user.username ?: "No Name",
+                                        style = MaterialTheme.typography.headlineSmall
+                                    )
+                                    IconButton(
+                                        onClick = { onEvent(AccountContract.Event.OnEditUsernameClicked) },
+                                        modifier = Modifier.size(24.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Edit,
+                                            contentDescription = "Edit Username",
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                    }
+                                }
+                            }
                         }
 
-                        Spacer(modifier = Modifier.height(16.dp))
+                        Spacer(modifier = Modifier.height(8.dp))
 
-                        Text(
-                            text = user.username ?: "No Name",
-                            style = MaterialTheme.typography.headlineSmall
-                        )
-
-                        Text(
-                            text = user.email ?: "No Email",
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                        val hasPassword = user.authProviders.containsKey(AuthProvider.PASSWORD.id)
+                        Button(
+                            onClick = { onEvent(AccountContract.Event.OnEditPasswordClicked) },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = MaterialTheme.shapes.medium
+                        ) {
+                            Text(if (hasPassword) "Change Password" else "Set Password")
+                        }
 
                         Spacer(modifier = Modifier.height(32.dp))
 
@@ -355,9 +402,102 @@ fun AccountScreenContent(
                         Text("Not logged in")
                     }
 
+                    if (state.showEditUsernameDialog) {
+                        AlertDialog(
+                            onDismissRequest = { onEvent(AccountContract.Event.OnDismissEditUsernameDialog) },
+                            modifier = Modifier.responsiveDialog(),
+                            properties = DialogProperties(usePlatformDefaultWidth = false),
+                            title = { Text("Edit Username") },
+                            text = {
+                                Column {
+                                    OutlinedTextField(
+                                        value = state.editUsername,
+                                        onValueChange = { onEvent(AccountContract.Event.OnUpdateUsernameChanged(it)) },
+                                        label = { Text("Username") },
+                                        singleLine = true,
+                                        modifier = Modifier.fillMaxWidth()
+                                    )
+                                }
+                            },
+                            confirmButton = {
+                                Button(
+                                    onClick = { onEvent(AccountContract.Event.OnUpdateUsername) },
+                                    enabled = state.editUsername.isNotBlank()
+                                ) {
+                                    Text("Update")
+                                }
+                            },
+                            dismissButton = {
+                                TextButton(onClick = { onEvent(AccountContract.Event.OnDismissEditUsernameDialog) }) {
+                                    Text("Cancel")
+                                }
+                            }
+                        )
+                    }
+
+                    if (state.showEditPasswordDialog) {
+                        val isChangePassword = user?.authProviders?.containsKey(AuthProvider.PASSWORD.id) == true
+                        AlertDialog(
+                            onDismissRequest = { onEvent(AccountContract.Event.OnDismissEditPasswordDialog) },
+                            modifier = Modifier.responsiveDialog(),
+                            properties = DialogProperties(usePlatformDefaultWidth = false),
+                            title = { Text(if (isChangePassword) "Change Password" else "Set Password") },
+                            text = {
+                                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    if (isChangePassword) {
+                                        PasswordTextField(
+                                            value = state.editOldPassword,
+                                            onValueChange = { onEvent(AccountContract.Event.OnUpdateOldPasswordChanged(it)) },
+                                            label = "Old Password",
+                                            modifier = Modifier.fillMaxWidth()
+                                        )
+                                    }
+                                    PasswordTextField(
+                                        value = state.editNewPassword,
+                                        onValueChange = { onEvent(AccountContract.Event.OnUpdateNewPasswordChanged(it)) },
+                                        label = "New Password",
+                                        modifier = Modifier.fillMaxWidth()
+                                    )
+                                    PasswordTextField(
+                                        value = state.editConfirmPassword,
+                                        onValueChange = { onEvent(AccountContract.Event.OnUpdateConfirmPasswordChanged(it)) },
+                                        label = "Confirm Password",
+                                        modifier = Modifier.fillMaxWidth(),
+                                        imeAction = ImeAction.Done,
+                                        onFocusChanged = { focusState ->
+                                            if (!focusState.isFocused) {
+                                                onEvent(AccountContract.Event.OnConfirmPasswordBlur)
+                                            }
+                                        },
+                                        isError = state.confirmPasswordError != null,
+                                        supportingText = state.confirmPasswordError
+                                    )
+                                }
+                            },
+                            confirmButton = {
+                                Button(
+                                    onClick = { onEvent(AccountContract.Event.OnUpdatePassword) },
+                                    enabled = state.editNewPassword.isNotBlank() && 
+                                            state.editConfirmPassword.isNotBlank() && 
+                                            state.editNewPassword == state.editConfirmPassword &&
+                                            (!isChangePassword || state.editOldPassword.isNotBlank())
+                                ) {
+                                    Text("Confirm")
+                                }
+                            },
+                            dismissButton = {
+                                TextButton(onClick = { onEvent(AccountContract.Event.OnDismissEditPasswordDialog) }) {
+                                    Text("Cancel")
+                                }
+                            }
+                        )
+                    }
+
                     if (state.showDeleteDialog) {
                         AlertDialog(
                             onDismissRequest = { onEvent(AccountContract.Event.OnDismissDeleteDialog) },
+                            modifier = Modifier.responsiveDialog(),
+                            properties = DialogProperties(usePlatformDefaultWidth = false),
                             title = { Text("Delete Account") },
                             text = { Text("Are you sure you want to delete your account? This action cannot be undone.") },
                             confirmButton = {

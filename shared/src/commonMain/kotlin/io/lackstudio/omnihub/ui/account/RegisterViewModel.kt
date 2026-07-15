@@ -11,6 +11,8 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
+import io.lackstudio.omnihub.utils.ValidationUtils
+
 class RegisterViewModel(
     private val signUpWithEmailUseCase: SignUpWithEmailUseCase,
 ) : BaseViewModel() {
@@ -53,7 +55,7 @@ class RegisterViewModel(
             }
             is RegisterContract.Event.OnConfirmPasswordChanged -> {
                 _state.update {
-                    val isMatchSoFar = it.password.startsWith(event.password)
+                    val isMatchSoFar = ValidationUtils.isPasswordMatchSoFar(it.password, event.password)
                     it.copy(
                         confirmPassword = event.password,
                         confirmPasswordError = if (isMatchSoFar) null else "Passwords do not match",
@@ -63,11 +65,7 @@ class RegisterViewModel(
             }
             RegisterContract.Event.OnConfirmPasswordBlur -> {
                 _state.update {
-                    if (it.confirmPassword.isNotEmpty() && it.password != it.confirmPassword) {
-                        it.copy(confirmPasswordError = "Passwords do not match")
-                    } else {
-                        it.copy(confirmPasswordError = null)
-                    }
+                    it.copy(confirmPasswordError = ValidationUtils.validatePasswords(it.password, it.confirmPassword))
                 }
             }
             RegisterContract.Event.OnRegisterClicked -> {

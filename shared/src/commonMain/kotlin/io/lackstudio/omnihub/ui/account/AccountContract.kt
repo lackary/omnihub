@@ -8,11 +8,18 @@ interface AccountContract {
         val isLoading: Boolean = false,
         val loadingSource: LoadingSource? = null,
         val showDeleteDialog: Boolean = false,
+        val showEditUsernameDialog: Boolean = false,
+        val showEditPasswordDialog: Boolean = false,
+        val editUsername: String = "",
+        val editOldPassword: String = "",
+        val editNewPassword: String = "",
+        val editConfirmPassword: String = "",
+        val confirmPasswordError: String? = null,
         val error: String? = null
     )
 
     enum class LoadingSource {
-        GOOGLE, UNSPLASH, LOGOUT, DELETE
+        GOOGLE, UNSPLASH, LOGOUT, DELETE, UPDATE_USERNAME, UPDATE_PASSWORD
     }
 
     sealed interface Event {
@@ -23,6 +30,17 @@ interface AccountContract {
         data object OnLinkWithGoogleClicked : Event
         data object OnLinkWithUnsplashClicked : Event
         data object OnUnlinkUnsplashClicked : Event
+        data object OnEditUsernameClicked : Event
+        data object OnEditPasswordClicked : Event
+        data class OnUpdateUsernameChanged(val username: String) : Event
+        data class OnUpdateOldPasswordChanged(val password: String) : Event
+        data class OnUpdateNewPasswordChanged(val password: String) : Event
+        data class OnUpdateConfirmPasswordChanged(val password: String) : Event
+        data object OnUpdateUsername : Event
+        data object OnUpdatePassword : Event
+        data object OnConfirmPasswordBlur : Event
+        data object OnDismissEditUsernameDialog : Event
+        data object OnDismissEditPasswordDialog : Event
     }
 
     sealed interface Effect {

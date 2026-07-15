@@ -22,10 +22,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Email
-import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Visibility
-import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -56,6 +53,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import io.lackstudio.omnihub.ui.components.PasswordTextField
 import io.lackstudio.omnihub.utils.logging.rememberLogger
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -97,8 +95,6 @@ fun RegisterScreenContent(
     val logger = rememberLogger("RegisterScreen")
     val focusManager = LocalFocusManager.current
     val keyboardController = LocalSoftwareKeyboardController.current
-    var passwordVisible by remember { mutableStateOf(false) }
-    var confirmPasswordVisible by remember { mutableStateOf(false) }
 
     val emailRequester = remember { BringIntoViewRequester() }
     val passwordRequester = remember { BringIntoViewRequester() }
@@ -220,80 +216,45 @@ fun RegisterScreenContent(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                OutlinedTextField(
+                PasswordTextField(
                     value = state.password,
                     onValueChange = { onEvent(RegisterContract.Event.OnPasswordChanged(it)) },
-                    label = { Text("Password") },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .bringIntoViewRequester(passwordRequester)
-                        .onFocusChanged { focusState ->
-                            if (!focusState.isFocused) {
-                                onEvent(RegisterContract.Event.OnPasswordBlur)
-                            }
-                        },
-                    visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                    leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
-                    trailingIcon = {
-                        IconButton(onClick = { passwordVisible = !passwordVisible }) {
-                            Icon(
-                                imageVector = if (passwordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
-                                contentDescription = null
-                            )
-                        }
-                    },
+                    label = "Password",
+                    modifier = Modifier.fillMaxWidth(),
                     enabled = !state.isLoading,
                     isError = state.passwordError != null || (state.error != null && state.password.isEmpty()),
-                    supportingText = state.passwordError?.let {
-                        { Text(it, color = MaterialTheme.colorScheme.error) }
-                    },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Password,
-                        imeAction = ImeAction.Next
-                    )
+                    supportingText = state.passwordError,
+                    bringIntoViewRequester = passwordRequester,
+                    onFocusChanged = { focusState ->
+                        if (!focusState.isFocused) {
+                            onEvent(RegisterContract.Event.OnPasswordBlur)
+                        }
+                    }
                 )
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                OutlinedTextField(
+                PasswordTextField(
                     value = state.confirmPassword,
                     onValueChange = { onEvent(RegisterContract.Event.OnConfirmPasswordChanged(it)) },
-                    label = { Text("Confirm Password") },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .bringIntoViewRequester(confirmPasswordRequester)
-                        .onFocusChanged { focusState ->
-                            if (!focusState.isFocused) {
-                                onEvent(RegisterContract.Event.OnConfirmPasswordBlur)
-                            }
-                        },
-                    visualTransformation = if (confirmPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                    leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
-                    trailingIcon = {
-                        IconButton(onClick = { confirmPasswordVisible = !confirmPasswordVisible }) {
-                            Icon(
-                                imageVector = if (confirmPasswordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
-                                contentDescription = null
-                            )
-                        }
-                    },
+                    label = "Confirm Password",
+                    modifier = Modifier.fillMaxWidth(),
                     enabled = !state.isLoading,
                     isError = state.confirmPasswordError != null || (state.error != null && state.confirmPassword.isEmpty()),
-                    supportingText = state.confirmPasswordError?.let {
-                        { Text(it, color = MaterialTheme.colorScheme.error) }
-                    },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Password,
-                        imeAction = ImeAction.Done
-                    ),
+                    supportingText = state.confirmPasswordError,
+                    imeAction = ImeAction.Done,
                     keyboardActions = KeyboardActions(
                         onDone = {
                             focusManager.clearFocus()
                             keyboardController?.hide()
                         }
-                    )
+                    ),
+                    bringIntoViewRequester = confirmPasswordRequester,
+                    onFocusChanged = { focusState ->
+                        if (!focusState.isFocused) {
+                            onEvent(RegisterContract.Event.OnConfirmPasswordBlur)
+                        }
+                    }
                 )
 
                 Spacer(modifier = Modifier.height(24.dp))
