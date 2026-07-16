@@ -37,3 +37,6 @@ extensions/*.local
 
 # Security
 .secrets
+
+# AI Assistant Artifacts
+.artifacts/
