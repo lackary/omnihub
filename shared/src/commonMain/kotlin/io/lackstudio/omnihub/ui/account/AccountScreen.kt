@@ -1,6 +1,12 @@
 package io.lackstudio.omnihub.ui.account
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,6 +26,8 @@ import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -204,15 +212,86 @@ fun AccountScreenContent(
                         Spacer(modifier = Modifier.height(8.dp))
 
                         val hasPassword = user.authProviders.containsKey(AuthProvider.PASSWORD.id)
-                        Button(
-                            onClick = { onEvent(AccountContract.Event.OnEditPasswordClicked) },
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = MaterialTheme.shapes.medium
+                        val passwordLabel = if (hasPassword) "Change Password" else "Set Password"
+
+                        Column(
+                            modifier = Modifier.fillMaxWidth()
                         ) {
-                            Text(if (hasPassword) "Change Password" else "Set Password")
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable { onEvent(AccountContract.Event.OnTogglePasswordSection) }
+                                    .padding(vertical = 12.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text(
+                                    text = passwordLabel,
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    fontWeight = FontWeight.Medium
+                                )
+                                Icon(
+                                    imageVector = if (state.isPasswordSectionExpanded) Icons.Default.KeyboardArrowDown else Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                                    contentDescription = if (state.isPasswordSectionExpanded) "Collapse" else "Expand",
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                            }
+
+                            AnimatedVisibility(
+                                visible = state.isPasswordSectionExpanded,
+                                enter = expandVertically() + fadeIn(),
+                                exit = shrinkVertically() + fadeOut()
+                            ) {
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(bottom = 16.dp),
+                                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                                ) {
+                                    PasswordTextField(
+                                        value = state.editNewPassword,
+                                        onValueChange = { onEvent(AccountContract.Event.OnUpdateNewPasswordChanged(it)) },
+                                        label = "New Password",
+                                        modifier = Modifier.fillMaxWidth()
+                                    )
+                                    PasswordTextField(
+                                        value = state.editConfirmPassword,
+                                        onValueChange = { onEvent(AccountContract.Event.OnUpdateConfirmPasswordChanged(it)) },
+                                        label = "Confirm Password",
+                                        modifier = Modifier.fillMaxWidth(),
+                                        imeAction = ImeAction.Done,
+                                        onFocusChanged = { focusState ->
+                                            if (!focusState.isFocused) {
+                                                onEvent(AccountContract.Event.OnConfirmPasswordBlur)
+                                            }
+                                        },
+                                        isError = state.confirmPasswordError != null,
+                                        supportingText = state.confirmPasswordError
+                                    )
+
+                                    Button(
+                                        onClick = { onEvent(AccountContract.Event.OnUpdatePassword) },
+                                        modifier = Modifier.align(Alignment.End),
+                                        enabled = state.editNewPassword.isNotBlank() &&
+                                                state.editConfirmPassword.isNotBlank() &&
+                                                state.editNewPassword == state.editConfirmPassword &&
+                                                !state.isLoading
+                                    ) {
+                                        if (state.isLoading && state.loadingSource == AccountContract.LoadingSource.UPDATE_PASSWORD) {
+                                            CircularProgressIndicator(
+                                                modifier = Modifier.size(18.dp),
+                                                color = MaterialTheme.colorScheme.onPrimary,
+                                                strokeWidth = 2.dp
+                                            )
+                                        } else {
+                                            Text("Confirm")
+                                        }
+                                    }
+                                }
+                            }
                         }
 
-                        Spacer(modifier = Modifier.height(32.dp))
+                        Spacer(modifier = Modifier.height(16.dp))
 
                         // Google Linking row
                         ServiceLinkRow(
@@ -330,63 +409,6 @@ fun AccountScreenContent(
                         )
                     }
 
-                    if (state.showEditPasswordDialog) {
-                        val isChangePassword = user?.authProviders?.containsKey(AuthProvider.PASSWORD.id) == true
-                        AlertDialog(
-                            onDismissRequest = { onEvent(AccountContract.Event.OnDismissEditPasswordDialog) },
-                            modifier = Modifier.responsiveDialog(),
-                            properties = DialogProperties(usePlatformDefaultWidth = false),
-                            title = { Text(if (isChangePassword) "Change Password" else "Set Password") },
-                            text = {
-                                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    if (isChangePassword) {
-                                        PasswordTextField(
-                                            value = state.editOldPassword,
-                                            onValueChange = { onEvent(AccountContract.Event.OnUpdateOldPasswordChanged(it)) },
-                                            label = "Old Password",
-                                            modifier = Modifier.fillMaxWidth()
-                                        )
-                                    }
-                                    PasswordTextField(
-                                        value = state.editNewPassword,
-                                        onValueChange = { onEvent(AccountContract.Event.OnUpdateNewPasswordChanged(it)) },
-                                        label = "New Password",
-                                        modifier = Modifier.fillMaxWidth()
-                                    )
-                                    PasswordTextField(
-                                        value = state.editConfirmPassword,
-                                        onValueChange = { onEvent(AccountContract.Event.OnUpdateConfirmPasswordChanged(it)) },
-                                        label = "Confirm Password",
-                                        modifier = Modifier.fillMaxWidth(),
-                                        imeAction = ImeAction.Done,
-                                        onFocusChanged = { focusState ->
-                                            if (!focusState.isFocused) {
-                                                onEvent(AccountContract.Event.OnConfirmPasswordBlur)
-                                            }
-                                        },
-                                        isError = state.confirmPasswordError != null,
-                                        supportingText = state.confirmPasswordError
-                                    )
-                                }
-                            },
-                            confirmButton = {
-                                Button(
-                                    onClick = { onEvent(AccountContract.Event.OnUpdatePassword) },
-                                    enabled = state.editNewPassword.isNotBlank() && 
-                                            state.editConfirmPassword.isNotBlank() && 
-                                            state.editNewPassword == state.editConfirmPassword &&
-                                            (!isChangePassword || state.editOldPassword.isNotBlank())
-                                ) {
-                                    Text("Confirm")
-                                }
-                            },
-                            dismissButton = {
-                                TextButton(onClick = { onEvent(AccountContract.Event.OnDismissEditPasswordDialog) }) {
-                                    Text("Cancel")
-                                }
-                            }
-                        )
-                    }
 
                     if (state.showDeleteDialog) {
                         AlertDialog(
@@ -405,6 +427,65 @@ fun AccountScreenContent(
                             },
                             dismissButton = {
                                 TextButton(onClick = { onEvent(AccountContract.Event.OnDismissDeleteDialog) }) {
+                                    Text("Cancel")
+                                }
+                            }
+                        )
+                    }
+
+                    if (state.showReAuthDialog) {
+                        val title = "Verify Identity"
+                        val message = when (state.reAuthType) {
+                            AccountContract.ReAuthType.EMAIL -> "For security reasons, please enter your current password to verify your identity."
+                            AccountContract.ReAuthType.GOOGLE -> "For security reasons, please re-authorize your Google account to continue."
+                            AccountContract.ReAuthType.CUSTOM_SERVICE -> "For security reasons, please re-authorize your account to continue."
+                            null -> ""
+                        }
+
+                        AlertDialog(
+                            onDismissRequest = { onEvent(AccountContract.Event.OnDismissReAuthDialog) },
+                            modifier = Modifier.responsiveDialog(),
+                            properties = DialogProperties(usePlatformDefaultWidth = false),
+                            title = { Text(title) },
+                            text = {
+                                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    Text(message)
+                                    if (state.reAuthType == AccountContract.ReAuthType.EMAIL) {
+                                        PasswordTextField(
+                                            value = state.reAuthPassword,
+                                            onValueChange = { onEvent(AccountContract.Event.OnReAuthPasswordChanged(it)) },
+                                            label = "Current Password",
+                                            modifier = Modifier.fillMaxWidth(),
+                                            imeAction = ImeAction.Done
+                                        )
+                                    }
+                                    state.reAuthError?.let {
+                                        Text(
+                                            text = it,
+                                            color = MaterialTheme.colorScheme.error,
+                                            style = MaterialTheme.typography.bodySmall
+                                        )
+                                    }
+                                }
+                            },
+                            confirmButton = {
+                                Button(
+                                    onClick = { onEvent(AccountContract.Event.OnConfirmReAuth) },
+                                    enabled = (state.reAuthType != AccountContract.ReAuthType.EMAIL || state.reAuthPassword.isNotBlank()) && !state.isLoading
+                                ) {
+                                    if (state.isLoading && state.loadingSource == AccountContract.LoadingSource.REAUTH) {
+                                        CircularProgressIndicator(
+                                            modifier = Modifier.size(24.dp),
+                                            color = MaterialTheme.colorScheme.onPrimary,
+                                            strokeWidth = 2.dp
+                                        )
+                                    } else {
+                                        Text("Verify")
+                                    }
+                                }
+                            },
+                            dismissButton = {
+                                TextButton(onClick = { onEvent(AccountContract.Event.OnDismissReAuthDialog) }) {
                                     Text("Cancel")
                                 }
                             }
