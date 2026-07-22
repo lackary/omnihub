@@ -70,6 +70,12 @@ class AccountViewModel(
     private fun observeUser() {
         viewModelScope.launch {
             observeUserUseCase().collect { user ->
+                val currentToken = state.value.user?.idToken
+                val newToken = user?.idToken
+                if (currentToken != newToken) {
+                    logger.i { "State Token Updated: old=${currentToken.idDebug()}, new=${newToken.idDebug()}" }
+                }
+                
                 logger.d { "observeUser: user=$user, isLoading=${state.value.isLoading}" }
                 _state.update { it.copy(user = user) }
                 if (user == null && !state.value.isLoading) {
@@ -78,6 +84,12 @@ class AccountViewModel(
                 }
             }
         }
+    }
+
+    private fun String?.idDebug(): String {
+        if (this == null) return "null"
+        if (length <= 20) return this
+        return "${take(10)}...${takeLast(10)}"
     }
 
     private fun observeDeepLink() {
@@ -326,16 +338,17 @@ class AccountViewModel(
         when (reAuthType) {
             AccountContract.ReAuthType.EMAIL -> {
                 viewModelScope.launch {
-                    // CRITICAL: Do NOT overwrite loadingSource here, keep the original sensitive action source
-                    _state.update { it.copy(isLoading = true, reAuthError = null) }
+                    // Prevent double submission and show loading
+                    _state.update { it.copy(isReAuthLoading = true, reAuthError = null) }
                     reauthenticateWithEmailUseCase(state.value.reAuthPassword)
                         .onSuccess {
                             logger.i { "Email re-auth successful" }
+                            _state.update { it.copy(isReAuthLoading = false) }
                             handleReAuthSuccess()
                         }
                         .onFailure { error ->
                             logger.e(error) { "Email re-auth failed" }
-                            _state.update { it.copy(isLoading = false, reAuthError = error.getFriendlyMessage()) }
+                            _state.update { it.copy(isReAuthLoading = false, reAuthError = error.getFriendlyMessage()) }
                         }
                 }
             }
@@ -371,15 +384,16 @@ class AccountViewModel(
             viewModelScope.launch {
                 try {
                     // Reactive Await: Wait for the token to actually change in the state
-                    logger.d { "Waiting for fresh ID Token signal (pre=${oldToken?.take(10)}...)" }
+                    logger.d { "Waiting for fresh ID Token signal (pre=${oldToken.idDebug()})" }
                     
                     val result = withTimeoutOrNull(5000.milliseconds) {
                         var count = 0
                         state.map { it.user }.first {
                             val currentToken = it?.idToken
                             count++
-                            logger.d { "Sync Check #$count: current=${currentToken?.take(10)}..., match=${currentToken != oldToken}" }
-                            it?.idToken != null && it.idToken != oldToken
+                            val isMatch = currentToken != null && currentToken != oldToken
+                            logger.d { "Sync Check #$count: current=${currentToken.idDebug()}, old=${oldToken.idDebug()}, changed=$isMatch" }
+                            isMatch
                         }
                     }
 
@@ -438,7 +452,9 @@ class AccountViewModel(
                 action()
                 logger.i { "performSensitiveAction: success for $loadingSource" }
                 _state.update { it.copy(isLoading = false, loadingSource = null) }
+                // CRITICAL: Clear all pending states upon success
                 pendingAction = null
+                preAuthToken = null
             } catch (e: Exception) {
                 if (e.isReAuthRequired()) {
                     logger.w { "performSensitiveAction: RE-AUTH REQUIRED for $loadingSource" }
@@ -448,6 +464,7 @@ class AccountViewModel(
                     logger.e(e) { "performSensitiveAction: failed for $loadingSource" }
                     _state.update { it.copy(isLoading = false, loadingSource = null, error = e.getFriendlyMessage()) }
                     pendingAction = null
+                    preAuthToken = null
                 }
             }
         }

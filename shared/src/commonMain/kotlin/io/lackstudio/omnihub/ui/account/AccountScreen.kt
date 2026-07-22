@@ -471,11 +471,11 @@ fun AccountScreenContent(
                             confirmButton = {
                                 Button(
                                     onClick = { onEvent(AccountContract.Event.OnConfirmReAuth) },
-                                    enabled = (state.reAuthType != AccountContract.ReAuthType.EMAIL || state.reAuthPassword.isNotBlank()) && !state.isLoading
+                                    enabled = (state.reAuthType != AccountContract.ReAuthType.EMAIL || state.reAuthPassword.isNotBlank()) && !state.isReAuthLoading
                                 ) {
-                                    if (state.isLoading && state.loadingSource == AccountContract.LoadingSource.REAUTH) {
+                                    if (state.isReAuthLoading) {
                                         CircularProgressIndicator(
-                                            modifier = Modifier.size(24.dp),
+                                            modifier = Modifier.size(18.dp),
                                             color = MaterialTheme.colorScheme.onPrimary,
                                             strokeWidth = 2.dp
                                         )

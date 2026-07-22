@@ -18,6 +18,7 @@ interface AccountContract {
         val reAuthType: ReAuthType? = null,
         val reAuthPassword: String = "",
         val reAuthError: String? = null,
+        val isReAuthLoading: Boolean = false,
         val error: String? = null
     )
 
