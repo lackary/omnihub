@@ -11,6 +11,7 @@ import io.lackstudio.omnifeed.auth.utils.OAuthUrlFactory
 import io.lackstudio.omnifeed.auth.domain.usecase.*
 import io.lackstudio.omnifeed.core.common.error.getFriendlyMessage
 import io.lackstudio.omnifeed.core.domain.usecase.UseCaseResult
+import io.lackstudio.omnifeed.core.utils.maskId
 import io.lackstudio.omnifeed.core.network.oauth.AccessTokenProvider
 import io.lackstudio.omnifeed.ui.viewmodel.BaseViewModel
 import io.lackstudio.omnifeed.unsplash.domain.model.OAuthToken
@@ -73,7 +74,7 @@ class AccountViewModel(
                 val currentToken = state.value.user?.idToken
                 val newToken = user?.idToken
                 if (currentToken != newToken) {
-                    logger.i { "State Token Updated: old=${currentToken.idDebug()}, new=${newToken.idDebug()}" }
+                    logger.i { "State Token Updated: old=${currentToken.maskId()}, new=${newToken.maskId()}" }
                 }
                 
                 logger.d { "observeUser: user=$user, isLoading=${state.value.isLoading}" }
@@ -84,12 +85,6 @@ class AccountViewModel(
                 }
             }
         }
-    }
-
-    private fun String?.idDebug(): String {
-        if (this == null) return "null"
-        if (length <= 20) return this
-        return "${take(10)}...${takeLast(10)}"
     }
 
     private fun observeDeepLink() {
@@ -384,7 +379,7 @@ class AccountViewModel(
             viewModelScope.launch {
                 try {
                     // Reactive Await: Wait for the token to actually change in the state
-                    logger.d { "Waiting for fresh ID Token signal (pre=${oldToken.idDebug()})" }
+                    logger.d { "Waiting for fresh ID Token signal (pre=${oldToken.maskId()})" }
                     
                     val result = withTimeoutOrNull(5000.milliseconds) {
                         var count = 0
@@ -392,7 +387,7 @@ class AccountViewModel(
                             val currentToken = it?.idToken
                             count++
                             val isMatch = currentToken != null && currentToken != oldToken
-                            logger.d { "Sync Check #$count: current=${currentToken.idDebug()}, old=${oldToken.idDebug()}, changed=$isMatch" }
+                            logger.d { "Sync Check #$count: current=${currentToken.maskId()}, old=${oldToken.maskId()}, changed=$isMatch" }
                             isMatch
                         }
                     }
