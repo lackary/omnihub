@@ -122,6 +122,10 @@ fun AppScreen(
     val isLoggedIn by viewModel.isLoggedIn.collectAsStateWithLifecycle()
     var wasLoggedIn by remember { mutableStateOf(isLoggedIn) }
 
+    LaunchedEffect(user) {
+        logger.d { "Root User State: id=${user?.id}, photoUrl=${user?.photoUrl}" }
+    }
+
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
 

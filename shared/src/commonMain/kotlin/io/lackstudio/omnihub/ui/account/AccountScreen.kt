@@ -60,6 +60,7 @@ import io.lackstudio.omnihub.platform.rememberPlatformContext
 import io.lackstudio.omnihub.ui.components.PasswordTextField
 import io.lackstudio.omnihub.ui.components.responsiveDialog
 import io.lackstudio.omnihub.utils.Environment
+import io.lackstudio.omnihub.utils.logging.rememberLogger
 import kotlinx.coroutines.launch
 import omnihub.shared.generated.resources.Res
 import omnihub.shared.generated.resources.ic_google
@@ -79,6 +80,11 @@ fun AccountScreen(
     val authManager: AuthManager = koinInject()
     val scope = rememberCoroutineScope()
     val context = rememberPlatformContext()
+    val logger = rememberLogger("AccountScreen")
+
+    LaunchedEffect(state.user) {
+        logger.d { "Current User in Screen: id=${state.user?.id}, photoUrl=${state.user?.photoUrl}" }
+    }
 
     LaunchedEffect(sideEffect) {
         sideEffect.collect { effect ->

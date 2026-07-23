@@ -77,7 +77,7 @@ class AccountViewModel(
                     logger.i { "State Token Updated: old=${currentToken.maskId()}, new=${newToken.maskId()}" }
                 }
                 
-                logger.d { "observeUser: user=$user, isLoading=${state.value.isLoading}" }
+                logger.d { "observeUser: user=${user?.id}, photoUrl=${user?.photoUrl}, isLoading=${state.value.isLoading}" }
                 _state.update { it.copy(user = user) }
                 if (user == null && !state.value.isLoading) {
                     logger.i { "observeUser: user is null, navigating to Login" }
@@ -238,9 +238,33 @@ class AccountViewModel(
             baseUrl = UNSPLASH_OAUTH_AUTHORIZE,
             clientId = getUnsplashAccessKey(),
             redirectUri = redirectUri,
-            scope = listOf("public", "read_user")
+            scope = listOf("public", "read_user"),
+            state = "web_popup"
         )
-        authManager.startLogin(authUrl)
+
+        viewModelScope.launch {
+            _state.update { it.copy(isLoading = true, loadingSource = AccountContract.LoadingSource.UNSPLASH, error = null) }
+            try {
+                logger.d { "Attempting Unsplash link with popup: $authUrl" }
+                val code = authManager.signInWithOAuthPopup(authUrl)
+                if (code != null) {
+                    logger.d { "AccountViewModel received code from popup: $code" }
+                    handleUnsplashCallback(code)
+                } else {
+                    logger.d { "Popup closed or cancelled without code" }
+                    _state.update { it.copy(isLoading = false, loadingSource = null) }
+                }
+            } catch (e: Exception) {
+                if (e is UnsupportedOperationException) {
+                    logger.d { "OAuth popup not supported on this platform, falling back to redirect flow" }
+                    authManager.startLogin(authUrl)
+                    // Keep isLoading = true, handleUnsplashCallback will be called via DeepLinkBuffer
+                } else {
+                    logger.e(e) { "Error during Unsplash popup linking" }
+                    _state.update { it.copy(isLoading = false, loadingSource = null, error = e.getFriendlyMessage()) }
+                }
+            }
+        }
     }
 
     private fun handleUnsplashCallback(code: String) {
