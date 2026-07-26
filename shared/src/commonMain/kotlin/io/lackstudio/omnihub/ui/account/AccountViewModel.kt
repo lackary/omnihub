@@ -125,7 +125,6 @@ class AccountViewModel(
             }
             AccountContract.Event.OnLinkWithGoogleClicked -> {
                 viewModelScope.launch {
-                    _state.update { it.copy(isLoading = true, loadingSource = AccountContract.LoadingSource.GOOGLE) }
                     _sideEffect.send(AccountContract.Effect.ShowGoogleSignIn)
                 }
             }

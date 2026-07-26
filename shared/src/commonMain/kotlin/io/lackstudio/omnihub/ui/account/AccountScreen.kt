@@ -98,9 +98,6 @@ fun AccountScreen(
                         val tokens = authManager.signInWithGoogle(context)
                         if (tokens != null) {
                             viewModel.onGoogleSignInResult(tokens.idToken, tokens.accessToken)
-                        } else {
-                            // Reset loading state if cancelled
-                            // viewModel.onCancel...
                         }
                     }
                 }

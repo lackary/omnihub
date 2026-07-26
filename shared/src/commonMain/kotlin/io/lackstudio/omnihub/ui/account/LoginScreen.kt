@@ -92,8 +92,6 @@ fun LoginScreen(
                             viewModel.onGoogleSignInResult(tokens.idToken, tokens.accessToken)
                         } else {
                             logger.w { "Tokens are NULL, flow aborted" }
-                            // Reset loading state if cancelled
-                            viewModel.handleIntent(LoginContract.Event.OnBackClicked) // or a specific reset
                         }
                     }
                 }
