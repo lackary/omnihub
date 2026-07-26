@@ -131,9 +131,33 @@ class LoginViewModel(
             baseUrl = UNSPLASH_OAUTH_AUTHORIZE,
             clientId = getUnsplashAccessKey(),
             redirectUri = authManager.getRedirectUrl(),
-            scope = listOf("public", "read_user")
+            scope = listOf("public", "read_user"),
+            state = "web_popup"
         )
-        authManager.startLogin(authUrl)
+
+        viewModelScope.launch {
+            _state.update { it.copy(isLoading = true, loadingSource = LoginContract.LoadingSource.UNSPLASH, error = null) }
+            try {
+                logger.d { "Attempting Unsplash login with popup: $authUrl" }
+                val code = authManager.signInWithOAuthPopup(authUrl)
+                if (code != null) {
+                    logger.d { "LoginViewModel received code from popup: $code" }
+                    handleUnsplashCallback(code)
+                } else {
+                    logger.d { "Popup closed or cancelled without code" }
+                    _state.update { it.copy(isLoading = false, loadingSource = null) }
+                }
+            } catch (e: Exception) {
+                if (e is UnsupportedOperationException) {
+                    logger.d { "OAuth popup not supported on this platform, falling back to redirect flow" }
+                    authManager.startLogin(authUrl)
+                    // Keep isLoading = true, handleUnsplashCallback will be called via DeepLinkBuffer
+                } else {
+                    logger.e(e) { "Error during Unsplash popup login" }
+                    _state.update { it.copy(isLoading = false, loadingSource = null, error = e.getFriendlyMessage()) }
+                }
+            }
+        }
     }
 
     private fun handleUnsplashCallback(code: String) {

@@ -29,6 +29,5 @@ interface LoginContract {
         data object NavigateToRegister : Effect
         data class ShowError(val message: String) : Effect
         data object ShowGoogleSignIn : Effect
-        data object ShowUnsplashSignIn : Effect
     }
 }
