@@ -1,55 +1,67 @@
 #!/bin/bash
 
-# Define input file paths
-ANDROID_JSON="androidApp/google-services.json"
-IOS_PLIST="iosApp/iosApp/GoogleService-Info.plist"
-WEB_JSON="google_services_web.json"
+# -----------------------------------------------------------------------------
+# 🔐 Firebase Configuration Encoder
+# -----------------------------------------------------------------------------
+# This script encodes your Firebase configuration files into Base64.
+#
+# MANDATORY:
+# 1. Create a file named '.firebase_paths' in the project root.
+# 2. Define the following variables in that file:
+#    ANDROID_JSON="path/to/google-services.json"
+#    IOS_PLIST="path/to/GoogleService-Info.plist"
+#    WEB_JSON="path/to/google_services_web.json"
+# -----------------------------------------------------------------------------
 
-# Define output file paths
 SECRETS_FILE=".secrets"
+CONFIG_FILE=".firebase_paths"
 
 echo "------------------------------------------------"
 echo "🔐 Firebase Configuration Encoder"
 echo "------------------------------------------------"
 
-# Ensure the file exists and add a newline to prevent appending to the same line
+# Check if config file exists
+if [ ! -f "$CONFIG_FILE" ]; then
+    echo "❌ ERROR: $CONFIG_FILE not found!"
+    echo "Please create $CONFIG_FILE based on .firebase_paths.example"
+    exit 1
+fi
+
+# Load paths
+source "$CONFIG_FILE"
+
+# Function to validate and encode
+encode_file() {
+    local label=$1
+    local file_path=$2
+    local secret_key=$3
+
+    if [ -z "$file_path" ]; then
+        echo "❌ ERROR: Path for $label is not defined in $CONFIG_FILE"
+        exit 1
+    fi
+
+    if [ -f "$file_path" ]; then
+        echo "✅ Found $label ($file_path). Encoding..."
+        local base64_str=$(base64 -i "$file_path" | tr -d '\n')
+        echo "$secret_key=$base64_str" >> "$SECRETS_FILE"
+        echo "   -> Appended to $SECRETS_FILE"
+    else
+        echo "❌ ERROR: $label file not found at: $file_path"
+        exit 1
+    fi
+    echo ""
+}
+
+# Ensure the secrets file exists and add a header
 touch "$SECRETS_FILE"
 echo "" >> "$SECRETS_FILE"
 echo "# Auto-generated Firebase Base64 Strings ($(date))" >> "$SECRETS_FILE"
 
-# Check for Android file
-if [ -f "$ANDROID_JSON" ]; then
-    echo "✅ Found Android JSON. Encoding..."
-    ANDROID_BASE64=$(base64 -i "$ANDROID_JSON" | tr -d '\n')
-    echo "FIREBASE_ANDROID_BASE64=$ANDROID_BASE64" >> "$SECRETS_FILE"
-    echo "   -> Appended to $SECRETS_FILE"
-    echo ""
-else
-    echo "❌ $ANDROID_JSON not found."
-fi
-
-# Check for iOS file
-if [ -f "$IOS_PLIST" ]; then
-    echo "✅ Found iOS Plist. Encoding..."
-    IOS_BASE64=$(base64 -i "$IOS_PLIST" | tr -d '\n')
-    echo "FIREBASE_IOS_BASE64=$IOS_BASE64" >> "$SECRETS_FILE"
-    echo "   -> Appended to $SECRETS_FILE"
-    echo ""
-else
-    echo "❌ $IOS_PLIST not found."
-fi
-
-# Check for Web file
-if [ -f "$WEB_JSON" ]; then
-    echo "✅ Found Web JSON. Encoding..."
-    WEB_BASE64=$(base64 -i "$WEB_JSON" | tr -d '\n')
-    echo "FIREBASE_WEB_BASE64=$WEB_BASE64" >> "$SECRETS_FILE"
-    echo "   -> Appended to $SECRETS_FILE"
-    echo ""
-else
-    echo "❌ $WEB_JSON not found."
-fi
+# Process configurations strictly
+encode_file "Android JSON" "$ANDROID_JSON" "FIREBASE_ANDROID_BASE64"
+encode_file "iOS Plist" "$IOS_PLIST" "FIREBASE_IOS_BASE64"
+encode_file "Web JSON" "$WEB_JSON" "FIREBASE_WEB_BASE64"
 
 echo "------------------------------------------------"
 echo "🚀 Done! Your secrets are updated in $SECRETS_FILE"
-echo "💡 Remember to add $SECRETS_FILE to your .gitignore"

@@ -1,0 +1,7 @@
+# Firebase configuration file paths for OmniHub
+# Copy this file to '.firebase_paths' and adjust the paths if needed.
+# This file is used by encode_firebase.sh to find your JSON/Plist files.
+
+ANDROID_JSON="androidApp/google-services.json"
+IOS_PLIST="iosApp/iosApp/GoogleService-Info.plist"
+WEB_JSON="google_services_web.json"

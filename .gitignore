@@ -37,6 +37,7 @@ extensions/*.local
 
 # Security
 .secrets
+.firebase_paths
 
 # AI Assistant Artifacts
 .artifacts/
