@@ -8,7 +8,7 @@ android-targetSdk = "36"
 # Google
 googleServices = "4.4.4"
 googleFirebaseBom = "34.13.0"
-googleGms = "21.6.0"
+googleGms = "22.0.0"
 googleId = "1.2.0"
 
 # Android
@@ -47,7 +47,7 @@ robolectric = "4.16.1"
 # 3rd party
 koin = "4.2.1"
 gitliveFirebase = "2.4.0"
-mirzemehdiKmpAuth = "2.3.1"
+mirzemehdiKmpAuth = "3.0.6"
 kermit = "2.1.0"
 buildkonfig = "0.21.2"
 coil3 = "3.4.0"
