@@ -1,3 +1,43 @@
+# [0.18.0](https://github.com/lackary/omnihub/compare/v0.17.3...v0.18.0) (2026-09-04)
+
+
+### Bug Fixes
+
+* **ui:** resolve deep link hijacking and implement granular loading feedback ([1a46dab](https://github.com/lackary/omnihub/commit/1a46dab0c97f0b0b7a90955a97376f6121ed445f))
+* **ui:** resolve web OAuth2 redirection to Gallery tab ([fe50098](https://github.com/lackary/omnihub/commit/fe50098a92fc87273912120cbf7cb4d9c7b3086a))
+* **ui:** update user profile field mapping to match new domain schema ([1ac31fa](https://github.com/lackary/omnihub/commit/1ac31fa1e979800eeb3063de1d2f10edd775a02d))
+
+
+### Features
+
+* **account:** decouple re-authentication loading state and enhance token synchronization ([81c9b68](https://github.com/lackary/omnihub/commit/81c9b688c2bab6cdffa81e8f3d3260e1de6c0e13))
+* **account:** implement account management screens and validation logic ([72a7364](https://github.com/lackary/omnihub/commit/72a736492da02063427eae2cf8d12bf0d27ad437))
+* **account:** implement cross-platform Google Sign-In ([cd07b16](https://github.com/lackary/omnihub/commit/cd07b1613e7f35cd3a53c96e9eac75c677d03ec9))
+* **account:** implement Google account linking functionality ([6ea31a5](https://github.com/lackary/omnihub/commit/6ea31a520d36db849cdf59357294cc57a76e076a))
+* **account:** implement inline validation and improved UX for registration ([7b305d7](https://github.com/lackary/omnihub/commit/7b305d718fd9fa69033bd1113110e1751f94e324))
+* **account:** implement secure re-authentication flow and refactor password management ([f657f5e](https://github.com/lackary/omnihub/commit/f657f5e9d05f22a19ee787a3439b7cd8632d1a77)), closes [hi#risk](https://github.com/hi/issues/risk)
+* **account:** implement Unsplash account linking functionality ([2506000](https://github.com/lackary/omnihub/commit/25060003a62b65075d249b8a0e74e719e4158100))
+* **account:** integrate Firebase and implement authentication features ([2d45a28](https://github.com/lackary/omnihub/commit/2d45a2874e4cf1cb956e34c12dcb33b57f8f28ee))
+* **account:** use friendly error messages in Login and Register ViewModels ([95f1f9d](https://github.com/lackary/omnihub/commit/95f1f9d4a4bf9df4f2462ddaf1b83b1d622c7956))
+* **auth:** enhance web callback for multi-platform deep linking ([389db64](https://github.com/lackary/omnihub/commit/389db64cb9d5c14367a44738506ec7b1515a65a5))
+* **auth:** finalize macOS deep linking for desktop authentication ([e7db43b](https://github.com/lackary/omnihub/commit/e7db43bdd6d527c179ba5902f307b09b89d2c8a9))
+* **auth:** implement login screen and MVI structure ([f07c306](https://github.com/lackary/omnihub/commit/f07c306445f824d6aab105007ed1073aef07025b))
+* **auth:** implement OAuth popup flow for web and enhance user logging ([3e14ba3](https://github.com/lackary/omnihub/commit/3e14ba32a135f110dab59197f63e550a0ffba3bd))
+* **auth:** implement popup-based Unsplash OAuth login with redirect fallback ([28b75e8](https://github.com/lackary/omnihub/commit/28b75e883278aaec341840dafb1b9bdae6b92a26))
+* **auth:** implement Unsplash OAuth token persistence and state synchronization ([80db531](https://github.com/lackary/omnihub/commit/80db5312158870e77b44bba5d7bef6135f009435))
+* **auth:** initialize Firebase with platform-specific configuration and upgrade SDK versions ([f8a39d8](https://github.com/lackary/omnihub/commit/f8a39d8e698511182986ec552d42952c6f54ad18))
+* **auth:** integrate custom firebase extension and refactor config architecture ([dd1198f](https://github.com/lackary/omnihub/commit/dd1198f42b7522d89e6aa0723920d49ac99a944d))
+* **auth:** Report Google Sign-In prompt interaction outcomes ([94b1620](https://github.com/lackary/omnihub/commit/94b16209e75f41c4fd66549da46d270765ad6993))
+* **desktop:** update Firebase initialization with persistent storage support ([f97524a](https://github.com/lackary/omnihub/commit/f97524ac29f1abb14a343a84f5a149b5d617f85a))
+* **firebase:** implement persistent storage for Firebase JVM ([7062bb9](https://github.com/lackary/omnihub/commit/7062bb923b7239fde98d9bffd447521e20bb76b5))
+* **register:** implement cross-platform Firebase initialization and add JS support ([f211e35](https://github.com/lackary/omnihub/commit/f211e350cf302e6828093df3bf17407e15f80804))
+* **shared:** implement encryption salt and enhance Unsplash token linking ([046acd7](https://github.com/lackary/omnihub/commit/046acd7b207090900546af8778531eaed1b5c8e9))
+* **ui:** add account management and refine auth flow ([83bfb9b](https://github.com/lackary/omnihub/commit/83bfb9bcc0d66d12d2d0506c74144e815befb146))
+* **ui:** consolidate primary screens into a swipable pager ([aa8a985](https://github.com/lackary/omnihub/commit/aa8a985319d2dbabc0d1018ed84b869613f61988))
+* **ui:** implement guest mode and login redirection for account tab ([fdd8fe4](https://github.com/lackary/omnihub/commit/fdd8fe450badc1afb1adb1762ad535c5e8bfed31))
+* **ui:** optimize auth navigation flow and user profile visibility ([bcf0220](https://github.com/lackary/omnihub/commit/bcf02204b4733877c89e30b195cdc6de219edb6a))
+* **ui:** refine feature screen navigation and photo viewer UI ([1f66ba0](https://github.com/lackary/omnihub/commit/1f66ba06eece76f5fcfaafd49ac3870c8e22adc3))
+
 ## [0.17.3](https://github.com/lackary/omnihub/compare/v0.17.2...v0.17.3) (2026-05-29)
 
 

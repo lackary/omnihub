@@ -1381,7 +1381,7 @@ PODS:
   - PromisesSwift (2.4.1):
     - PromisesObjC (= 2.4.1)
   - RecaptchaInterop (101.0.0)
-  - Shared (0.17.3):
+  - Shared (0.18.0):
     - FirebaseAuth (~> 12.14.0)
     - FirebaseCore (~> 12.14.0)
     - FirebaseFirestore (~> 12.14.0)
@@ -1446,8 +1446,8 @@ SPEC CHECKSUMS:
   PromisesObjC: 752c3227f599e3467650e47ea36f433eeb10c273
   PromisesSwift: 217dea0fd5d2ad65222a109c48698add13cc1c5b
   RecaptchaInterop: 11e0b637842dfb48308d242afc3f448062325aba
-  Shared: 92b3f8a1cb798a748fa1beeb842eec7bcf048e80
+  Shared: 4794beac64325637b76dd0eea9ffc8e2d0152308
 
 PODFILE CHECKSUM: b3b985893858fec2795f982cb75d7c54128840ee
 
-COCOAPODS: 1.16.2
+COCOAPODS: 1.17.0
