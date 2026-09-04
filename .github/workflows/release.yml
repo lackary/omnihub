@@ -85,6 +85,7 @@ jobs:
         uses: cycjimmy/semantic-release-action@v6
         with:
           semantic_version: 24 # Specify the core version of semantic-release (recommended to lock)
+          dry_run: ${{ env.ACT == 'true' }}
           extra_plugins: |
             @semantic-release/commit-analyzer
             @semantic-release/release-notes-generator

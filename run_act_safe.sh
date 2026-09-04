@@ -87,7 +87,7 @@ LOG_FILE="act_execution.log"
 
 # Ensure user has gh cli installed, otherwise prompt
 if ! command -v gh &> /dev/null; then
-    echo "⚠️  GitHub CLI (gh) not detected. act/npx may fail due to missing Token."
+    echo "⚠️  GitHub CLI (gh) not detected. Using local git history for dry-run checks."
     EXPORT_TOKEN=""
 else
     RAW_TOKEN=$(gh auth token 2>/dev/null)
@@ -105,6 +105,7 @@ if [ "$choice" == "1" ]; then
     CMD="act push \
       -W .github/workflows/ci_mikepenz.yml \
       -P macos-latest=-self-hosted \
+      --env ACT=true \
       --secret-file \"$RUN_SECRETS\" \
       --artifact-server-path \"$ARTIFACT_PATH\" \
       --cache-server-path \"$CACHE_PATH\" \
@@ -119,6 +120,7 @@ elif [ "$choice" == "2" ]; then
       -W .github/workflows/ci_dorny.yml \
       -P macos-latest=-self-hosted \
       -P ubuntu-latest=catthehacker/ubuntu:act-latest \
+      --env ACT=true \
       --secret-file \"$RUN_SECRETS\" \
       --artifact-server-path \"$ARTIFACT_PATH\" \
       --cache-server-path \"$CACHE_PATH\" \
@@ -133,6 +135,7 @@ elif [ "$choice" == "3" ]; then
     CMD="act push \
       -W .github/workflows/release.yml \
       -P macos-latest=-self-hosted \
+      --env ACT=true \
       --secret-file \"$RUN_SECRETS\" \
       $VERBOSE_FLAG"
     echo "👉 Executing: $CMD"
@@ -143,8 +146,8 @@ elif [ "$choice" == "4" ]; then
     echo "🟢 Running: Release Logic Check (Host Mode)..."
     echo "⚡ This runs directly on your machine using npx."
 
-    if ! command -v npx &> /dev/null; then
-        echo "❌ Error: npx is not installed. Please install Node.js."
+    if ! command -v npm &> /dev/null; then
+        echo "❌ Error: npm/Node.js is not installed."
         rm -f "$RUN_SECRETS" 2>/dev/null
         exit 1
     fi
@@ -156,16 +159,13 @@ elif [ "$choice" == "4" ]; then
         export GITHUB_RUN_NUMBER=9999
     fi
 
-    CMD="npx \
-    -p semantic-release \
-    -p @semantic-release/git \
-    -p @semantic-release/changelog \
-    -p @semantic-release/exec \
-    semantic-release --dry-run --branches main --no-ci"
-    echo "👉 Executing: $CMD"
+    if [ ! -d "node_modules" ]; then
+        echo "📦 Installing npm dependencies..."
+        npm install
+    fi
 
-    eval $CMD
-
+    echo "⚡ Executing semantic-release..."
+    npx semantic-release --dry-run --branches "$(git branch --show-current)" --no-ci
     ACT_EXIT_CODE=$?
 
 else
