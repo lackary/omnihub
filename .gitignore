@@ -41,3 +41,6 @@ extensions/*.local
 
 # AI Assistant Artifacts
 .artifacts/
+
+# Common
+*.log
