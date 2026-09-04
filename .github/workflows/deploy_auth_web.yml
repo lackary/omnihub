@@ -62,7 +62,7 @@ jobs:
       #            🔧 Commit: `${{ github.sha }}`
       - name: Post deployment comment
         if: success()
-        uses: marocchino/sticky-pull-request-comment@v3.0.4
+        uses: marocchino/sticky-pull-request-comment@v3.0.5
         with:
           header: deploy-status
           message: |
