@@ -4,3 +4,5 @@ import org.koin.core.module.Module
 
 expect val isPullToRefreshSupported: Boolean
 expect val authModule: Module
+expect val appName: String
+expect val firebaseWebBase64: String

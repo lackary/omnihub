@@ -1,3 +1,4 @@
+#Android
 *.iml
 .kotlin
 .gradle
@@ -6,6 +7,8 @@ xcuserdata
 !src/**/build/
 local.properties
 kotlin-js-store
+
+#iOS
 .idea
 .DS_Store
 captures
@@ -18,5 +21,26 @@ captures
 !*.xcworkspace/contents.xcworkspacedata
 **/xcshareddata/WorkspaceSettings.xcsettings
 Pods/
+iosApp/Configuration/GoogleKeys.xcconfig
+
+#JS
 node_modules/
+
+# Firebase Configuration Files
+androidApp/google-services.json
+iosApp/iosApp/GoogleService-Info.plist
+google_services_web.json
+
+# Firebase Extensions secrets
+extensions/*.env
+extensions/*.local
+
+# Security
 .secrets
+.firebase_paths
+
+# AI Assistant Artifacts
+.artifacts/
+
+# Common
+*.log

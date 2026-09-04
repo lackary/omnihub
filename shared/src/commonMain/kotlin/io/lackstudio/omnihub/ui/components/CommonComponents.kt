@@ -8,6 +8,9 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -15,6 +18,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+
+/**
+ * A modifier that makes a dialog responsive.
+ * On small screens (mobile), it stays 16dp away from the edges.
+ * On large screens (desktop/web), it caps at a fixed maximum width.
+ */
+fun Modifier.responsiveDialog(): Modifier = this
+    .widthIn(max = 440.dp)
+    .fillMaxWidth()
+    .padding(horizontal = 16.dp)
 
 @Composable
 fun DotsIndicator(

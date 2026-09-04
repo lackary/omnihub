@@ -1,5 +1,9 @@
 package io.lackstudio.omnihub.ui
 
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.draw.clip
+import coil3.compose.AsyncImage
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionLayout
@@ -9,6 +13,8 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -21,12 +27,16 @@ import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteType
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -34,8 +44,12 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
-import io.lackstudio.omnihub.auth.DeepLinkBuffer
+import androidx.navigation.NavGraph.Companion.findStartDestination
+import io.lackstudio.omnifeed.auth.utils.DeepLinkBuffer
 import io.lackstudio.omnihub.ui.extensions.navigateToFeatureSmart
+import io.lackstudio.omnihub.ui.account.AccountScreen
+import io.lackstudio.omnihub.ui.account.LoginScreen
+import io.lackstudio.omnihub.ui.account.RegisterScreen
 import io.lackstudio.omnihub.ui.settings.SettingsScreen
 import io.lackstudio.omnihub.ui.gallery.CollectionDetailScreen
 import io.lackstudio.omnihub.ui.gallery.GalleryScreen
@@ -50,6 +64,7 @@ import io.lackstudio.omnihub.utils.logging.AppLog
 import io.lackstudio.omnihub.utils.LocalLogger
 import io.lackstudio.omnihub.utils.logging.rememberLogger
 import kotlinx.coroutines.launch
+import org.koin.compose.viewmodel.koinViewModel
 
 // --- Animation Constants ---
 private const val ANIM_DURATION = 300
@@ -70,10 +85,13 @@ private fun AnimatedContentTransitionScope<*>.slidePopIn() =
 private fun AnimatedContentTransitionScope<*>.slidePopOut() =
     slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.End, tween(ANIM_DURATION))
 
-// [Photo Details] Fade in/out (Since fadeIn/fadeOut are global functions, variables or functions could be used here; keeping it as functions for consistency)
+// [Photo Details] Fade in/out
 private fun fadeEnter() = fadeIn(tween(ANIM_DURATION))
 private fun fadeExit() = fadeOut(tween(ANIM_DURATION))
 
+// [Tabs] Fade in/out
+private fun tabEnterTransition() = fadeIn(tween(ANIM_DURATION))
+private fun tabExitTransition() = fadeOut(tween(ANIM_DURATION))
 
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Preview(name = "Mobile", widthDp = 360, heightDp = 640)
@@ -95,11 +113,18 @@ fun App(
 
 @Composable
 fun AppScreen(
-    navController: NavHostController ,
-    showNavigationBar: Boolean
-){
+    navController: NavHostController,
+    showNavigationBar: Boolean,
+    viewModel: AppViewModel = koinViewModel()
+) {
     val logger = rememberLogger("AppScreen")
-//    val navController = rememberNavController()
+    val user by viewModel.user.collectAsStateWithLifecycle()
+    val isLoggedIn by viewModel.isLoggedIn.collectAsStateWithLifecycle()
+    var wasLoggedIn by remember { mutableStateOf(isLoggedIn) }
+
+    LaunchedEffect(user) {
+        logger.d { "Root User State: id=${user?.id}, photoUrl=${user?.photoUrl}" }
+    }
 
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
@@ -107,19 +132,63 @@ fun AppScreen(
     val navBackStackEntry = navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry.value?.destination
 
+    // Resolve issue where web cannot redirect to Gallery page after successful OAuth2 login
+    val hasAuthCode = remember { DeepLinkBuffer.deepLinkUrl.value?.contains("code=") == true }
+    val pagerState = rememberPagerState(initialPage = if (hasAuthCode) 2 else 0) { 3 }
+    val startDestination: Any = Screen.MainTabs
+
+    // 🔍 Global log for monitoring navigation destination changes
+    LaunchedEffect(navController) {
+        navController.currentBackStackEntryFlow.collect { entry ->
+            logger.d { "NavHost Real Destination: ${entry.destination.route}" }
+        }
+    }
+
+    LaunchedEffect(isLoggedIn) {
+        logger.d { "Current Login State: $isLoggedIn, wasLoggedIn: $wasLoggedIn" }
+        if (isLoggedIn && !wasLoggedIn) {
+            // Login: Jump to Home only if we are currently on the Account page (typical after login)
+            if (pagerState.currentPage == 2) {
+                logger.d { "Login detected, jumping to HomeScreen" }
+                pagerState.animateScrollToPage(0)
+            }
+        } else if (!isLoggedIn && wasLoggedIn) {
+            // Logout: Jump to Account page to show LoginScreen
+            logger.d { "Logout detected, jumping to Account/LoginScreen" }
+            if (pagerState.currentPage != 2) {
+                pagerState.scrollToPage(2)
+            }
+        }
+        wasLoggedIn = isLoggedIn
+    }
 
     // Get current layout info (Is it Rail or BottomBar?)
     val adaptiveInfo = currentWindowAdaptiveInfo()
     val defaultLayoutType =
         NavigationSuiteScaffoldDefaults.calculateFromAdaptiveInfo(adaptiveInfo)
 
-    // Check if the current destination is the PhotoDetail screen
+    // Check if the current destination is any Feature screen
     val isPhotoDetail = currentDestination?.hasRoute<Feature.Photo>() == true
-    // Determine Layout Type: If it's PhotoDetail, force hide the navigation bar (None)
-    val layoutType = if (!showNavigationBar || isPhotoDetail) {
-        NavigationSuiteType.None
-    } else {
-        defaultLayoutType
+    val isAnyFeature = currentDestination?.let {
+        it.hasRoute<Feature.Gallery>() ||
+                it.hasRoute<Feature.Photo>() ||
+                it.hasRoute<Feature.Collection>() ||
+                it.hasRoute<Feature.Topic>() ||
+                it.hasRoute<Feature.User>() ||
+                it.hasRoute<Feature.News>() ||
+                it.hasRoute<Feature.Stocks>()
+    } == true
+
+    // Determine Layout Type:
+    // 1. If explicitly hidden, hide it.
+    // 2. If it's PhotoDetail (Lightbox), hide it on all platforms.
+    // 3. If it's Mobile (NavigationBar) and we are in any sub-feature or secondary screen, hide it.
+    // 4. Otherwise, use the default layout (shows Rail on Desktop).
+    val layoutType = when {
+        !showNavigationBar -> NavigationSuiteType.None
+        isPhotoDetail -> NavigationSuiteType.None
+        defaultLayoutType == NavigationSuiteType.NavigationBar && (isAnyFeature || currentDestination?.hasRoute<Screen.Register>() == true) -> NavigationSuiteType.None
+        else -> defaultLayoutType
     }
 
     LaunchedEffect(Unit) {
@@ -127,24 +196,14 @@ fun AppScreen(
     }
 
     // Define your navigation items
-    val navItems = getAppNavItems(currentDestination)
+    val navItems = getAppNavItems(currentDestination, pagerState.currentPage, user)
 
-    // Resolve issue where web cannot redirect to Gallery page after successful OAuth2 login
-    val startDestination: Any = remember {
-        val hasAuthCode = DeepLinkBuffer.deepLinkUrl.value?.contains("code=") == true
-        // If an auth code is present, navigate directly to Gallery (letting ViewModel handle login);
-        // otherwise, go to the Home screen.
-        if (hasAuthCode)  Feature.Gallery else Screen.Home
-    }
-
-    // Use NavigationSuiteScaffold instead of the original Scaffold
     NavigationSuiteScaffold(
         layoutType = layoutType,
         navigationSuiteItems = {
             navItems.forEachIndexed { index, item ->
 
-                // Logic: If in Rail mode, it is the first item (Home), add 16dp top padding
-                val itemModifier = if (layoutType == NavigationSuiteType.NavigationRail && index == 0) {
+                val itemModifier = if ((layoutType == NavigationSuiteType.NavigationRail) && (index == 0)) {
                     Modifier.padding(top = 16.dp)
                 } else {
                     Modifier
@@ -152,14 +211,67 @@ fun AppScreen(
 
                 item(
                     modifier = itemModifier,
-                    icon = { Icon(item.icon, contentDescription = item.label) },
+                    icon = {
+                        if (item.photoUrl != null) {
+                            AsyncImage(
+                                model = item.photoUrl,
+                                contentDescription = item.label,
+                                modifier = Modifier
+                                    .size(24.dp)
+                                    .clip(CircleShape)
+                            )
+                        } else {
+                            Icon(item.icon, contentDescription = item.label)
+                        }
+                    },
                     label = { Text(item.label) },
                     selected = item.isSelected,
                     onClick = {
-                        navController.navigate(item.route) {
-                            popUpTo(navController.graph.startDestinationId) { saveState = true }
-                            launchSingleTop = true
-                            restoreState = true
+                        val targetRoute = item.route
+                        logger.d { "NavClick: target=$targetRoute, current=${currentDestination?.route}" }
+                        val startDest = navController.graph.findStartDestination()
+                        logger.d { "StartDestination ID: ${startDest.id}, Route: ${startDest.route}" }
+
+                        if (targetRoute == Screen.Home || targetRoute == Screen.Settings || targetRoute == Screen.Account) {
+                            val pageIndex = when (targetRoute) {
+                                Screen.Home -> 0
+                                Screen.Settings -> 1
+                                else -> 2
+                            }
+
+                            if (currentDestination?.hasRoute<Screen.MainTabs>() == true) {
+                                logger.d { "NavClick: Already in MainTabs, scrolling to $pageIndex" }
+                                scope.launch {
+                                    pagerState.animateScrollToPage(pageIndex)
+                                }
+                            } else {
+                                logger.d { "NavClick: In Sub-Page, popping back to root and jumping to $pageIndex" }
+                                // 1. Pop back directly to the root node (safest way)
+                                navController.popBackStack(startDest.id, inclusive = false)
+
+                                // 2. Sync Pager state
+                                scope.launch {
+                                    pagerState.scrollToPage(pageIndex)
+                                }
+
+                                // 3. If it's not MainTabs after popping (e.g. startDestination is not MainTabs), navigate to it.
+                                if (navController.currentDestination?.hasRoute<Screen.MainTabs>() != true) {
+                                    navController.navigate(Screen.MainTabs) {
+                                        launchSingleTop = true
+                                        restoreState = true
+                                    }
+                                }
+                            }
+                        } else {
+                            // Other non-Pager Feature page navigation
+                            logger.d { "NavClick: Navigating to Feature: $targetRoute" }
+                            navController.navigate(targetRoute) {
+                                popUpTo(startDest.id) {
+                                    saveState = true
+                                }
+                                launchSingleTop = true
+                                restoreState = true
+                            }
                         }
                     }
                 )
@@ -169,7 +281,6 @@ fun AppScreen(
         SharedTransitionLayout {
             Scaffold(
                 snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
-                // Use a transparent background to avoid obscuring the content behind
                 containerColor = androidx.compose.ui.graphics.Color.Transparent
             ) { innerPadding ->
                 val onNavigate: (Feature) -> Unit = { feature ->
@@ -178,28 +289,71 @@ fun AppScreen(
                     handleAppNavigation(feature, navController, scope, snackbarHostState)
                 }
 
-                // Main content goes here (NavHost)
-                // Note: No need to handle innerPadding like in standard Scaffold,
-                // NavigationSuiteScaffold automatically handles the layout
                 NavHost(
                     navController = navController,
                     startDestination = startDestination,
-                    modifier = Modifier
-                        .fillMaxSize()
+                    modifier = Modifier.fillMaxSize()
                 ) {
-                    // Home Screen
-                    composable<Screen.Home> {
-                        HomeScreen(
-                            onNavigateToFeature = onNavigate
+                    // Main Tabs with Pager
+                    composable<Screen.MainTabs>(
+                        enterTransition = { tabEnterTransition() },
+                        exitTransition = { tabExitTransition() },
+                        popEnterTransition = { tabEnterTransition() },
+                        popExitTransition = { tabExitTransition() }
+                    ) {
+                        logger.d { "Recomposing MainTabs, pagerState.currentPage=${pagerState.currentPage}" }
+                        HorizontalPager(
+                            state = pagerState,
+                            modifier = Modifier.fillMaxSize(),
+                            beyondViewportPageCount = 1
+                        ) { page ->
+                            logger.d { "Displaying Pager page: $page" }
+                            when (page) {
+                                0 -> HomeScreen(onNavigateToFeature = onNavigate)
+                                1 -> SettingsScreen(onNavigateToFeature = onNavigate)
+                                2 -> {
+                                    if (isLoggedIn) {
+                                        AccountScreen(
+                                            onNavigateToLogin = {
+                                                logger.d { "AccountScreen requested NavigateToLogin" }
+                                                scope.launch {
+                                                    pagerState.scrollToPage(2)
+                                                }
+                                            }
+                                        )
+                                    } else {
+                                        LoginScreen(
+                                            onNavigateToRegister = {
+                                                navController.navigate(Screen.Register)
+                                            },
+                                            onLoginSuccess = {
+                                                logger.d { "Login success triggered, isLoggedIn: $isLoggedIn" }
+                                                // Removed redundant scroll, handled by LaunchedEffect
+                                            }
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // Register Screen
+                    composable<Screen.Register>(
+                        enterTransition = { slideIn() },
+                        exitTransition = { slideOut() },
+                        popEnterTransition = { slidePopIn() },
+                        popExitTransition = { slidePopOut() }
+                    ) {
+                        RegisterScreen(
+                            onNavigateToLogin = {
+                                navController.popBackStack()
+                            },
+                            onBack = {
+                                navController.popBackStack()
+                            }
                         )
                     }
 
-                    // Account Screen
-                    composable<Screen.Settings> {
-                        SettingsScreen(
-                            onNavigateToFeature = onNavigate
-                        )
-                    }
 
                     // Features
                     composable<Feature.Gallery>(
@@ -208,6 +362,9 @@ fun AppScreen(
                         popEnterTransition = { slidePopIn() },
                         popExitTransition = { slidePopOut() }
                     ) {
+                        LaunchedEffect(Unit) {
+                            logger.d { "Navigated to Gallery Composable (Effect)" }
+                        }
                         GalleryScreen(
                             onNavigateToFeature = onNavigate,
                             onBack = {
@@ -318,11 +475,6 @@ fun AppScreen(
     }
 }
 
-/**
- * Centralized navigation logic:
- * 1. Intercept unfinished features (News, Stocks) -> Show Snackbar
- * 2. Finished features -> Perform smart navigation
- */
 private fun handleAppNavigation(
     feature: Feature,
     navController: NavHostController,
@@ -332,7 +484,6 @@ private fun handleAppNavigation(
     when (feature) {
         is Feature.News, is Feature.Stocks -> {
             scope.launch {
-                // Clear old snackbar and show new one to prevent stacking
                 snackbarHostState.currentSnackbarData?.dismiss()
                 snackbarHostState.showSnackbar(
                     message = "Coming Soon: ${feature::class.simpleName} is under development!",

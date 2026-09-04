@@ -1,3 +1,10 @@
+import org.jetbrains.kotlin.gradle.targets.js.yarn.YarnLockMismatchReport
+import org.jetbrains.kotlin.gradle.targets.js.yarn.YarnLockStoreTask
+import org.jetbrains.kotlin.gradle.targets.js.yarn.YarnPlugin
+import org.jetbrains.kotlin.gradle.targets.js.yarn.YarnRootExtension
+import org.jetbrains.kotlin.gradle.targets.wasm.yarn.WasmYarnPlugin
+import org.jetbrains.kotlin.gradle.targets.wasm.yarn.WasmYarnRootExtension
+
 plugins {
     // this is necessary to avoid the plugins to be loaded multiple times
     // in each subproject's classloader
@@ -13,6 +20,25 @@ plugins {
     alias(libs.plugins.kotlin.parcelize) apply false
     alias(libs.plugins.kotlin.jvm) apply false
     alias(libs.plugins.buildkonfig) apply false
+    alias(libs.plugins.gms.google.services) apply false
+}
+
+plugins.withType<YarnPlugin> {
+    the<YarnRootExtension>().apply {
+        yarnLockMismatchReport = YarnLockMismatchReport.WARNING
+        yarnLockAutoReplace = true
+    }
+}
+
+plugins.withType<WasmYarnPlugin> {
+    the<WasmYarnRootExtension>().apply {
+        yarnLockMismatchReport = YarnLockMismatchReport.WARNING
+        yarnLockAutoReplace = true
+    }
+}
+
+tasks.withType<YarnLockStoreTask>().configureEach {
+    enabled = false
 }
 
 tasks.register("setBuildVersion") {

@@ -7,6 +7,35 @@
     <link type="text/css" rel="stylesheet" href="styles.css">
 </head>
 <body style="text-align: center; align-content: center">
+<script>
+    // --- OAuth Popup Interception ---
+    // This script runs before webApp.js to intercept OAuth callbacks in popups.
+    (function() {
+        const params = new URLSearchParams(window.location.search || window.location.hash.substring(1));
+        const state = params.get('state');
+        const code = params.get('code');
+        const idToken = params.get('id_token') || params.get('idToken');
+
+        if (state === 'web_popup' && window.opener) {
+            console.log("OAuth Popup detected, sending message to opener...");
+            window.opener.postMessage({
+                type: 'auth_success',
+                code: code,
+                idToken: idToken
+            }, window.location.origin);
+
+            // Show a simple success message
+            document.body.innerHTML = '<h2>Authentication Successful</h2><p>Closing window...</p>';
+
+            // Stop loading the rest of the page (prevents webApp.js from loading)
+            window.stop();
+
+            // Close the popup
+            setTimeout(() => window.close(), 1000);
+        }
+    })();
+</script>
+
 <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 50 50" role="presentation">
     <circle cx="25" cy="25" r="20" stroke="#ccc" stroke-width="4" fill="none"/>
     <circle cx="25" cy="25" r="20" stroke="#333" stroke-width="4" fill="none" stroke-linecap="round"
@@ -15,6 +44,7 @@
                           repeatCount="indefinite"/>
     </circle>
 </svg>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 <script type="application/javascript" src="webApp.js"></script>
 </body>
 </html>

@@ -13,10 +13,21 @@ kotlin {
         binaries.executable()
     }
 
+    js {
+        browser()
+        binaries.executable()
+    }
+
     sourceSets {
         commonMain.dependencies {
             implementation(projects.shared)
             implementation(libs.compose.ui)
+            implementation(libs.omnifeed.auth)
+        }
+
+        webMain.dependencies {
+            implementation(libs.omnifeed.auth)
+            implementation(libs.ktor.client.js)
         }
     }
 }

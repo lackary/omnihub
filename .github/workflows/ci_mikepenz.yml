@@ -57,10 +57,20 @@ jobs:
     env:
       UNSPLASH_ACCESS_KEY: ${{ secrets.UNSPLASH_ACCESS_KEY }}
       UNSPLASH_SECRET_KEY: ${{ secrets.UNSPLASH_SECRET_KEY }}
-      # Required by omnifeed-kmp due to the composite build configuration.
-      # Please remove this if we switch to using binary dependencies (e.g., GitHub Packages),
-      # unless OmniHub itself requires Google Services (Firebase).
+      GOOGLE_SERVER_CLIENT_ID: ${{ secrets.GOOGLE_SERVER_CLIENT_ID }}
+      # Required by omnifeed-kmp due to the composite build configuration
       GOOGLE_SERVICES_WEB_CLIENT_ID: ${{ secrets.GOOGLE_SERVICES_WEB_CLIENT_ID }}
+      # Firebase secrets for BuildKonfig and dynamic file generation
+      FIREBASE_ANDROID_BASE64: ${{ secrets.FIREBASE_ANDROID_BASE64 }}
+      FIREBASE_IOS_BASE64: ${{ secrets.FIREBASE_IOS_BASE64 }}
+      FIREBASE_WEB_BASE64: ${{ secrets.FIREBASE_WEB_BASE64 }}
+      FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
+      FIREBASE_REGION: ${{ secrets.FIREBASE_REGION }}
+      FIREBASE_EXT_CUSTOM_AUTH_PATH: ${{ secrets.FIREBASE_EXT_CUSTOM_AUTH_PATH }}
+      # Security & Tokens
+      AUTH_ENCRYPTION_SALT: ${{ secrets.AUTH_ENCRYPTION_SALT }}
+      GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+      GOOGLE_REVERSED_CLIENT_ID: ${{ secrets.GOOGLE_REVERSED_CLIENT_ID }}
 
     # Permissions required for Mike Penz action to publish reports
     permissions:
@@ -94,6 +104,39 @@ jobs:
       # Specify execution inside omnihub directory
       - name: Grant execute permission for gradlew
         run: chmod +x omnihub/gradlew
+
+      - name: Decode Firebase Secrets (Android & iOS)
+        run: |
+          echo "Decoding Firebase Android configuration..."
+          mkdir -p omnihub/androidApp
+          echo "${{ secrets.FIREBASE_ANDROID_BASE64 }}" | base64 --decode > omnihub/androidApp/google-services.json
+
+          # Patch google-services.json if it doesn't contain the .dev package name used for debug builds
+          PACKAGE_NAME="io.lackstudio.omnihub"
+          DEBUG_PACKAGE_NAME="${PACKAGE_NAME}.dev"
+          if ! grep -q "$DEBUG_PACKAGE_NAME" omnihub/androidApp/google-services.json; then
+            echo "Patching google-services.json to include ${DEBUG_PACKAGE_NAME}..."
+            if command -v jq &> /dev/null; then
+              jq --arg prod "$PACKAGE_NAME" --arg dev "$DEBUG_PACKAGE_NAME" \
+                '.client += [.client[] | select(.client_info.android_client_info.package_name == $prod) | .client_info.android_client_info.package_name = $dev]' \
+                omnihub/androidApp/google-services.json > omnihub/androidApp/google-services.json.tmp && \
+                mv omnihub/androidApp/google-services.json.tmp omnihub/androidApp/google-services.json
+            else
+              sed -i '' "s/\"package_name\": \"$PACKAGE_NAME\"/\"package_name\": \"$DEBUG_PACKAGE_NAME\"/g" omnihub/androidApp/google-services.json
+            fi
+          fi
+
+          echo "Decoding Firebase iOS configuration..."
+          mkdir -p omnihub/iosApp/iosApp
+          echo "${{ secrets.FIREBASE_IOS_BASE64 }}" | base64 --decode > omnihub/iosApp/iosApp/GoogleService-Info.plist
+
+      - name: Create Dynamic Secrets XConfig File
+        working-directory: './omnihub/iosApp/Configuration'
+        run: |
+          XCONFIG_FILENAME="GoogleKeys.xcconfig"
+          echo "Creating ${XCONFIG_FILENAME} in CI..."
+          echo "GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}" > "${XCONFIG_FILENAME}"
+          echo "REVERSED_CLIENT_ID=${{ secrets.GOOGLE_REVERSED_CLIENT_ID }}" >> "${XCONFIG_FILENAME}"
 
       # Setup Environment and Run Initialization Scripts
       - name: Setup iOS Environment (Dummy Framework & Pods)
@@ -203,10 +246,11 @@ jobs:
       # Upload HTML Report (For manual download and inspection)
       - name: Upload Test Report HTML
         uses: actions/upload-artifact@v7
-        if: always()
+        if: always() && env.ACT != 'true'
         with:
           name: test-reports-html
           path: |
             omnihub/**/build/reports/tests/
             omnihub/**/build/reports/lint-results-*.html
           retention-days: 5
+          if-no-files-found: ignore

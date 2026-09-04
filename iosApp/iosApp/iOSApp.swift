@@ -1,12 +1,20 @@
 import SwiftUI
 import Shared
+import FirebaseCore
+import GoogleSignIn
 
 @main
 struct iOSApp: App {
+
+    @UIApplicationDelegateAdaptor(OmniAppDelegate.self) var delegate
+
     var body: some Scene {
         WindowGroup {
             ContentView()
                 .onOpenURL { url in
+                    // Handle Google Sign-In URL
+                    GIDSignIn.sharedInstance.handle(url)
+                    
                     // This will intercept all omnihub:// requests
                     print("📲 iOS DeepLink received: \(url.absoluteString)")
 

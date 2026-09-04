@@ -14,6 +14,21 @@ jobs:
   release:
     name: Semantic Release
     runs-on: macos-latest
+    env:
+      UNSPLASH_ACCESS_KEY: ${{ secrets.UNSPLASH_ACCESS_KEY }}
+      UNSPLASH_SECRET_KEY: ${{ secrets.UNSPLASH_SECRET_KEY }}
+      GOOGLE_SERVER_CLIENT_ID: ${{ secrets.GOOGLE_SERVER_CLIENT_ID }}
+      GOOGLE_SERVICES_WEB_CLIENT_ID: ${{ secrets.GOOGLE_SERVICES_WEB_CLIENT_ID }}
+      FIREBASE_ANDROID_BASE64: ${{ secrets.FIREBASE_ANDROID_BASE64 }}
+      FIREBASE_IOS_BASE64: ${{ secrets.FIREBASE_IOS_BASE64 }}
+      FIREBASE_WEB_BASE64: ${{ secrets.FIREBASE_WEB_BASE64 }}
+      FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
+      FIREBASE_REGION: ${{ secrets.FIREBASE_REGION }}
+      FIREBASE_EXT_CUSTOM_AUTH_PATH: ${{ secrets.FIREBASE_EXT_CUSTOM_AUTH_PATH }}
+      AUTH_ENCRYPTION_SALT: ${{ secrets.AUTH_ENCRYPTION_SALT }}
+      GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+      GOOGLE_REVERSED_CLIENT_ID: ${{ secrets.GOOGLE_REVERSED_CLIENT_ID }}
+
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -21,10 +36,10 @@ jobs:
           fetch-depth: 0 # Must fetch full git history so semantic-release can analyze commits
           persist-credentials: false # Avoid using checkout's token; use semantic-release's token instead
 
-      - name: Set up JDK 17
+      - name: Set up JDK 21
         uses: actions/setup-java@v5
         with:
-          java-version: '17'
+          java-version: '21'
           distribution: 'temurin'
 
       - name: Install CocoaPods
@@ -34,10 +49,43 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v6
 
+      - name: Decode Firebase Secrets (Android & iOS)
+        run: |
+          echo "Decoding Firebase Android configuration..."
+          mkdir -p androidApp
+          echo "${{ secrets.FIREBASE_ANDROID_BASE64 }}" | base64 --decode > androidApp/google-services.json
+
+          PACKAGE_NAME="io.lackstudio.omnihub"
+          DEBUG_PACKAGE_NAME="${PACKAGE_NAME}.dev"
+          if ! grep -q "$DEBUG_PACKAGE_NAME" androidApp/google-services.json; then
+            echo "Patching google-services.json to include ${DEBUG_PACKAGE_NAME}..."
+            if command -v jq &> /dev/null; then
+              jq --arg prod "$PACKAGE_NAME" --arg dev "$DEBUG_PACKAGE_NAME" \
+                '.client += [.client[] | select(.client_info.android_client_info.package_name == $prod) | .client_info.android_client_info.package_name = $dev]' \
+                androidApp/google-services.json > androidApp/google-services.json.tmp && \
+                mv androidApp/google-services.json.tmp androidApp/google-services.json
+            else
+              sed -i '' "s/\"package_name\": \"$PACKAGE_NAME\"/\"package_name\": \"$DEBUG_PACKAGE_NAME\"/g" androidApp/google-services.json
+            fi
+          fi
+
+          echo "Decoding Firebase iOS configuration..."
+          mkdir -p iosApp/iosApp
+          echo "${{ secrets.FIREBASE_IOS_BASE64 }}" | base64 --decode > iosApp/iosApp/GoogleService-Info.plist
+
+      - name: Create Dynamic Secrets XConfig File
+        working-directory: './iosApp/Configuration'
+        run: |
+          XCONFIG_FILENAME="GoogleKeys.xcconfig"
+          echo "Creating ${XCONFIG_FILENAME} in CI..."
+          echo "GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}" > "${XCONFIG_FILENAME}"
+          echo "REVERSED_CLIENT_ID=${{ secrets.GOOGLE_REVERSED_CLIENT_ID }}" >> "${XCONFIG_FILENAME}"
+
       - name: Semantic Release
         uses: cycjimmy/semantic-release-action@v6
         with:
           semantic_version: 24 # Specify the core version of semantic-release (recommended to lock)
+          dry_run: ${{ env.ACT == 'true' }}
           extra_plugins: |
             @semantic-release/commit-analyzer
             @semantic-release/release-notes-generator

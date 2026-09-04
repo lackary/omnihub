@@ -72,6 +72,10 @@ if (isOmniFeedLocalExists || forceCompositeBuild) {
             // Substitute UI module
             substitute(module("io.lackstudio.omnifeed:omnifeed-ui"))
                 .using(project(":omnifeed-ui"))
+
+            // Substitute Auth module
+            substitute(module("io.lackstudio.omnifeed:omnifeed-auth"))
+                .using(project(":omnifeed-auth"))
         }
     }
 } else {

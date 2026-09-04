@@ -1,19 +1,30 @@
-import org.jetbrains.compose.desktop.application.dsl.TargetFormat
+@file:OptIn(ExperimentalKotlinGradlePluginApi::class)
+
 import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import com.codingfeline.buildkonfig.compiler.FieldSpec.Type.STRING
+import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
+import java.util.Base64
 import java.util.Properties
 
 val modulePackageName = "io.lackstudio.omnihub.shared"
 val unsplashAccessKeyName = "UNSPLASH_ACCESS_KEY"
 val unsplashSecretKeyName = "UNSPLASH_SECRET_KEY"
+val firebaseAndroidBase64Name = "FIREBASE_ANDROID_BASE64"
+val firebaseIosBase64Name = "FIREBASE_IOS_BASE64"
+val firebaseWebBase64Name = "FIREBASE_WEB_BASE64"
+val googleServerClientIdName = "GOOGLE_SERVER_CLIENT_ID"
+val firebaseProjectIdName = "FIREBASE_PROJECT_ID"
+val firebaseRegionName = "FIREBASE_REGION"
+val firebaseExtCustomAuthPathName = "FIREBASE_EXT_CUSTOM_AUTH_PATH"
+val authEncryptionSaltName = "AUTH_ENCRYPTION_SALT"
 
 // Read buildNumber, default to 1 if not provided (e.g. during development)
 val buildNumberProp = project.findProperty("buildNumber") as? String
 val appBuildNumber = buildNumberProp?.toIntOrNull() ?: 1
 
-fun getFromLocalProperties(key: String, project: Project): String? {
-    val file = project.rootProject.file("local.properties")
+fun getFromPropertiesFile(fileName: String, key: String, project: Project): String? {
+    val file = project.rootProject.file(fileName)
     if (!file.exists()) return null
 
     val properties = Properties()
@@ -22,8 +33,10 @@ fun getFromLocalProperties(key: String, project: Project): String? {
 }
 
 fun resolveConfigValue(key: String, project: Project): String? {
-    // Read from file first, if not found then read from environment variables
-    return getFromLocalProperties(key, project) ?: System.getenv(key)
+    // Priority: .secrets -> local.properties -> Environment variables
+    return getFromPropertiesFile(".secrets", key, project)
+        ?: getFromPropertiesFile("local.properties", key, project)
+        ?: System.getenv(key)
 }
 
 plugins {
@@ -43,12 +56,56 @@ buildkonfig {
 
     val unsplashAccessKey = resolveConfigValue(unsplashAccessKeyName, project) ?: ""
     val unsplashSecretKey = resolveConfigValue(unsplashSecretKeyName, project) ?: ""
+    val firebaseAndroidBase64 = resolveConfigValue(firebaseAndroidBase64Name, project) ?: ""
+    val firebaseIosBase64 = resolveConfigValue(firebaseIosBase64Name, project) ?: ""
+    val firebaseWebBase64 = resolveConfigValue(firebaseWebBase64Name, project) ?: ""
+    val firebaseProjectId = resolveConfigValue(firebaseProjectIdName, project) ?: ""
+    val firebaseRegion = resolveConfigValue(firebaseRegionName, project) ?: "us-central1"
+    val firebaseExtCustomAuthPath = resolveConfigValue(firebaseExtCustomAuthPathName, project) ?: ""
+    val authEncryptionSalt = resolveConfigValue(authEncryptionSaltName, project) ?: "OmniHub_2026"
+
+    // 1. Automatically decode from Android Base64 and extract Web Client ID (client_type: 3)
+    val googleServerClientId = if (firebaseAndroidBase64.isNotEmpty()) {
+        try {
+            val decodedBytes = Base64.getDecoder().decode(firebaseAndroidBase64)
+            val decoded = String(decodedBytes)
+            // Find the client_id before client_type: 3
+            // The format is usually "client_id": "...", "client_type": 3
+            val regex = "\"client_id\":\\s*\"([^\"]+)\",\\s*\"client_type\":\\s*3".toRegex()
+            regex.find(decoded)?.groupValues?.get(1) ?: ""
+        } catch (e: Exception) { "" }
+    } else ""
+
+    val isDebug = System.getenv("CONFIGURATION") == "Debug" ||
+            project.gradle.startParameter.taskNames.any { task ->
+                task.contains("debug", ignoreCase = true) ||
+                task.contains("run", ignoreCase = true) ||
+                task.contains("Development", ignoreCase = true)
+            }
+    val defaultAppName = if (isDebug) "OmniHub Dev" else "OmniHub"
 
     defaultConfigs {
-        buildConfigField(STRING, "APP_VERSION", project.version.toString()) // Automatically reads from gradle.properties)
+        buildConfigField(STRING, "APP_NAME", defaultAppName)
+        buildConfigField(STRING, "APP_VERSION", project.version.toString())
         buildConfigField(STRING, "APP_BUILD_NUMBER", appBuildNumber.toString())
         buildConfigField(STRING, unsplashAccessKeyName, unsplashAccessKey)
         buildConfigField(STRING, unsplashSecretKeyName, unsplashSecretKey)
+        buildConfigField(STRING, firebaseAndroidBase64Name, firebaseAndroidBase64)
+        buildConfigField(STRING, firebaseIosBase64Name, firebaseIosBase64)
+        buildConfigField(STRING, firebaseWebBase64Name, firebaseWebBase64)
+        buildConfigField(STRING, googleServerClientIdName, googleServerClientId)
+        buildConfigField(STRING, firebaseProjectIdName, firebaseProjectId)
+        buildConfigField(STRING, firebaseRegionName, firebaseRegion)
+        buildConfigField(STRING, firebaseExtCustomAuthPathName, firebaseExtCustomAuthPath)
+        buildConfigField(STRING, authEncryptionSaltName, authEncryptionSalt)
+    }
+    targetConfigs {
+        create("debug") {
+            buildConfigField(STRING, "APP_NAME", "OmniHub Dev")
+        }
+        create("release") {
+            buildConfigField(STRING, "APP_NAME", "OmniHub")
+        }
     }
 }
 
@@ -100,7 +157,7 @@ kotlin {
         version = project.version.toString()
         summary = "Some description for a Kotlin/Native module"
         homepage = "Link to a Kotlin/Native module homepage"
-
+        ios.deploymentTarget = "18.2"
         // Optional properties
         // Configure the Pod name here instead of changing the Gradle project name
         name = "Shared" // This is the filename of prefix of podspec
@@ -116,7 +173,25 @@ kotlin {
             // Dependency export
             // Uncomment and specify another project module if you have one:
             // export(project(":<your other KMP module>"))
-//            transitiveExport = false // This is default.
+            transitiveExport = false // This is default.
+            export(libs.omnifeed.auth)
+        }
+
+        pod("FirebaseCore") {
+            version = "~> 12.14.0"
+            extraOpts += listOf("-compiler-option", "-fmodules")
+        }
+        pod("FirebaseAuth") {
+            version = "~> 12.14.0"
+            extraOpts += listOf("-compiler-option", "-fmodules")
+        }
+        pod("FirebaseFirestore") {
+            version = "~> 12.14.0"
+            extraOpts += listOf("-compiler-option", "-fmodules")
+        }
+        pod("GoogleSignIn") {
+            version = "~> 9.0.0"
+            extraOpts += listOf("-compiler-option", "-fmodules")
         }
 
         // Maps custom Xcode configuration to NativeBuildType
@@ -126,13 +201,10 @@ kotlin {
     
     jvm()
 
-    // 'compose-webview-multiplatform' (kevinnzou) from omnifeed doesn't support JS.
-    // Uncomment the following block if this dependency is no longer used.
-//    js {
-//        browser()
-//        binaries.executable()
-//    }
-    
+    js {
+        browser()
+    }
+
     @OptIn(ExperimentalWasmDsl::class)
     wasmJs {
         browser()
@@ -151,13 +223,19 @@ kotlin {
             implementation(libs.androidx.xr.compose)
             implementation(libs.androidx.xr.material3)
             implementation(libs.ktor.client.android)
+            implementation(libs.androidx.credentials)
+            implementation(libs.androidx.credentials.play.services.auth)
+            implementation(libs.google.gms.play.service.auth)
+            implementation(libs.google.googleid)
             implementation(project.dependencies.platform(libs.androidx.compose.bom))
+            implementation(project.dependencies.platform(libs.google.firebase.bom))
         }
 //        androidHostTest.dependencies {
 //            implementation(libs.robolectric)
 //            implementation(libs.androidx.compose.ui.test.junit4)
 //            implementation(libs.androidx.test.ext.junit)
 //        }
+
         val androidHostTest by getting {
             dependencies {
                 implementation(libs.robolectric)
@@ -195,6 +273,7 @@ kotlin {
             implementation(libs.omnifeed.core)
             implementation(libs.omnifeed.ui)
             implementation(libs.omnifeed.unsplash)
+            api(libs.omnifeed.auth)
         }
         commonTest.dependencies {
             implementation(libs.compose.ui.test)
@@ -204,6 +283,9 @@ kotlin {
             implementation(compose.desktop.currentOs)
         }
         wasmJsMain.dependencies {
+            implementation(libs.kotlin.wrappers.browser)
+        }
+        jsMain.dependencies {
             implementation(libs.kotlin.wrappers.browser)
         }
     }
@@ -219,3 +301,10 @@ configurations.matching { it.name.contains("Test") }.configureEach {
     exclude(group = "org.jogamp.gluegen")
     exclude(group = "org.jogamp.jogl")
 }
+
+// Reason: ChromeHeadless / Karma for JS and Wasm is unstable in CI environments and Compose UI tests (runComposeUiTest) require Skiko native bindings not present in Karma JS bundle
+tasks.matching { it.name.contains("wasmJsBrowserTest") || it.name.contains("jsBrowserTest") }.configureEach {
+    enabled = false
+}
+
+

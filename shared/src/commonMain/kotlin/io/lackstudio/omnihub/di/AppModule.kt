@@ -1,5 +1,9 @@
 package io.lackstudio.omnihub.di
 
+import io.lackstudio.omnihub.ui.AppViewModel
+import io.lackstudio.omnihub.ui.account.AccountViewModel
+import io.lackstudio.omnihub.ui.account.LoginViewModel
+import io.lackstudio.omnihub.ui.account.RegisterViewModel
 import io.lackstudio.omnihub.ui.gallery.CollectionViewModel
 import io.lackstudio.omnihub.ui.gallery.GalleryViewModel
 import io.lackstudio.omnihub.ui.gallery.PhotoViewModel
@@ -12,9 +16,13 @@ val appModule = module {
     // Use viewModelOf for automatic binding
     // Koin automatically detects GalleryViewModel constructor parameters
     // (currently empty, but convenient for adding Repositories in the future)
+    viewModelOf(::AppViewModel)
     viewModelOf(::GalleryViewModel)
     viewModelOf(::PhotoViewModel)
     viewModelOf(::CollectionViewModel)
     viewModelOf(::TopicViewModel)
     viewModelOf(::UserViewModel)
+    viewModelOf(::LoginViewModel)
+    viewModelOf(::RegisterViewModel)
+    viewModelOf(::AccountViewModel)
 }

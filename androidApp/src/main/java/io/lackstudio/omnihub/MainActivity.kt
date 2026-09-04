@@ -7,7 +7,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
-import io.lackstudio.omnihub.auth.DeepLinkBuffer
+import io.lackstudio.omnifeed.auth.utils.DeepLinkBuffer
 import io.lackstudio.omnihub.platform.AppEntry
 import io.lackstudio.omnihub.ui.App
 

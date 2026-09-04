@@ -7,6 +7,7 @@ import io.lackstudio.omnifeed.ui.state.AppUiState
 import io.lackstudio.omnifeed.ui.viewmodel.BaseViewModel
 import io.lackstudio.omnifeed.unsplash.domain.usecase.ExchangeOAuthUseCase
 import io.lackstudio.omnifeed.unsplash.domain.model.OAuthCode as UnsplashOAuthCode
+import io.lackstudio.omnifeed.unsplash.utils.Environment.OAUTH_AUTHORIZE as UNSPLASH_OAUTH_AUTHORIZE
 import io.lackstudio.omnifeed.unsplash.domain.usecase.GetCollectionsParams
 import io.lackstudio.omnifeed.unsplash.domain.usecase.GetCollectionsUseCase
 import io.lackstudio.omnifeed.unsplash.domain.usecase.GetMeUseCase
@@ -14,10 +15,13 @@ import io.lackstudio.omnifeed.unsplash.domain.usecase.GetPhotosParams
 import io.lackstudio.omnifeed.unsplash.domain.usecase.GetPhotosUseCase
 import io.lackstudio.omnifeed.unsplash.domain.usecase.GetTopicsParams
 import io.lackstudio.omnifeed.unsplash.domain.usecase.GetTopicsUseCase
-import io.lackstudio.omnihub.auth.AuthManager
-import io.lackstudio.omnihub.auth.DeepLinkBuffer
+import io.lackstudio.omnifeed.auth.domain.usecase.LinkWithCustomServiceUseCase
+import io.lackstudio.omnifeed.auth.utils.AuthManager
+import io.lackstudio.omnifeed.auth.utils.DeepLinkBuffer
+import io.lackstudio.omnifeed.auth.utils.OAuthUrlFactory
 import io.lackstudio.omnihub.platform.getUnsplashAccessKey
 import io.lackstudio.omnihub.platform.getUnsplashSecretKey
+import io.lackstudio.omnihub.utils.Environment
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -31,6 +35,7 @@ class GalleryViewModel(
     private val getCollectionsUseCase: GetCollectionsUseCase,
     private val getTopicsUseCase: GetTopicsUseCase,
     private val exchangeOAuthUseCase: ExchangeOAuthUseCase,
+    private val linkWithCustomServiceUseCase: LinkWithCustomServiceUseCase,
     private val accessTokenProvider: AccessTokenProvider,
     private val meUseCase: GetMeUseCase,
 ) : BaseViewModel() {
@@ -58,6 +63,19 @@ class GalleryViewModel(
         fetchPhotos(1)
 
         viewModelScope.launch {
+            // Check if we have a persisted token at startup
+            // This allows the UI to show the correct state (logged in vs logged out) immediately
+            _state.update { it.copy(isAuthenticating = true) }
+            val resolvedToken = accessTokenProvider.resolveToken()
+            if (resolvedToken.type == "Bearer") {
+                // If we have a Bearer token, we need to update the StateFlow
+                // so that it triggers the fetchMeProfile logic
+                accessTokenProvider.setOAuthToken(resolvedToken.type, resolvedToken.value)
+            } else {
+                // If no token, we are done "authenticating"
+                _state.update { it.copy(isAuthenticating = false) }
+            }
+
             accessTokenProvider.authToken.collect { token ->
                 // public type is Client-ID
                 // OAuth2 type is Bearer
@@ -66,7 +84,7 @@ class GalleryViewModel(
                     fetchMeProfile()
                 } else {
                     // If no token (e.g., just logged out) -> clear user profile
-                    _state.update { it.copy(meProfile = null) }
+                    _state.update { it.copy(meProfile = null, isAuthenticating = false) }
                 }
             }
         }
@@ -119,6 +137,7 @@ class GalleryViewModel(
                 loadNextPage()
             }
             is GalleryIntent.Login ->  {
+                if (_state.value.isAuthenticating) return
                 logger.d { "handleIntent: Login" }
                 login(authManager.getRedirectUrl())
             }
@@ -157,6 +176,9 @@ class GalleryViewModel(
                 viewModelScope.launch {
                     accessTokenProvider.setOAuthToken(data.tokenType, data.accessToken)
 
+                    // Link with Firebase
+                    linkWithCustomServiceUseCase(Environment.SERVICE_UNSPLASH, data.accessToken)
+
                     _state.update { it.copy(isAuthenticating = false) }
                     _sideEffect.send(GallerySideEffect.ShowSnackbar("Login Successful!"))
                 }
@@ -171,19 +193,25 @@ class GalleryViewModel(
     }
 
     private fun fetchMeProfile() {
-        if (_state.value.meProfile != null) return
+        if (_state.value.meProfile != null) {
+            _state.update { it.copy(isAuthenticating = false) }
+            return
+        }
 
         handleUseCaseCall(
             name = "me",
             useCase = { meUseCase(Unit) },
-            onLoading = { },
+            onLoading = {
+                _state.update { it.copy(isAuthenticating = true) }
+            },
             onSuccess = { me ->
-                _state.update { it.copy(meProfile = me) }
+                _state.update { it.copy(meProfile = me, isAuthenticating = false) }
 
                 refreshCurrentTab()
             },
             onError = { errorMessage ->
                 logger.e { "Fetch profile failed: $errorMessage" }
+                _state.update { it.copy(isAuthenticating = false) }
             }
 
         )
@@ -439,10 +467,11 @@ class GalleryViewModel(
     }
 
     private fun getAuthUrl(redirectUrl: String): String {
-        return "https://unsplash.com/oauth/authorize" +
-                "?client_id=${getUnsplashAccessKey()}" +
-                "&response_type=code" +
-                "&scope=public" +
-                "&redirect_uri=$redirectUrl"
+        return OAuthUrlFactory.buildAuthUrl(
+            baseUrl = UNSPLASH_OAUTH_AUTHORIZE,
+            clientId = getUnsplashAccessKey(),
+            redirectUri = redirectUrl,
+            scope = listOf("public", "read_user")
+        )
     }
 }
