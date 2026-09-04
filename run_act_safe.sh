@@ -62,10 +62,24 @@ mkdir -p "$ARTIFACT_PATH"
 mkdir -p "$CACHE_PATH"
 mkdir -p "$XDG_CACHE_HOME"
 
-# [ADDED] Safety check: Remove global legacy cache if it exists
+# Safety check: Remove global legacy cache if it exists
 if [ -d "$HOME/.cache/act" ]; then
     echo "🧹 Found legacy cache at ~/.cache/act. Removing it to prevent conflicts..."
     rm -rf "$HOME/.cache/act"
+fi
+
+# ==============================================================================
+# 🔑 Secrets & Token Management (Merge Strategy)
+# ==============================================================================
+USER_SECRETS=".secrets"       # Manual secrets
+RUN_SECRETS=".secrets.run"    # Temp file for execution
+
+: > "$RUN_SECRETS"
+
+if [ -f "$USER_SECRETS" ]; then
+    echo "📝 Loading keys from $USER_SECRETS..."
+    cat "$USER_SECRETS" >> "$RUN_SECRETS"
+    echo "" >> "$RUN_SECRETS"
 fi
 
 # Added this line to define the Log file location
@@ -74,14 +88,16 @@ LOG_FILE="act_execution.log"
 # Ensure user has gh cli installed, otherwise prompt
 if ! command -v gh &> /dev/null; then
     echo "⚠️  GitHub CLI (gh) not detected. act/npx may fail due to missing Token."
-    echo "Recommendation: brew install gh"
-    TOKEN_ARG=""
     EXPORT_TOKEN=""
 else
-    # Automatically fetch the currently logged-in Token
-    RAW_TOKEN=$(gh auth token)
-    TOKEN_ARG="-s GITHUB_TOKEN=$RAW_TOKEN"
-    EXPORT_TOKEN=$RAW_TOKEN
+    RAW_TOKEN=$(gh auth token 2>/dev/null)
+    if [ -n "$RAW_TOKEN" ]; then
+        echo "✅ GitHub Token auto-detected from 'gh'."
+        echo "# --- Dynamic Tokens ---" >> "$RUN_SECRETS"
+        echo "GITHUB_TOKEN=$RAW_TOKEN" >> "$RUN_SECRETS"
+        echo "SEMANTIC_RELEASE_TOKEN=$RAW_TOKEN" >> "$RUN_SECRETS"
+        EXPORT_TOKEN=$RAW_TOKEN
+    fi
 fi
 
 if [ "$choice" == "1" ]; then
@@ -89,9 +105,10 @@ if [ "$choice" == "1" ]; then
     CMD="act push \
       -W .github/workflows/ci_mikepenz.yml \
       -P macos-latest=-self-hosted \
+      --secret-file \"$RUN_SECRETS\" \
       --artifact-server-path \"$ARTIFACT_PATH\" \
       --cache-server-path \"$CACHE_PATH\" \
-      $TOKEN_ARG $VERBOSE_FLAG"
+      $VERBOSE_FLAG"
     echo "👉 Executing: $CMD"
     eval "$CMD 2>&1 | tee $LOG_FILE"
     ACT_EXIT_CODE=${PIPESTATUS[0]}
@@ -102,9 +119,10 @@ elif [ "$choice" == "2" ]; then
       -W .github/workflows/ci_dorny.yml \
       -P macos-latest=-self-hosted \
       -P ubuntu-latest=catthehacker/ubuntu:act-latest \
+      --secret-file \"$RUN_SECRETS\" \
       --artifact-server-path \"$ARTIFACT_PATH\" \
       --cache-server-path \"$CACHE_PATH\" \
-      $TOKEN_ARG $VERBOSE_FLAG"
+      $VERBOSE_FLAG"
     echo "👉 Executing: $CMD"
     eval "$CMD 2>&1 | tee $LOG_FILE"
     ACT_EXIT_CODE=${PIPESTATUS[0]}
@@ -115,7 +133,8 @@ elif [ "$choice" == "3" ]; then
     CMD="act push \
       -W .github/workflows/release.yml \
       -P macos-latest=-self-hosted \
-      $TOKEN_ARG $VERBOSE_FLAG"
+      --secret-file \"$RUN_SECRETS\" \
+      $VERBOSE_FLAG"
     echo "👉 Executing: $CMD"
     eval "$CMD 2>&1 | tee $LOG_FILE"
     ACT_EXIT_CODE=${PIPESTATUS[0]}
@@ -124,39 +143,38 @@ elif [ "$choice" == "4" ]; then
     echo "🟢 Running: Release Logic Check (Host Mode)..."
     echo "⚡ This runs directly on your machine using npx."
 
-    # Check if npm/npx is installed
     if ! command -v npx &> /dev/null; then
         echo "❌ Error: npx is not installed. Please install Node.js."
+        rm -f "$RUN_SECRETS" 2>/dev/null
         exit 1
     fi
 
-    # Export token for this session only
     export GITHUB_TOKEN=$EXPORT_TOKEN
 
-    # Simulate GITHUB_RUN_NUMBER to allow local tests to run smoothly
     if [ -z "$GITHUB_RUN_NUMBER" ]; then
         echo "⚠️  GITHUB_RUN_NUMBER is not set. Using '9999' for local test."
         export GITHUB_RUN_NUMBER=9999
     fi
 
-    # Execute npx and install extra plugins explicitly because .releaserc.yml requires them
     CMD="npx \
     -p semantic-release \
     -p @semantic-release/git \
     -p @semantic-release/changelog \
-    -p @semantic-release/exec
+    -p @semantic-release/exec \
     semantic-release --dry-run --branches main --no-ci"
     echo "👉 Executing: $CMD"
 
-    # Run semantic-release dry-run
     eval $CMD
 
     ACT_EXIT_CODE=$?
 
 else
     echo "❌ Invalid option, script terminated."
+    rm -f "$RUN_SECRETS" 2>/dev/null
     exit 1
 fi
+
+rm -f "$RUN_SECRETS" 2>/dev/null
 
 echo ""
 echo "=========================================="
