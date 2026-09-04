@@ -173,15 +173,16 @@ jobs:
 
       # Critical step: Upload test results XML for use by the next Job
       - name: Upload Test Results XML
-        if: always()
+        if: always() && env.ACT != 'true'
         uses: actions/upload-artifact@v7
         with:
           name: test-results-xml
           path: '**/build/test-results/**/*.xml'
           retention-days: 1
+          if-no-files-found: ignore
 
       - name: Upload Test Report HTML
-        if: always()
+        if: always() && env.ACT != 'true'
         uses: actions/upload-artifact@v7
         with:
           name: test-reports-html
@@ -189,6 +190,7 @@ jobs:
             **/build/reports/tests/
             **/build/reports/lint-results-*.html
           retention-days: 5
+          if-no-files-found: ignore
 
   # Job 2: Generate Dorny report on Linux
   report-test-results:

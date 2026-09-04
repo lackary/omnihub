@@ -246,10 +246,11 @@ jobs:
       # Upload HTML Report (For manual download and inspection)
       - name: Upload Test Report HTML
         uses: actions/upload-artifact@v7
-        if: always()
+        if: always() && env.ACT != 'true'
         with:
           name: test-reports-html
           path: |
             omnihub/**/build/reports/tests/
             omnihub/**/build/reports/lint-results-*.html
           retention-days: 5
+          if-no-files-found: ignore
