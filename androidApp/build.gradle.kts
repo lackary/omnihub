@@ -7,13 +7,13 @@ plugins {
 android {
     namespace = "io.lackstudio.omnihub"
     compileSdk {
-        version = release(36)
+        version = release(libs.versions.android.compileSdk.get().toInt())
     }
 
     defaultConfig {
         applicationId = "io.lackstudio.omnihub"
         minSdk = 30
-        targetSdk = 36
+        targetSdk = libs.versions.android.targetSdk.get().toInt()
         versionCode = 1
         versionName = "1.0"
 

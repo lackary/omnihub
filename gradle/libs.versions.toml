@@ -1,9 +1,9 @@
 [versions]
 # Gradle
 agp = "9.4.0"
-android-compileSdk = "36"
+android-compileSdk = "37"
 android-minSdk = "30"
-android-targetSdk = "36"
+android-targetSdk = "37"
 
 # Google
 googleServices = "4.5.0"
