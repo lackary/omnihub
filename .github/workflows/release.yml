@@ -77,9 +77,19 @@ jobs:
         working-directory: './iosApp/Configuration'
         run: |
           XCONFIG_FILENAME="GoogleKeys.xcconfig"
-          echo "Creating ${XCONFIG_FILENAME} in CI..."
-          echo "GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}" > "${XCONFIG_FILENAME}"
-          echo "REVERSED_CLIENT_ID=${{ secrets.GOOGLE_REVERSED_CLIENT_ID }}" >> "${XCONFIG_FILENAME}"
+          PLIST_PATH="../iosApp/GoogleService-Info.plist"
+          echo "Extracting keys from ${PLIST_PATH} to generate ${XCONFIG_FILENAME}..."
+          
+          if [ -f "$PLIST_PATH" ]; then
+            CLIENT_ID=$(plutil -extract CLIENT_ID raw "$PLIST_PATH" 2>/dev/null || echo "")
+            REVERSED_CLIENT_ID=$(plutil -extract REVERSED_CLIENT_ID raw "$PLIST_PATH" 2>/dev/null || echo "")
+          fi
+
+          CLIENT_ID="${CLIENT_ID:-${{ secrets.GOOGLE_CLIENT_ID }}}"
+          REVERSED_CLIENT_ID="${REVERSED_CLIENT_ID:-${{ secrets.GOOGLE_REVERSED_CLIENT_ID }}}"
+
+          echo "GOOGLE_CLIENT_ID=${CLIENT_ID}" > "${XCONFIG_FILENAME}"
+          echo "REVERSED_CLIENT_ID=${REVERSED_CLIENT_ID}" >> "${XCONFIG_FILENAME}"
 
       - name: Semantic Release
         uses: cycjimmy/semantic-release-action@v6

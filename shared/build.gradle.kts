@@ -203,11 +203,13 @@ kotlin {
 
     js {
         browser()
+        binaries.executable()
     }
 
     @OptIn(ExperimentalWasmDsl::class)
     wasmJs {
         browser()
+        binaries.executable()
         compilerOptions {
             freeCompilerArgs.add("-opt-in=kotlin.js.ExperimentalWasmJsInterop")
         }
