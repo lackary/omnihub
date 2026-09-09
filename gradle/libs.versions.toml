@@ -47,7 +47,7 @@ robolectric = "4.16.1"
 # 3rd party
 koin = "4.2.2"
 gitliveFirebase = "2.7.0"
-mirzemehdiKmpAuth = "3.0.6"
+mirzemehdiKmpAuth = "2.3.1"
 kermit = "2.1.0"
 buildkonfig = "0.22.0"
 coil3 = "3.6.2"
