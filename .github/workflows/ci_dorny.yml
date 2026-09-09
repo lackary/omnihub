@@ -44,10 +44,16 @@ jobs:
       GOOGLE_REVERSED_CLIENT_ID: ${{ secrets.GOOGLE_REVERSED_CLIENT_ID }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
+
+      - name: Fix macOS GPG Socket Length for act
+        if: ${{ env.ACT }}
+        run: |
+          mkdir -p /tmp/act_runner_temp
+          echo "RUNNER_TEMP=/tmp/act_runner_temp" >> $GITHUB_ENV
 
       - name: Set up JDK 21
-        uses: actions/setup-java@v5
+        uses: actions/setup-java@v6
         with:
           java-version: '21'
           distribution: 'temurin'
@@ -219,7 +225,7 @@ jobs:
           apt-get update && apt-get install -y git
 
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Download Test Results
         uses: actions/download-artifact@v8

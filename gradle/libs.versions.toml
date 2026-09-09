@@ -8,7 +8,7 @@ android-targetSdk = "37"
 # Google
 googleServices = "4.5.0"
 googleFirebaseBom = "34.18.0"
-googleGms = "21.6.0"
+googleGms = "22.0.0"
 googleId = "1.2.0"
 
 # Android
