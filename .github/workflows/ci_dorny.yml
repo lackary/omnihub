@@ -29,6 +29,7 @@ jobs:
   build-and-test:
     runs-on: macos-26
     env:
+      CHROME_BIN: /Applications/Google Chrome.app/Contents/MacOS/Google Chrome
       UNSPLASH_ACCESS_KEY: ${{ secrets.UNSPLASH_ACCESS_KEY }}
       UNSPLASH_SECRET_KEY: ${{ secrets.UNSPLASH_SECRET_KEY }}
       GOOGLE_SERVER_CLIENT_ID: ${{ secrets.GOOGLE_SERVER_CLIENT_ID }}

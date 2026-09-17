@@ -55,12 +55,14 @@ CACHE_PATH="./build/act-cache"
 
 # Redirect act's internal download cache (for actions like checkout@v4) to build/
 # This ensures ~/.cache/act is NOT used/polluted.
-export XDG_CACHE_HOME="$(pwd)/build/act-xdg-cache"
+## Note: In self-hosted mode, XDG_CACHE_HOME may affect other tools on your local machine.
+## It is recommended to override this only during act execution, or remove this line if necessary.
+#export XDG_CACHE_HOME="$(pwd)/build/act-xdg-cache"
 
 # Create directories if they don't exist
 mkdir -p "$ARTIFACT_PATH"
 mkdir -p "$CACHE_PATH"
-mkdir -p "$XDG_CACHE_HOME"
+#mkdir -p "$XDG_CACHE_HOME"
 
 # Safety check: Remove global legacy cache if it exists
 if [ -d "$HOME/.cache/act" ]; then

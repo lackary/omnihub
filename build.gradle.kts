@@ -1,9 +1,7 @@
+import org.jetbrains.kotlin.gradle.targets.js.testing.KotlinJsTest
 import org.jetbrains.kotlin.gradle.targets.js.yarn.YarnLockMismatchReport
-import org.jetbrains.kotlin.gradle.targets.js.yarn.YarnLockStoreTask
 import org.jetbrains.kotlin.gradle.targets.js.yarn.YarnPlugin
 import org.jetbrains.kotlin.gradle.targets.js.yarn.YarnRootExtension
-import org.jetbrains.kotlin.gradle.targets.wasm.yarn.WasmYarnPlugin
-import org.jetbrains.kotlin.gradle.targets.wasm.yarn.WasmYarnRootExtension
 
 plugins {
     // this is necessary to avoid the plugins to be loaded multiple times
@@ -25,20 +23,19 @@ plugins {
 
 plugins.withType<YarnPlugin> {
     the<YarnRootExtension>().apply {
-        yarnLockMismatchReport = YarnLockMismatchReport.WARNING
-        yarnLockAutoReplace = true
+        yarnLockMismatchReportProperty.set(YarnLockMismatchReport.WARNING)
+        yarnLockAutoReplaceProperty.set(true)
     }
 }
 
-plugins.withType<WasmYarnPlugin> {
-    the<WasmYarnRootExtension>().apply {
-        yarnLockMismatchReport = YarnLockMismatchReport.WARNING
-        yarnLockAutoReplace = true
+subprojects {
+    // Ensure that all JS & WasmJs test tasks across every subproject module
+    // explicitly depend on all NPM install and Wasm tooling setup tasks completing first.
+    tasks.withType<KotlinJsTest>().configureEach {
+        dependsOn(rootProject.tasks.matching {
+            it.name.endsWith("NpmInstall") || it.name.endsWith("ToolingSetup")
+        })
     }
-}
-
-tasks.withType<YarnLockStoreTask>().configureEach {
-    enabled = false
 }
 
 tasks.register("setBuildVersion") {

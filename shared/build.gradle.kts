@@ -202,13 +202,28 @@ kotlin {
     jvm()
 
     js {
-        browser()
+        browser {
+            testTask {
+                useKarma {
+                    useChromeHeadless()
+                }
+                // Compose UI tests (runComposeUiTest) are not supported in Kotlin/JS browser Karma runner
+                // due to missing Skia raster surface bindings.
+                filter.excludeTestsMatching("io.lackstudio.omnihub.ExampleTest*")
+            }
+        }
         binaries.executable()
     }
 
     @OptIn(ExperimentalWasmDsl::class)
     wasmJs {
-        browser()
+        browser {
+            testTask {
+                useKarma {
+                    useChromeHeadless()
+                }
+            }
+        }
         binaries.executable()
         compilerOptions {
             freeCompilerArgs.add("-opt-in=kotlin.js.ExperimentalWasmJsInterop")
@@ -286,9 +301,11 @@ kotlin {
         }
         wasmJsMain.dependencies {
             implementation(libs.kotlin.wrappers.browser)
+            implementation(npm("@js-joda/core", "3.2.0"))
         }
         jsMain.dependencies {
             implementation(libs.kotlin.wrappers.browser)
+            implementation(npm("@js-joda/core", "3.2.0"))
         }
     }
 }
@@ -304,9 +321,6 @@ configurations.matching { it.name.contains("Test") }.configureEach {
     exclude(group = "org.jogamp.jogl")
 }
 
-// Reason: ChromeHeadless / Karma for JS and Wasm is unstable in CI environments and Compose UI tests (runComposeUiTest) require Skiko native bindings not present in Karma JS bundle
-tasks.matching { it.name.contains("wasmJsBrowserTest") || it.name.contains("jsBrowserTest") }.configureEach {
-    enabled = false
-}
+
 
 
