@@ -48,10 +48,6 @@ jobs:
           java-version: '21'
           distribution: 'temurin'
 
-      - name: Install CocoaPods
-        if: ${{ !env.ACT }}
-        run: gem install cocoapods
-
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v6
 

@@ -45,7 +45,6 @@ plugins {
     alias(libs.plugins.compose.multiplatform)
     alias(libs.plugins.compose.compiler)
     alias(libs.plugins.compose.hot.reload)
-    alias(libs.plugins.kotlin.cocoapods)
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.kotlin.parcelize)
     alias(libs.plugins.buildkonfig)
@@ -138,65 +137,34 @@ kotlin {
         }
     }
     
-//    listOf(
-//        iosArm64(),
-//        iosSimulatorArm64()
-//    ).forEach { iosTarget ->
-//        iosTarget.binaries.framework {
-//            baseName = "ComposeApp"
-//            isStatic = true
-//        }
-//    }
-    iosArm64()
-    iosSimulatorArm64()
+    swiftPMDependencies {
+        swiftPackage(
+            url = url("https://github.com/firebase/firebase-ios-sdk.git"),
+            version = from("12.14.0"),
+            products = listOf(
+                product("FirebaseCore"),
+                product("FirebaseAuth"),
+                product("FirebaseFirestore")
+            )
+        )
+        swiftPackage(
+            url = url("https://github.com/google/GoogleSignIn-iOS.git"),
+            version = from("9.0.0"),
+            products = listOf(
+                product("GoogleSignIn")
+            )
+        )
+    }
 
-    cocoapods {
-        // Required properties
-        // Specify the required Pod version here
-        // Otherwise, the Gradle project version is used
-        version = project.version.toString()
-        summary = "Some description for a Kotlin/Native module"
-        homepage = "Link to a Kotlin/Native module homepage"
-        ios.deploymentTarget = "18.2"
-        // Optional properties
-        // Configure the Pod name here instead of changing the Gradle project name
-        name = "Shared" // This is the filename of prefix of podspec
-
-        framework {
-            // Required properties
-            // Framework name configuration. Use this property instead of deprecated 'frameworkName'
+    listOf(
+        iosArm64(),
+        iosSimulatorArm64()
+    ).forEach { iosTarget ->
+        iosTarget.binaries.framework {
             baseName = "Shared"
-
-            // Optional properties
-            // Specify the framework linking type. It's dynamic by default.
             isStatic = true
-            // Dependency export
-            // Uncomment and specify another project module if you have one:
-            // export(project(":<your other KMP module>"))
-            transitiveExport = false // This is default.
             export(libs.omnifeed.auth)
         }
-
-        pod("FirebaseCore") {
-            version = "~> 12.14.0"
-            extraOpts += listOf("-compiler-option", "-fmodules")
-        }
-        pod("FirebaseAuth") {
-            version = "~> 12.14.0"
-            extraOpts += listOf("-compiler-option", "-fmodules")
-        }
-        pod("FirebaseFirestore") {
-            version = "~> 12.14.0"
-            extraOpts += listOf("-compiler-option", "-fmodules")
-        }
-        pod("GoogleSignIn") {
-            version = "~> 9.0.0"
-            extraOpts += listOf("-compiler-option", "-fmodules")
-        }
-
-        // Maps custom Xcode configuration to NativeBuildType
-//        xcodeConfigurationToNativeBuildType["CUSTOM_DEBUG"] = NativeBuildType.DEBUG
-//        xcodeConfigurationToNativeBuildType["CUSTOM_RELEASE"] = NativeBuildType.RELEASE
     }
     
     jvm()
@@ -320,7 +288,3 @@ configurations.matching { it.name.contains("Test") }.configureEach {
     exclude(group = "org.jogamp.gluegen")
     exclude(group = "org.jogamp.jogl")
 }
-
-
-
-
