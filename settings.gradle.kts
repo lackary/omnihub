@@ -47,7 +47,7 @@ include(":webApp")
 
 // Define the relative path of omnifeed-kmp for local or CI environment
 // During local development, these two projects are usually siblings under the same parent directory
-val omnifeedProjectDir = file("../omnifeed-kmp")
+val omnifeedProjectDir = if (file("../omnifeed-kmp").exists()) file("../omnifeed-kmp") else file("omnifeed-kmp")
 val isOmniFeedLocalExists = omnifeedProjectDir.exists()
 
 // Read environment variable (for CI use, ensuring CI executes this logic)

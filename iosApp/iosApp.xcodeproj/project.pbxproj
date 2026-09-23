@@ -161,7 +161,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "if [ \"YES\" = \"$OVERRIDE_KOTLIN_BUILD_IDE_SUPPORTED\" ]; then\n  echo \"Skipping Gradle build task invocation due to OVERRIDE_KOTLIN_BUILD_IDE_SUPPORTED environment variable set to \\\"YES\\\"\"\n  exit 0\nfi\nunset ANDROID_PREFS_ROOT\nexport ANDROID_USER_HOME=\"/Users/lackary/.android\"\ncd \"$SRCROOT/..\"\nif ! ./gradlew :shared:embedAndSignAppleFrameworkForXcode; then\n  echo \"Synthetic SPM project updated. Resolving SwiftPM dependencies automatically...\"\n  xcodebuild -resolvePackageDependencies -project \"$SRCROOT/iosApp.xcodeproj\" -scheme iosApp || true\n  echo \"Retrying Gradle build...\"\n  ./gradlew :shared:embedAndSignAppleFrameworkForXcode\nfi\n";
+			shellScript = "if [ \"YES\" = \"$OVERRIDE_KOTLIN_BUILD_IDE_SUPPORTED\" ]; then\n  echo \"Skipping Gradle build task invocation due to OVERRIDE_KOTLIN_BUILD_IDE_SUPPORTED environment variable set to \\\"YES\\\"\"\n  exit 0\nfi\nunset ANDROID_PREFS_ROOT\nexport ANDROID_USER_HOME=\"$HOME/.android\"\ncd \"$SRCROOT/..\"\n./gradlew :shared:generateSyntheticLinkageSwiftPMImportProjectForEmbedAndSignLinkage || true\nif ! ./gradlew :shared:embedAndSignAppleFrameworkForXcode; then\n  echo \"Synthetic SPM project updated. Resolving SwiftPM dependencies automatically...\"\n  xcodebuild -resolvePackageDependencies -project \"$SRCROOT/iosApp.xcodeproj\" -scheme iosApp || true\n  echo \"Retrying Gradle build...\"\n  ./gradlew :shared:embedAndSignAppleFrameworkForXcode\nfi\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 

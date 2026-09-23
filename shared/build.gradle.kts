@@ -296,3 +296,21 @@ tasks.register("syncFramework") {
     dependsOn(tasks.matching { it.name.startsWith("embedAndSignAppleFramework") })
 }
 
+// Sync SPM Linkage Package from shared/iosApp to root iosApp folder for Xcode compatibility
+val syncLinkedPackageTask = tasks.register("syncLinkedPackage") {
+    description = "Syncs synthetic SPM package to root iosApp/ directory for Xcode"
+    group = "build"
+    val srcDir = layout.projectDirectory.dir("iosApp/KotlinMultiplatformLinkedPackage").asFile
+    val destDir = rootProject.layout.projectDirectory.dir("iosApp/KotlinMultiplatformLinkedPackage").asFile
+    doLast {
+        if (srcDir.exists() && srcDir.canonicalPath != destDir.canonicalPath) {
+            destDir.mkdirs()
+            srcDir.copyRecursively(destDir, overwrite = true)
+        }
+    }
+}
+
+tasks.matching { it.name.contains("SwiftPM") || it.name.contains("Linkage") }.configureEach {
+    finalizedBy(syncLinkedPackageTask)
+}
+

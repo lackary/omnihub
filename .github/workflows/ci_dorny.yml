@@ -44,8 +44,18 @@ jobs:
       GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
       GOOGLE_REVERSED_CLIENT_ID: ${{ secrets.GOOGLE_REVERSED_CLIENT_ID }}
     steps:
-      - name: Checkout code
+      # Checkout OmniHub (App) to subdirectory 'omnihub'
+      - name: Checkout OmniHub (App)
         uses: actions/checkout@v7
+        with:
+          path: omnihub
+
+      # Checkout OmniFeed (Lib) to subdirectory 'omnifeed-kmp'
+      - name: Checkout OmniFeed (Lib)
+        uses: actions/checkout@v7
+        with:
+          repository: lackary/omnifeed-kmp
+          path: omnifeed-kmp
 
       - name: Fix macOS GPG Socket Length for act
         if: ${{ env.ACT }}
@@ -63,34 +73,34 @@ jobs:
         uses: gradle/actions/setup-gradle@v6
 
       - name: Grant execute permission for gradlew
-        run: chmod +x gradlew
+        run: chmod +x omnihub/gradlew
 
       - name: Decode Firebase Secrets (Android & iOS)
         run: |
           echo "Decoding Firebase Android configuration..."
-          mkdir -p androidApp
-          echo "${{ secrets.FIREBASE_ANDROID_BASE64 }}" | base64 --decode > androidApp/google-services.json
+          mkdir -p omnihub/androidApp
+          echo "${{ secrets.FIREBASE_ANDROID_BASE64 }}" | base64 --decode > omnihub/androidApp/google-services.json
 
           PACKAGE_NAME="io.lackstudio.omnihub"
           DEBUG_PACKAGE_NAME="${PACKAGE_NAME}.dev"
-          if ! grep -q "$DEBUG_PACKAGE_NAME" androidApp/google-services.json; then
+          if ! grep -q "$DEBUG_PACKAGE_NAME" omnihub/androidApp/google-services.json; then
             echo "Patching google-services.json to include ${DEBUG_PACKAGE_NAME}..."
             if command -v jq &> /dev/null; then
               jq --arg prod "$PACKAGE_NAME" --arg dev "$DEBUG_PACKAGE_NAME" \
                 '.client += [.client[] | select(.client_info.android_client_info.package_name == $prod) | .client_info.android_client_info.package_name = $dev]' \
-                androidApp/google-services.json > androidApp/google-services.json.tmp && \
-                mv androidApp/google-services.json.tmp androidApp/google-services.json
+                omnihub/androidApp/google-services.json > omnihub/androidApp/google-services.json.tmp && \
+                mv omnihub/androidApp/google-services.json.tmp omnihub/androidApp/google-services.json
             else
-              sed -i '' "s/\"package_name\": \"$PACKAGE_NAME\"/\"package_name\": \"$DEBUG_PACKAGE_NAME\"/g" androidApp/google-services.json
+              sed -i '' "s/\"package_name\": \"$PACKAGE_NAME\"/\"package_name\": \"$DEBUG_PACKAGE_NAME\"/g" omnihub/androidApp/google-services.json
             fi
           fi
 
           echo "Decoding Firebase iOS configuration..."
-          mkdir -p iosApp/iosApp
-          echo "${{ secrets.FIREBASE_IOS_BASE64 }}" | base64 --decode > iosApp/iosApp/GoogleService-Info.plist
+          mkdir -p omnihub/iosApp/iosApp
+          echo "${{ secrets.FIREBASE_IOS_BASE64 }}" | base64 --decode > omnihub/iosApp/iosApp/GoogleService-Info.plist
 
       - name: Create Dynamic Secrets XConfig File
-        working-directory: './iosApp/Configuration'
+        working-directory: './omnihub/iosApp/Configuration'
         run: |
           XCONFIG_FILENAME="GoogleKeys.xcconfig"
           PLIST_PATH="../iosApp/GoogleService-Info.plist"
@@ -138,9 +148,32 @@ jobs:
           echo "✅ Selected Simulator: $NAME ($SIM)"
           echo "SIM_UUID=$SIM" >> $GITHUB_ENV
 
+      # Gradle Build & Pre-generate Synthetic SPM Linkage Package
+      - name: Gradle Build & Integrate SwiftPM Package
+        env:
+          FORCE_COMPOSITE_BUILD: "true"
+          XCODEPROJ_PATH: iosApp/iosApp.xcodeproj
+        run: |
+          unset ANDROID_PREFS_ROOT
+          export ANDROID_USER_HOME="$HOME/.android"
+          cd omnihub
+          ./gradlew assembleDebug :shared:integrateLinkagePackage || true
+
+          echo "Pre-generating synthetic SPM linkage project..."
+          ACTION=build TARGET_BUILD_DIR=/tmp BUILT_PRODUCTS_DIR=/tmp CONFIGURATION=Debug SDK_NAME=iphonesimulator ARCHS=arm64 EXPANDED_CODE_SIGN_IDENTITY=- \
+          ./gradlew :shared:generateSyntheticLinkageSwiftPMImportProjectForEmbedAndSignLinkage || true
+
+          ACTION=build TARGET_BUILD_DIR=/tmp BUILT_PRODUCTS_DIR=/tmp CONFIGURATION=Debug SDK_NAME=iphonesimulator ARCHS=arm64 EXPANDED_CODE_SIGN_IDENTITY=- \
+          ./gradlew :shared:generateSyntheticLinkageSwiftPMImportProjectForEmbedAndSignLinkage
+
+          if [ -d "shared/iosApp/KotlinMultiplatformLinkedPackage" ] && [ ! -d "iosApp/KotlinMultiplatformLinkedPackage" ]; then
+            echo "Syncing shared/iosApp/KotlinMultiplatformLinkedPackage to iosApp/..."
+            cp -R shared/iosApp/KotlinMultiplatformLinkedPackage iosApp/
+          fi
+
       # Execute Xcode Build
       - name: Xcode Build (clean build .xcodeproj)
-        working-directory: './iosApp'
+        working-directory: './omnihub/iosApp'
         run: |
           echo "Building iOS target via .xcodeproj..."
           xcodebuild clean build \
@@ -152,16 +185,14 @@ jobs:
               ENABLE_PREVIEWS=NO \
               CODE_SIGNING_ALLOWED=NO 
 
-      - name: Assemble (Compile)
-        run: |
-          ./gradlew assembleDebug \
-          ${{ inputs.run_with_stacktrace && '--stacktrace' || '' }} \
-          ${{ inputs.run_with_info && '--info' || '' }} \
-          ${{ inputs.run_with_debug && '--debug' || '' }}
-
       - name: Check (Test & Lint)
         continue-on-error: false
+        env:
+          FORCE_COMPOSITE_BUILD: "true"
         run: |
+          unset ANDROID_PREFS_ROOT
+          export ANDROID_USER_HOME="$HOME/.android"
+          cd omnihub
           ./gradlew check \
           -Pskip.native.tests=true \
           ${{ inputs.run_with_stacktrace && '--stacktrace' || '' }} \

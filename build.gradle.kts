@@ -4,6 +4,11 @@ import org.jetbrains.kotlin.gradle.targets.js.yarn.YarnPlugin
 import org.jetbrains.kotlin.gradle.targets.js.yarn.YarnRootExtension
 import org.jetbrains.kotlin.gradle.targets.native.tasks.KotlinNativeTest
 import org.jetbrains.kotlin.gradle.tasks.KotlinNativeLink
+import java.io.IOException
+import java.nio.file.FileVisitResult
+import java.nio.file.Files
+import java.nio.file.SimpleFileVisitor
+import java.nio.file.attribute.BasicFileAttributes
 
 plugins {
     base
@@ -149,24 +154,61 @@ tasks.register("setBuildVersion") {
 
 tasks.named<Delete>("clean") {
     setDelete(emptySet<Any>())
-    doFirst {
-        val buildDir = project.projectDir.resolve("build")
-        val symlink = project.projectDir.resolve("iosApp/KotlinMultiplatformLinkedPackage")
-        project.providers.exec {
-            commandLine("rm", "-rf", buildDir.absolutePath, symlink.absolutePath)
-            isIgnoreExitValue = true
+    val rootBuildDir = layout.buildDirectory.get().asFile
+    val rootLinkedPkg = layout.projectDirectory.dir("iosApp/KotlinMultiplatformLinkedPackage").asFile
+    val sharedLinkedPkg = layout.projectDirectory.dir("shared/iosApp/KotlinMultiplatformLinkedPackage").asFile
+    doLast {
+        fun deleteSafely(file: File) {
+            if (!file.exists()) return
+            try {
+                Files.walkFileTree(file.toPath(), object : SimpleFileVisitor<java.nio.file.Path>() {
+                    override fun visitFile(f: java.nio.file.Path, attrs: BasicFileAttributes): FileVisitResult {
+                        f.toFile().setWritable(true)
+                        Files.deleteIfExists(f)
+                        return FileVisitResult.CONTINUE
+                    }
+
+                    override fun postVisitDirectory(dir: java.nio.file.Path, exc: IOException?): FileVisitResult {
+                        dir.toFile().setWritable(true)
+                        Files.deleteIfExists(dir)
+                        return FileVisitResult.CONTINUE
+                    }
+                })
+            } catch (_: Exception) {
+                file.deleteRecursively()
+            }
         }
+
+        deleteSafely(rootBuildDir)
+        deleteSafely(rootLinkedPkg)
+        deleteSafely(sharedLinkedPkg)
     }
 }
 
 allprojects {
     tasks.matching { it.name == "cleanSwiftImportFingerprintArtifacts" }.configureEach {
-        (this as? Delete)?.setDelete(emptySet<Any>())
-        doFirst {
-            val syntheticDir = project.rootProject.projectDir.resolve("build/kotlin")
-            project.providers.exec {
-                commandLine("rm", "-rf", syntheticDir.absolutePath)
-                isIgnoreExitValue = true
+        val deleteTask = this as? Delete ?: return@configureEach
+        val syntheticDir = rootProject.layout.buildDirectory.dir("kotlin").get().asFile
+        deleteTask.setDelete(emptySet<Any>())
+        deleteTask.doLast {
+            if (syntheticDir.exists()) {
+                try {
+                    java.nio.file.Files.walkFileTree(syntheticDir.toPath(), object : java.nio.file.SimpleFileVisitor<java.nio.file.Path>() {
+                        override fun visitFile(f: java.nio.file.Path, attrs: java.nio.file.attribute.BasicFileAttributes): java.nio.file.FileVisitResult {
+                            f.toFile().setWritable(true)
+                            java.nio.file.Files.deleteIfExists(f)
+                            return java.nio.file.FileVisitResult.CONTINUE
+                        }
+
+                        override fun postVisitDirectory(dir: java.nio.file.Path, exc: java.io.IOException?): java.nio.file.FileVisitResult {
+                            dir.toFile().setWritable(true)
+                            java.nio.file.Files.deleteIfExists(dir)
+                            return java.nio.file.FileVisitResult.CONTINUE
+                        }
+                    })
+                } catch (_: Exception) {
+                    syntheticDir.deleteRecursively()
+                }
             }
         }
     }
