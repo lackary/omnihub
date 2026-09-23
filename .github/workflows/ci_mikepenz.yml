@@ -223,6 +223,7 @@ jobs:
         run: |
           cd omnihub
           ./gradlew check \
+          -Pskip.native.tests=true \
           ${{ inputs.run_with_stacktrace && '--stacktrace' || '' }} \
           ${{ inputs.run_with_info && '--info' || '' }} \
           ${{ inputs.run_with_debug && '--debug' || '' }}

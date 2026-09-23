@@ -288,3 +288,11 @@ configurations.matching { it.name.contains("Test") }.configureEach {
     exclude(group = "org.jogamp.gluegen")
     exclude(group = "org.jogamp.jogl")
 }
+
+// Compatibility alias for IDE or legacy configurations
+tasks.register("syncFramework") {
+    description = "Compatibility alias for IDE or legacy Xcode configurations"
+    group = "build"
+    dependsOn(tasks.matching { it.name.startsWith("embedAndSignAppleFramework") })
+}
+

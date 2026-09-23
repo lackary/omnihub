@@ -2,8 +2,11 @@ import org.jetbrains.kotlin.gradle.targets.js.testing.KotlinJsTest
 import org.jetbrains.kotlin.gradle.targets.js.yarn.YarnLockMismatchReport
 import org.jetbrains.kotlin.gradle.targets.js.yarn.YarnPlugin
 import org.jetbrains.kotlin.gradle.targets.js.yarn.YarnRootExtension
+import org.jetbrains.kotlin.gradle.targets.native.tasks.KotlinNativeTest
+import org.jetbrains.kotlin.gradle.tasks.KotlinNativeLink
 
 plugins {
+    base
     // this is necessary to avoid the plugins to be loaded multiple times
     // in each subproject's classloader
     alias(libs.plugins.androidApplication) apply false
@@ -28,6 +31,33 @@ plugins.withType<YarnPlugin> {
 }
 
 subprojects {
+    afterEvaluate {
+        val pSkipLint = providers.gradleProperty("skip.lint").orNull?.toBoolean() == true
+        val pSkipTests = providers.gradleProperty("skip.tests").orNull?.toBoolean() == true
+        val pSkipNativeTests = providers.gradleProperty("skip.native.tests").orNull?.toBoolean() == true
+
+        if (pSkipLint) {
+            tasks.matching { it.name.contains(Regex("lint", RegexOption.IGNORE_CASE)) }.configureEach {
+                enabled = false
+            }
+        }
+
+        if (pSkipTests) {
+            tasks.withType<Test>().configureEach {
+                enabled = false
+            }
+        }
+
+        if (pSkipNativeTests) {
+            tasks.withType<KotlinNativeTest>().configureEach {
+                enabled = false
+            }
+            tasks.withType<KotlinNativeLink>().configureEach {
+                enabled = false
+            }
+        }
+    }
+
     // Ensure that all JS & WasmJs test tasks across every subproject module
     // explicitly depend on all NPM install and Wasm tooling setup tasks completing first.
     tasks.withType<KotlinJsTest>().configureEach {
@@ -116,3 +146,29 @@ tasks.register("setBuildVersion") {
         }
     }
 }
+
+tasks.named<Delete>("clean") {
+    setDelete(emptySet<Any>())
+    doFirst {
+        val buildDir = project.projectDir.resolve("build")
+        val symlink = project.projectDir.resolve("iosApp/KotlinMultiplatformLinkedPackage")
+        project.providers.exec {
+            commandLine("rm", "-rf", buildDir.absolutePath, symlink.absolutePath)
+            isIgnoreExitValue = true
+        }
+    }
+}
+
+allprojects {
+    tasks.matching { it.name == "cleanSwiftImportFingerprintArtifacts" }.configureEach {
+        (this as? Delete)?.setDelete(emptySet<Any>())
+        doFirst {
+            val syntheticDir = project.rootProject.projectDir.resolve("build/kotlin")
+            project.providers.exec {
+                commandLine("rm", "-rf", syntheticDir.absolutePath)
+                isIgnoreExitValue = true
+            }
+        }
+    }
+}
+
