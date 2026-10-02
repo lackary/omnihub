@@ -2,8 +2,16 @@ import org.jetbrains.kotlin.gradle.targets.js.testing.KotlinJsTest
 import org.jetbrains.kotlin.gradle.targets.js.yarn.YarnLockMismatchReport
 import org.jetbrains.kotlin.gradle.targets.js.yarn.YarnPlugin
 import org.jetbrains.kotlin.gradle.targets.js.yarn.YarnRootExtension
+import org.jetbrains.kotlin.gradle.targets.native.tasks.KotlinNativeTest
+import org.jetbrains.kotlin.gradle.tasks.KotlinNativeLink
+import java.io.IOException
+import java.nio.file.FileVisitResult
+import java.nio.file.Files
+import java.nio.file.SimpleFileVisitor
+import java.nio.file.attribute.BasicFileAttributes
 
 plugins {
+    base
     // this is necessary to avoid the plugins to be loaded multiple times
     // in each subproject's classloader
     alias(libs.plugins.androidApplication) apply false
@@ -13,7 +21,6 @@ plugins {
     alias(libs.plugins.compose.multiplatform) apply false
     alias(libs.plugins.compose.compiler) apply false
     alias(libs.plugins.kotlin.multiplatform) apply false
-    alias(libs.plugins.kotlin.cocoapods) apply false
     alias(libs.plugins.kotlin.serialization) apply false
     alias(libs.plugins.kotlin.parcelize) apply false
     alias(libs.plugins.kotlin.jvm) apply false
@@ -29,6 +36,33 @@ plugins.withType<YarnPlugin> {
 }
 
 subprojects {
+    afterEvaluate {
+        val pSkipLint = providers.gradleProperty("skip.lint").orNull?.toBoolean() == true
+        val pSkipTests = providers.gradleProperty("skip.tests").orNull?.toBoolean() == true
+        val pSkipNativeTests = providers.gradleProperty("skip.native.tests").orNull?.toBoolean() == true
+
+        if (pSkipLint) {
+            tasks.matching { it.name.contains(Regex("lint", RegexOption.IGNORE_CASE)) }.configureEach {
+                enabled = false
+            }
+        }
+
+        if (pSkipTests) {
+            tasks.withType<Test>().configureEach {
+                enabled = false
+            }
+        }
+
+        if (pSkipNativeTests) {
+            tasks.withType<KotlinNativeTest>().configureEach {
+                enabled = false
+            }
+            tasks.withType<KotlinNativeLink>().configureEach {
+                enabled = false
+            }
+        }
+    }
+
     // Ensure that all JS & WasmJs test tasks across every subproject module
     // explicitly depend on all NPM install and Wasm tooling setup tasks completing first.
     tasks.withType<KotlinJsTest>().configureEach {
@@ -117,3 +151,66 @@ tasks.register("setBuildVersion") {
         }
     }
 }
+
+tasks.named<Delete>("clean") {
+    setDelete(emptySet<Any>())
+    val rootBuildDir = layout.buildDirectory.get().asFile
+    val rootLinkedPkg = layout.projectDirectory.dir("iosApp/KotlinMultiplatformLinkedPackage").asFile
+    val sharedLinkedPkg = layout.projectDirectory.dir("shared/iosApp/KotlinMultiplatformLinkedPackage").asFile
+    doLast {
+        fun deleteSafely(file: File) {
+            if (!file.exists()) return
+            try {
+                Files.walkFileTree(file.toPath(), object : SimpleFileVisitor<java.nio.file.Path>() {
+                    override fun visitFile(f: java.nio.file.Path, attrs: BasicFileAttributes): FileVisitResult {
+                        f.toFile().setWritable(true)
+                        Files.deleteIfExists(f)
+                        return FileVisitResult.CONTINUE
+                    }
+
+                    override fun postVisitDirectory(dir: java.nio.file.Path, exc: IOException?): FileVisitResult {
+                        dir.toFile().setWritable(true)
+                        Files.deleteIfExists(dir)
+                        return FileVisitResult.CONTINUE
+                    }
+                })
+            } catch (_: Exception) {
+                file.deleteRecursively()
+            }
+        }
+
+        deleteSafely(rootBuildDir)
+        deleteSafely(rootLinkedPkg)
+        deleteSafely(sharedLinkedPkg)
+    }
+}
+
+allprojects {
+    tasks.matching { it.name == "cleanSwiftImportFingerprintArtifacts" }.configureEach {
+        val deleteTask = this as? Delete ?: return@configureEach
+        val syntheticDir = rootProject.layout.buildDirectory.dir("kotlin").get().asFile
+        deleteTask.setDelete(emptySet<Any>())
+        deleteTask.doLast {
+            if (syntheticDir.exists()) {
+                try {
+                    java.nio.file.Files.walkFileTree(syntheticDir.toPath(), object : java.nio.file.SimpleFileVisitor<java.nio.file.Path>() {
+                        override fun visitFile(f: java.nio.file.Path, attrs: java.nio.file.attribute.BasicFileAttributes): java.nio.file.FileVisitResult {
+                            f.toFile().setWritable(true)
+                            java.nio.file.Files.deleteIfExists(f)
+                            return java.nio.file.FileVisitResult.CONTINUE
+                        }
+
+                        override fun postVisitDirectory(dir: java.nio.file.Path, exc: java.io.IOException?): java.nio.file.FileVisitResult {
+                            dir.toFile().setWritable(true)
+                            java.nio.file.Files.deleteIfExists(dir)
+                            return java.nio.file.FileVisitResult.CONTINUE
+                        }
+                    })
+                } catch (_: Exception) {
+                    syntheticDir.deleteRecursively()
+                }
+            }
+        }
+    }
+}
+

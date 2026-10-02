@@ -8,12 +8,14 @@ xcuserdata
 local.properties
 kotlin-js-store
 
-#iOS
+#iOS / SPM
 .idea
 .DS_Store
 captures
 .externalNativeBuild
 .cxx
+.swiftpm-locks/
+.swiftpm/
 *.xcodeproj/*
 !*.xcodeproj/project.pbxproj
 !*.xcodeproj/xcshareddata/
