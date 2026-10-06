@@ -14,55 +14,11 @@ echo "🚀 Preparing to run tests..."
 echo "⚠️  Note: This will use your local Gradle and JDK environment"
 echo ""
 
-# 2. Menu: Let user choose which Workflow to run
-echo "Please select the Workflow to test:"
-echo "  1) Continuous Integration (main) [Uses ci_mikepenz.yml]"
-echo "     - Simulates 'push' event using act"
-echo "     - Fast, single Job"
-echo ""
-echo "  2) Continuous Integration (Dorny) [Uses ci_dorny.yml]"
-echo "     - Simulates 'workflow_dispatch' event using act"
-echo "     - Dual Jobs"
-echo ""
-echo "  3) Release Workflow (Container Mode) [Uses release.yml via act]"
-echo "     - Simulates 'push' event inside Docker"
-echo "     - May fail due to Docker npm network issues"
-echo ""
-echo "  4) Release Logic Check (Host Mode) [Direct npx]"
-echo "     - Runs semantic-release directly on your Mac"
-echo "     - Bypasses Docker issues. Best for checking logic."
-echo ""
-read -p "Enter option [1, 2, 3 or 4] (Default 1): " choice
-
-# Default to 1
-choice=${choice:-1}
-
-read -p "Enable verbose logging (debug mode)? [y/N] " debug_resp
-debug_resp=$(echo "$debug_resp" | tr '[:upper:]' '[:lower:]') # Convert to lowercase
-VERBOSE_FLAG=""
-if [[ "$debug_resp" =~ ^(yes|y)$ ]]; then
-    VERBOSE_FLAG="-v"
-    echo "🐞 Debug mode enabled."
-fi
-
-echo ""
-echo "------------------------------------------"
-
-# Set a local temporary path to simulate the artifact server
-# Move artifacts & cache to build directory
+# Configure Artifact Paths
 ARTIFACT_PATH="./build/act-artifacts"
 CACHE_PATH="./build/act-cache"
 
-# Redirect act's internal download cache (for actions like checkout@v4) to build/
-# This ensures ~/.cache/act is NOT used/polluted.
-## Note: In self-hosted mode, XDG_CACHE_HOME may affect other tools on your local machine.
-## It is recommended to override this only during act execution, or remove this line if necessary.
-#export XDG_CACHE_HOME="$(pwd)/build/act-xdg-cache"
-
-# Create directories if they don't exist
-mkdir -p "$ARTIFACT_PATH"
-mkdir -p "$CACHE_PATH"
-#mkdir -p "$XDG_CACHE_HOME"
+mkdir -p "$ARTIFACT_PATH" "$CACHE_PATH"
 
 # Safety check: Remove global legacy cache if it exists
 if [ -d "$HOME/.cache/act" ]; then
@@ -82,14 +38,25 @@ if [ -f "$USER_SECRETS" ]; then
     echo "📝 Loading keys from $USER_SECRETS..."
     cat "$USER_SECRETS" >> "$RUN_SECRETS"
     echo "" >> "$RUN_SECRETS"
+else
+    echo "⚠️  $USER_SECRETS not found. Creating a template..."
+    cat <<EOF > "$USER_SECRETS"
+UNSPLASH_ACCESS_KEY=dummy_val
+UNSPLASH_SECRET_KEY=dummy_val
+GOOGLE_SERVICES_WEB_CLIENT_ID=dummy_val
+GOOGLE_CLIENT_ID=dummy_val
+GOOGLE_REVERSED_CLIENT_ID=dummy_val
+EOF
+    cat "$USER_SECRETS" >> "$RUN_SECRETS"
+    echo "" >> "$RUN_SECRETS"
+    echo "⚠️  Template created. Some tests may fail without real keys."
 fi
 
-# Added this line to define the Log file location
 LOG_FILE="act_execution.log"
 
-# Ensure user has gh cli installed, otherwise prompt
+# Retrieve Token from 'gh' and append to temp file
 if ! command -v gh &> /dev/null; then
-    echo "⚠️  GitHub CLI (gh) not detected. Using local git history for dry-run checks."
+    echo "⚠️  GitHub CLI (gh) not detected. Release steps will fail."
     EXPORT_TOKEN=""
 else
     RAW_TOKEN=$(gh auth token 2>/dev/null)
@@ -99,47 +66,81 @@ else
         echo "GITHUB_TOKEN=$RAW_TOKEN" >> "$RUN_SECRETS"
         echo "SEMANTIC_RELEASE_TOKEN=$RAW_TOKEN" >> "$RUN_SECRETS"
         EXPORT_TOKEN=$RAW_TOKEN
+    else
+        echo "⚠️  gh is installed but not logged in."
+        EXPORT_TOKEN=""
     fi
 fi
 
+# ==============================================================================
+# Menu: Let user choose which Workflow to run
+# ==============================================================================
+echo ""
+echo "Please select the Workflow to test:"
+echo "  1) Full Continuous Integration (.github/workflows/ci.yml)"
+echo "     - Runs all jobs (test, build-android, build-web, build-desktop, build-ios)"
+echo ""
+echo "  2) KMP Unit Tests Only (.github/workflows/ci.yml -j test)"
+echo "     - Fast local check for unit tests"
+echo ""
+echo "  3) Release Workflow (.github/workflows/release.yml)"
+echo "     - Simulates semantic-release via act"
+echo ""
+echo "  4) Release Logic Check (Host Mode)"
+echo "     - Runs semantic-release directly on your Mac using npx"
+echo ""
+read -p "Enter option [1, 2, 3 or 4] (Default 1): " choice
+choice=${choice:-1}
+
+read -p "Enable verbose logging (debug mode)? [y/N] " debug_resp
+debug_resp=$(echo "$debug_resp" | tr '[:upper:]' '[:lower:]')
+VERBOSE_FLAG=""
+if [[ "$debug_resp" =~ ^(yes|y)$ ]]; then
+    VERBOSE_FLAG="-v"
+    echo "🐞 Debug mode enabled."
+fi
+
+# Self-Hosted Mode Configuration: Map runner environments to local host execution
+unset ANDROID_PREFS_ROOT
+ACT_COMMON_ARGS="--platform macos-latest=-self-hosted \
+--platform macos-26=-self-hosted \
+--platform ubuntu-latest=-self-hosted \
+--env ACT=true \
+--env ANDROID_PREFS_ROOT= \
+--secret-file \"$RUN_SECRETS\" \
+--artifact-server-path \"$ARTIFACT_PATH\" \
+--cache-server-path \"$CACHE_PATH\" \
+$VERBOSE_FLAG"
+
+echo ""
+echo "------------------------------------------"
+
 if [ "$choice" == "1" ]; then
-    echo "🔵 Running: Main Workflow (Mike Penz)..."
-    CMD="act push \
-      -W .github/workflows/ci_mikepenz.yml \
-      -P macos-latest=-self-hosted \
-      --env ACT=true \
-      --secret-file \"$RUN_SECRETS\" \
-      --artifact-server-path \"$ARTIFACT_PATH\" \
-      --cache-server-path \"$CACHE_PATH\" \
-      $VERBOSE_FLAG"
+    echo "🔵 Running: Full Continuous Integration..."
+    CMD="act push -W .github/workflows/ci.yml $ACT_COMMON_ARGS"
     echo "👉 Executing: $CMD"
     eval "$CMD 2>&1 | tee $LOG_FILE"
     ACT_EXIT_CODE=${PIPESTATUS[0]}
 
 elif [ "$choice" == "2" ]; then
-    echo "🟠 Running: Dorny Workflow (Manual)..."
-    CMD="act workflow_dispatch \
-      -W .github/workflows/ci_dorny.yml \
-      -P macos-latest=-self-hosted \
-      -P ubuntu-latest=catthehacker/ubuntu:act-latest \
-      --env ACT=true \
-      --secret-file \"$RUN_SECRETS\" \
-      --artifact-server-path \"$ARTIFACT_PATH\" \
-      --cache-server-path \"$CACHE_PATH\" \
-      $VERBOSE_FLAG"
+    echo "🔵 Running: KMP Unit Tests Only (-j test)..."
+    CMD="act push -W .github/workflows/ci.yml -j test $ACT_COMMON_ARGS"
     echo "👉 Executing: $CMD"
     eval "$CMD 2>&1 | tee $LOG_FILE"
     ACT_EXIT_CODE=${PIPESTATUS[0]}
 
 elif [ "$choice" == "3" ]; then
     echo "🟣 Running: Release Workflow (Container Mode)..."
-    echo "⚠️  Note: Running inside Docker container."
-    CMD="act push \
-      -W .github/workflows/release.yml \
-      -P macos-latest=-self-hosted \
-      --env ACT=true \
-      --secret-file \"$RUN_SECRETS\" \
-      $VERBOSE_FLAG"
+    echo "⚠️  [SAFETY CHECK] You are about to run the Release Workflow locally."
+    echo ""
+    read -p "❓ Do you want to proceed? (y/N) " confirm
+    if [[ ! "$confirm" =~ ^(yes|y)$ ]]; then
+        echo "🚫 Aborted by user."
+        rm -f "$RUN_SECRETS" 2>/dev/null
+        exit 0
+    fi
+
+    CMD="act push -W .github/workflows/release.yml $ACT_COMMON_ARGS"
     echo "👉 Executing: $CMD"
     eval "$CMD 2>&1 | tee $LOG_FILE"
     ACT_EXIT_CODE=${PIPESTATUS[0]}
@@ -183,25 +184,24 @@ echo "=========================================="
 
 if [ $ACT_EXIT_CODE -eq 0 ]; then
     echo "✅ Process completed successfully!"
-
     if [ "$choice" == "2" ]; then
-        echo "ℹ️  (Dorny Mode Tip) Please check 'build/test-results'."
+        echo "ℹ️  (Unit Test Tip) Check build/test-results or act_execution.log for details."
     fi
     if [ "$choice" == "4" ]; then
         echo "ℹ️  (Logic Check Tip) Scroll up to see the Dry Run logs."
-        echo "    Look for 'The next release version is...' or 'No relevant changes'."
     fi
 else
     echo "❌ Process failed (Exit Code: $ACT_EXIT_CODE)"
 fi
 echo "=========================================="
 
-# 3. Safety Cleanup Mechanism
+# Safety Cleanup Mechanism
 echo ""
-read -p "🧹 Do you want to clean Gradle build artifacts? [y/N] " response
+read -p "🧹 Do you want to clean Gradle build artifacts and act cache? [y/N] " response
 response=$(echo "$response" | tr '[:upper:]' '[:lower:]')
 if [[ "$response" =~ ^(yes|y)$ ]]; then
     ./gradlew clean
+    rm -rf "$ARTIFACT_PATH" "$CACHE_PATH"
     echo "✨ Cleanup complete!"
 else
     echo "👌 Build files retained."
