@@ -5,7 +5,7 @@ inputs:
   java-version:
     description: 'JDK Version'
     required: false
-    default: '25'
+    default: '21'
   java-distribution:
     description: 'JDK Distribution'
     required: false
