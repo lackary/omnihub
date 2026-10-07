@@ -1,0 +1,114 @@
+name: 'Setup Environment'
+description: 'Sets up JDK, Gradle, Konan caching, Firebase secrets, and iOS xcconfig files'
+
+inputs:
+  java-version:
+    description: 'JDK Version'
+    required: false
+    default: '21'
+  java-distribution:
+    description: 'JDK Distribution'
+    required: false
+    default: 'temurin'
+  firebase-android-base64:
+    description: 'Base64 encoded google-services.json'
+    required: false
+    default: ''
+  firebase-ios-base64:
+    description: 'Base64 encoded GoogleService-Info.plist'
+    required: false
+    default: ''
+  google-client-id:
+    description: 'Google Client ID for iOS xcconfig'
+    required: false
+    default: ''
+  google-reversed-client-id:
+    description: 'Google Reversed Client ID for iOS xcconfig'
+    required: false
+    default: ''
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Fix macOS GPG Socket Length for act
+      if: ${{ env.ACT }}
+      shell: bash
+      run: |
+        mkdir -p /tmp/act_runner_temp
+        echo "RUNNER_TEMP=/tmp/act_runner_temp" >> $GITHUB_ENV
+
+    - name: Set up JDK ${{ inputs.java-version }}
+      uses: actions/setup-java@v6
+      with:
+        java-version: ${{ inputs.java-version }}
+        distribution: ${{ inputs.java-distribution }}
+
+    - name: Setup Gradle
+      uses: gradle/actions/setup-gradle@v6
+
+    - name: Grant execute permission for gradlew
+      shell: bash
+      run: chmod +x gradlew
+
+    - name: Cache Konan dependencies
+      uses: actions/cache@v4
+      with:
+        path: ~/.konan
+        key: ${{ runner.os }}-konan-${{ hashFiles('**/*.gradle.kts', '**/gradle.properties') }}
+        restore-keys: |
+          ${{ runner.os }}-konan-
+
+    - name: Decode Firebase Secrets (Android & iOS)
+      if: ${{ inputs.firebase-android-base64 != '' || inputs.firebase-ios-base64 != '' }}
+      shell: bash
+      run: |
+        if [ -n "${{ inputs.firebase-android-base64 }}" ]; then
+          echo "Decoding Firebase Android configuration..."
+          mkdir -p androidApp
+          echo "${{ inputs.firebase-android-base64 }}" | base64 --decode > androidApp/google-services.json
+          
+          PACKAGE_NAME="io.lackstudio.omnihub"
+          DEBUG_PACKAGE_NAME="${PACKAGE_NAME}.dev"
+          if ! grep -q "$DEBUG_PACKAGE_NAME" androidApp/google-services.json; then
+            echo "Patching google-services.json to include ${DEBUG_PACKAGE_NAME}..."
+            if command -v jq &> /dev/null; then
+              jq --arg prod "$PACKAGE_NAME" --arg dev "$DEBUG_PACKAGE_NAME" \
+                '.client += [.client[] | select(.client_info.android_client_info.package_name == $prod) | .client_info.android_client_info.package_name = $dev]' \
+                androidApp/google-services.json > androidApp/google-services.json.tmp && \
+                mv androidApp/google-services.json.tmp androidApp/google-services.json
+            else
+              sed -i.bak "s/\"package_name\": \"$PACKAGE_NAME\"/\"package_name\": \"$DEBUG_PACKAGE_NAME\"/g" androidApp/google-services.json
+              rm -f androidApp/google-services.json.bak
+            fi
+          fi
+        fi
+
+        if [ -n "${{ inputs.firebase-ios-base64 }}" ]; then
+          echo "Decoding Firebase iOS configuration..."
+          mkdir -p iosApp/iosApp
+          echo "${{ inputs.firebase-ios-base64 }}" | base64 --decode > iosApp/iosApp/GoogleService-Info.plist
+        fi
+
+    - name: Create Dynamic Secrets XConfig File
+      shell: bash
+      run: |
+        mkdir -p iosApp/Configuration
+        XCONFIG_FILENAME="iosApp/Configuration/GoogleKeys.xcconfig"
+        PLIST_PATH="iosApp/iosApp/GoogleService-Info.plist"
+
+        CLIENT_ID=""
+        REVERSED_CLIENT_ID=""
+
+        if [ -f "$PLIST_PATH" ] && command -v plutil &> /dev/null; then
+          CLIENT_ID=$(plutil -extract CLIENT_ID raw "$PLIST_PATH" 2>/dev/null || echo "")
+          REVERSED_CLIENT_ID=$(plutil -extract REVERSED_CLIENT_ID raw "$PLIST_PATH" 2>/dev/null || echo "")
+        fi
+
+        CLIENT_ID="${CLIENT_ID:-${{ inputs.google-client-id }}}"
+        REVERSED_CLIENT_ID="${REVERSED_CLIENT_ID:-${{ inputs.google-reversed-client-id }}}"
+
+        if [ -n "$CLIENT_ID" ] || [ -n "$REVERSED_CLIENT_ID" ]; then
+          echo "Generating ${XCONFIG_FILENAME}..."
+          echo "GOOGLE_CLIENT_ID=${CLIENT_ID}" > "${XCONFIG_FILENAME}"
+          echo "REVERSED_CLIENT_ID=${REVERSED_CLIENT_ID}" >> "${XCONFIG_FILENAME}"
+        fi
