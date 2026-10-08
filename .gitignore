@@ -1,48 +1,74 @@
-#Android
-*.iml
-.kotlin
-.gradle
+# Gradle Files & Build Artifacts
+.gradle/
+build/
 **/build/
-xcuserdata
 !src/**/build/
-local.properties
+.kotlin/
 kotlin-js-store
+/build/bin
+/build/klib
+/build/js
+/build/reports
+/build/test-results
+/build/tmp
 
-#iOS / SPM
-.idea
+# Secrets and Local Properties
+local.properties
+.secrets
+.firebase_paths
+
+# IDE Specific Files
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+*.hprof
 .DS_Store
-captures
-.externalNativeBuild
-.cxx
+captures/
+.externalNativeBuild/
+.cxx/
+
+# iOS / Xcode / SPM
+Pods/
 .swiftpm-locks/
 .swiftpm/
+DerivedData/
+**/KotlinMultiplatformLinkedPackage
 *.xcodeproj/*
 !*.xcodeproj/project.pbxproj
 !*.xcodeproj/xcshareddata/
 !*.xcodeproj/project.xcworkspace/
 !*.xcworkspace/contents.xcworkspacedata
 **/xcshareddata/WorkspaceSettings.xcsettings
-Pods/
+xcuserdata/
+*.xcuserdatad
+*.podspec.json
 iosApp/Configuration/GoogleKeys.xcconfig
+Secrets-*.xcconfig
 
-#JS
+# Desktop / KCEF
+kcef-bundle/
+cache/
+
+# Node.js / Web / WASM
 node_modules/
+/node_modules/
+npm-debug.log*
+.npm/
+.npmrc
+.nvmrc
 
 # Firebase Configuration Files
-androidApp/google-services.json
-iosApp/iosApp/GoogleService-Info.plist
-google_services_web.json
-
-# Firebase Extensions secrets
+**/google-services.json
+**/GoogleService-Info.plist
+**/google_services_web.json
+.firebaserc
+firebase-debug.log*
+.firebase/
 extensions/*.env
 extensions/*.local
 
-# Security
-.secrets
-.firebase_paths
-
-# AI Assistant Artifacts
+# AI Assistant Artifacts & Common
 .artifacts/
-
-# Common
 *.log

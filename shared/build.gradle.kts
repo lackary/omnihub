@@ -6,6 +6,7 @@ import com.codingfeline.buildkonfig.compiler.FieldSpec.Type.STRING
 import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 import java.util.Base64
 import java.util.Properties
+import java.nio.file.Files
 
 val modulePackageName = "io.lackstudio.omnihub.shared"
 val unsplashAccessKeyName = "UNSPLASH_ACCESS_KEY"
@@ -296,16 +297,28 @@ tasks.register("syncFramework") {
     dependsOn(tasks.matching { it.name.startsWith("embedAndSignAppleFramework") })
 }
 
-// Sync SPM Linkage Package from shared/iosApp to root iosApp folder for Xcode compatibility
+// Sync SPM Linkage Package from .swiftpm-locks to root iosApp folder for Xcode compatibility
 val syncLinkedPackageTask = tasks.register("syncLinkedPackage") {
-    description = "Syncs synthetic SPM package to root iosApp/ directory for Xcode"
+    description = "Syncs synthetic SPM package to root iosApp/ directory for Xcode via symlink"
     group = "build"
-    val srcDir = layout.projectDirectory.dir("iosApp/KotlinMultiplatformLinkedPackage").asFile
+    val srcDir = rootProject.layout.projectDirectory.dir(".swiftpm-locks/default/swiftImport").asFile
     val destDir = rootProject.layout.projectDirectory.dir("iosApp/KotlinMultiplatformLinkedPackage").asFile
+
     doLast {
-        if (srcDir.exists() && srcDir.canonicalPath != destDir.canonicalPath) {
-            destDir.mkdirs()
-            srcDir.copyRecursively(destDir, overwrite = true)
+        if (srcDir.exists()) {
+            val destPath = destDir.toPath()
+            val srcPath = srcDir.toPath()
+            if (destDir.exists() && !Files.isSymbolicLink(destPath)) {
+                destDir.deleteRecursively()
+            }
+            if (!destDir.exists() && !Files.isSymbolicLink(destPath)) {
+                try {
+                    Files.createSymbolicLink(destPath, srcPath)
+                } catch (e: Exception) {
+                    // Fallback to copy if symlink is not supported
+                    srcDir.copyRecursively(destDir, overwrite = true)
+                }
+            }
         }
     }
 }

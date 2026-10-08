@@ -4,11 +4,9 @@ import org.jetbrains.kotlin.gradle.targets.js.yarn.YarnPlugin
 import org.jetbrains.kotlin.gradle.targets.js.yarn.YarnRootExtension
 import org.jetbrains.kotlin.gradle.targets.native.tasks.KotlinNativeTest
 import org.jetbrains.kotlin.gradle.tasks.KotlinNativeLink
-import java.io.IOException
-import java.nio.file.FileVisitResult
-import java.nio.file.Files
-import java.nio.file.SimpleFileVisitor
-import java.nio.file.attribute.BasicFileAttributes
+import java.io.File
+import javax.inject.Inject
+import org.gradle.process.ExecOperations
 
 plugins {
     base
@@ -152,64 +150,43 @@ tasks.register("setBuildVersion") {
     }
 }
 
-tasks.named<Delete>("clean") {
-    setDelete(emptySet<Any>())
-    val rootBuildDir = layout.buildDirectory.get().asFile
-    val rootLinkedPkg = layout.projectDirectory.dir("iosApp/KotlinMultiplatformLinkedPackage").asFile
-    val sharedLinkedPkg = layout.projectDirectory.dir("shared/iosApp/KotlinMultiplatformLinkedPackage").asFile
-    doLast {
-        fun deleteSafely(file: File) {
-            if (!file.exists()) return
-            try {
-                Files.walkFileTree(file.toPath(), object : SimpleFileVisitor<java.nio.file.Path>() {
-                    override fun visitFile(f: java.nio.file.Path, attrs: BasicFileAttributes): FileVisitResult {
-                        f.toFile().setWritable(true)
-                        Files.deleteIfExists(f)
-                        return FileVisitResult.CONTINUE
-                    }
-
-                    override fun postVisitDirectory(dir: java.nio.file.Path, exc: IOException?): FileVisitResult {
-                        dir.toFile().setWritable(true)
-                        Files.deleteIfExists(dir)
-                        return FileVisitResult.CONTINUE
-                    }
-                })
-            } catch (_: Exception) {
-                file.deleteRecursively()
+abstract class CleanTaskHelper @Inject constructor(
+    private val execOperations: ExecOperations
+) {
+    fun cleanDirs(vararg paths: String) {
+        val existing = paths.filter { File(it).exists() }
+        if (existing.isNotEmpty()) {
+            execOperations.exec {
+                commandLine("rm", "-rf", *existing.toTypedArray())
+                isIgnoreExitValue = true
             }
         }
+    }
+}
 
-        deleteSafely(rootBuildDir)
-        deleteSafely(rootLinkedPkg)
-        deleteSafely(sharedLinkedPkg)
+val rootBuildDirFile = layout.buildDirectory.get().asFile
+val rootLinkedPkgFile = layout.projectDirectory.dir("iosApp/KotlinMultiplatformLinkedPackage").asFile
+val sharedLinkedPkgFile = layout.projectDirectory.dir("shared/iosApp/KotlinMultiplatformLinkedPackage").asFile
+val rootKotlinBuildDirFile = layout.buildDirectory.dir("kotlin").get().asFile
+
+tasks.named<Delete>("clean") {
+    setDelete(emptySet<Any>())
+    val helper = objects.newInstance<CleanTaskHelper>()
+    val buildPath = rootBuildDirFile.absolutePath
+    val rootPkgPath = rootLinkedPkgFile.absolutePath
+    val sharedPkgPath = sharedLinkedPkgFile.absolutePath
+    doFirst {
+        helper.cleanDirs(buildPath, rootPkgPath, sharedPkgPath)
     }
 }
 
 allprojects {
     tasks.matching { it.name == "cleanSwiftImportFingerprintArtifacts" }.configureEach {
-        val deleteTask = this as? Delete ?: return@configureEach
-        val syntheticDir = rootProject.layout.buildDirectory.dir("kotlin").get().asFile
-        deleteTask.setDelete(emptySet<Any>())
-        deleteTask.doLast {
-            if (syntheticDir.exists()) {
-                try {
-                    java.nio.file.Files.walkFileTree(syntheticDir.toPath(), object : java.nio.file.SimpleFileVisitor<java.nio.file.Path>() {
-                        override fun visitFile(f: java.nio.file.Path, attrs: java.nio.file.attribute.BasicFileAttributes): java.nio.file.FileVisitResult {
-                            f.toFile().setWritable(true)
-                            java.nio.file.Files.deleteIfExists(f)
-                            return java.nio.file.FileVisitResult.CONTINUE
-                        }
-
-                        override fun postVisitDirectory(dir: java.nio.file.Path, exc: java.io.IOException?): java.nio.file.FileVisitResult {
-                            dir.toFile().setWritable(true)
-                            java.nio.file.Files.deleteIfExists(dir)
-                            return java.nio.file.FileVisitResult.CONTINUE
-                        }
-                    })
-                } catch (_: Exception) {
-                    syntheticDir.deleteRecursively()
-                }
-            }
+        (this as? Delete)?.setDelete(emptySet<Any>())
+        val helper = objects.newInstance<CleanTaskHelper>()
+        val kotlinBuildPath = rootKotlinBuildDirFile.absolutePath
+        doFirst {
+            helper.cleanDirs(kotlinBuildPath)
         }
     }
 }
