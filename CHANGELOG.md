@@ -1,3 +1,10 @@
+## [0.18.4](https://github.com/lackary/omnihub/compare/v0.18.3...v0.18.4) (2026-10-12)
+
+
+### Bug Fixes
+
+* **ui:** use local state for username edit dialog to prevent text input lag ([e7474c4](https://github.com/lackary/omnihub/commit/e7474c4332c3e6fb231e50b31177d5bb6b631f55))
+
 ## [0.18.3](https://github.com/lackary/omnihub/compare/v0.18.2...v0.18.3) (2026-09-14)
 
 
