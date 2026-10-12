@@ -44,7 +44,10 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -380,6 +383,10 @@ fun AccountScreenContent(
                     }
 
                     if (state.showEditUsernameDialog) {
+                        var editUsernameText by rememberSaveable(state.showEditUsernameDialog) {
+                            mutableStateOf(state.editUsername)
+                        }
+
                         AlertDialog(
                             onDismissRequest = { onEvent(AccountContract.Event.OnDismissEditUsernameDialog) },
                             modifier = Modifier.responsiveDialog(),
@@ -388,8 +395,8 @@ fun AccountScreenContent(
                             text = {
                                 Column {
                                     OutlinedTextField(
-                                        value = state.editUsername,
-                                        onValueChange = { onEvent(AccountContract.Event.OnUpdateUsernameChanged(it)) },
+                                        value = editUsernameText,
+                                        onValueChange = { editUsernameText = it },
                                         label = { Text("Username") },
                                         singleLine = true,
                                         modifier = Modifier.fillMaxWidth()
@@ -398,8 +405,11 @@ fun AccountScreenContent(
                             },
                             confirmButton = {
                                 Button(
-                                    onClick = { onEvent(AccountContract.Event.OnUpdateUsername) },
-                                    enabled = state.editUsername.isNotBlank()
+                                    onClick = {
+                                        onEvent(AccountContract.Event.OnUpdateUsernameChanged(editUsernameText))
+                                        onEvent(AccountContract.Event.OnUpdateUsername)
+                                    },
+                                    enabled = editUsernameText.isNotBlank()
                                 ) {
                                     Text("Update")
                                 }
