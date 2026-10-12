@@ -17,7 +17,6 @@ val firebaseWebBase64Name = "FIREBASE_WEB_BASE64"
 val googleServerClientIdName = "GOOGLE_SERVER_CLIENT_ID"
 val firebaseProjectIdName = "FIREBASE_PROJECT_ID"
 val firebaseRegionName = "FIREBASE_REGION"
-val firebaseExtCustomAuthPathName = "FIREBASE_EXT_CUSTOM_AUTH_PATH"
 val authEncryptionSaltName = "AUTH_ENCRYPTION_SALT"
 
 // Read buildNumber, default to 1 if not provided (e.g. during development)
@@ -61,7 +60,6 @@ buildkonfig {
     val firebaseWebBase64 = resolveConfigValue(firebaseWebBase64Name, project) ?: ""
     val firebaseProjectId = resolveConfigValue(firebaseProjectIdName, project) ?: ""
     val firebaseRegion = resolveConfigValue(firebaseRegionName, project) ?: "us-central1"
-    val firebaseExtCustomAuthPath = resolveConfigValue(firebaseExtCustomAuthPathName, project) ?: ""
     val authEncryptionSalt = resolveConfigValue(authEncryptionSaltName, project) ?: "OmniHub_2026"
 
     // 1. Automatically decode from Android Base64 and extract Web Client ID (client_type: 3)
@@ -96,7 +94,6 @@ buildkonfig {
         buildConfigField(STRING, googleServerClientIdName, googleServerClientId)
         buildConfigField(STRING, firebaseProjectIdName, firebaseProjectId)
         buildConfigField(STRING, firebaseRegionName, firebaseRegion)
-        buildConfigField(STRING, firebaseExtCustomAuthPathName, firebaseExtCustomAuthPath)
         buildConfigField(STRING, authEncryptionSaltName, authEncryptionSalt)
     }
     targetConfigs {
