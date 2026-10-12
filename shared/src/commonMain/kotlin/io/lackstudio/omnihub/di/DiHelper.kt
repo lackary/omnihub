@@ -30,11 +30,6 @@ fun initKoin(config: KoinAppDeclaration? = null) {
 
     AppLog.init(appLogger)
 
-    // Helper to construct Cloud Function URLs
-    fun getCloudFunctionUrl(path: String): String {
-        return "https://${BuildKonfig.FIREBASE_REGION}-${BuildKonfig.FIREBASE_PROJECT_ID}.cloudfunctions.net/$path"
-    }
-
     val omniFeedConfig = OmniFeedConfig(
         appLogger = appLogger,
         encryptionSalt = BuildKonfig.AUTH_ENCRYPTION_SALT,
@@ -44,7 +39,7 @@ fun initKoin(config: KoinAppDeclaration? = null) {
         ),
         customServices = mapOf(
             Environment.SERVICE_UNSPLASH to CustomServiceConfig(
-                authEndpoint = getCloudFunctionUrl(BuildKonfig.FIREBASE_EXT_CUSTOM_AUTH_PATH)
+                authEndpoint = ""
             )
         )
     )
