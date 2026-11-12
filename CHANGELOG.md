@@ -1,3 +1,10 @@
+## [0.18.5](https://github.com/lackary/omnihub/compare/v0.18.4...v0.18.5) (2026-11-12)
+
+
+### Bug Fixes
+
+* **deps:** update non-major updates (patch & minor) ([5a94684](https://github.com/lackary/omnihub/commit/5a9468460c41de5b6d96a64f6662200fd7e5b9b0))
+
 ## [0.18.4](https://github.com/lackary/omnihub/compare/v0.18.3...v0.18.4) (2026-10-12)
 
 
